@@ -1,0 +1,311 @@
+[
+  [
+    "patient-123",
+    [
+      {
+        "query_id": "7a6d84cf-65f3-402d-b667-20d969deaf04",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "Short answer:",
+        "timestamp": "2025-11-14T08:26:17.661Z",
+        "processing_time_ms": 212757
+      },
+      {
+        "query_id": "d0fc087a-339b-4bb1-8828-b9a886bdf832",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "Short answer:",
+        "timestamp": "2025-11-14T18:41:56.169Z",
+        "processing_time_ms": 364649
+      },
+      {
+        "query_id": "7c860008-7a9a-4fc7-a2e1-5ce400fbebea",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "Short answer:",
+        "timestamp": "2025-11-14T18:54:53.095Z",
+        "processing_time_ms": 80854
+      },
+      {
+        "query_id": "0d2e032f-3f6c-4993-932d-f6566c9ed449",
+        "query": "patients name",
+        "patient_id": "patient-123",
+        "short_answer": "Short answer:",
+        "timestamp": "2025-11-14T18:57:04.583Z",
+        "processing_time_ms": 86789
+      },
+      {
+        "query_id": "0e2a5921-f521-414c-af23-40ec04341560",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "Here is the summary:",
+        "timestamp": "2025-11-14T19:15:32.800Z",
+        "processing_time_ms": 465528
+      },
+      {
+        "query_id": "992960c8-db14-43fc-832d-dd05ed318db5",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "Here is the summary:",
+        "timestamp": "2025-11-14T19:16:06.030Z",
+        "processing_time_ms": 345857
+      },
+      {
+        "query_id": "19843cb2-2366-4b5e-9132-d07bb557ac20",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "Here is the summary:",
+        "timestamp": "2025-11-14T19:21:40.090Z",
+        "processing_time_ms": 279440
+      },
+      {
+        "query_id": "eb97f454-2a1c-4b8c-a237-1a8dd277d138",
+        "query": "medication patient takes as well as where they work",
+        "patient_id": "patient-123",
+        "short_answer": "The patient takes Atorvastatin, Sertraline, Lisinopril, and metFORMIN HCl Oral Tablet.",
+        "timestamp": "2025-11-14T19:58:39.581Z",
+        "processing_time_ms": 141843
+      },
+      {
+        "query_id": "8b948879-7a08-41b9-8b26-02a30306700d",
+        "query": "does the patient havea any previous records withu s",
+        "patient_id": "patient-123",
+        "short_answer": "The patient has no previous records.",
+        "timestamp": "2025-11-14T20:39:49.128Z",
+        "processing_time_ms": 100293
+      },
+      {
+        "query_id": "b36b4892-521e-4a62-b062-5ec638a8c8e5",
+        "query": "what medications does the patient take?",
+        "patient_id": "patient-123",
+        "short_answer": "Atorvastatin Calcium 40 MG tablet.",
+        "timestamp": "2025-11-14T22:55:22.235Z",
+        "processing_time_ms": 183517
+      },
+      {
+        "query_id": "59ad3c0e-d4b1-4419-83b5-3833d19908c4",
+        "query": "what medication does the patient take?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient takes Sertraline.",
+        "timestamp": "2025-11-14T22:59:12.333Z",
+        "processing_time_ms": 141106
+      },
+      {
+        "query_id": "312f69f8-5eec-4b8b-aae9-ca90f4262851",
+        "query": "what medications does the patient take",
+        "patient_id": "patient-123",
+        "short_answer": "The patient takes Atorvastatin Calcium 40 MG tablet.",
+        "timestamp": "2025-11-14T23:03:32.307Z",
+        "processing_time_ms": 175203
+      },
+      {
+        "query_id": "763a88c3-3ffc-40a3-983d-33e92093aab4",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin.",
+        "timestamp": "2025-11-14T23:30:45.585Z",
+        "processing_time_ms": 144441
+      },
+      {
+        "query_id": "4116c2f4-728e-41d6-a609-bce7e3b9a596",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin.",
+        "timestamp": "2025-11-14T23:36:51.083Z",
+        "processing_time_ms": 125643
+      },
+      {
+        "query_id": "53029cd1-a541-44d3-903d-f7b6af8efd67",
+        "query": "what medications is the patient taking",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin, Simvastatin Oral Tablet, Lisinopril, and metFORMIN HCl.",
+        "timestamp": "2025-11-15T02:57:21.149Z",
+        "processing_time_ms": 173868
+      },
+      {
+        "query_id": "6b7b6876-59e5-40ec-98d1-c90ffcfafeed",
+        "query": "what medications is the patient taking",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin, Simvastatin Oral Tablet 20 MG, Lisinopril, and metFORMIN HCl Oral Tablet 500 MG.",
+        "timestamp": "2025-11-15T21:44:27.796Z",
+        "processing_time_ms": 361992
+      },
+      {
+        "query_id": "caf0d3fe-d141-4355-a2bd-6d30bb789749",
+        "query": "what medications does the patient take?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient takes Atorvastatin Calcium Oral Tablet 40 MG.",
+        "timestamp": "2025-11-15T22:22:12.909Z",
+        "processing_time_ms": 183707
+      },
+      {
+        "query_id": "b0b5605e-2d31-4055-9b86-329347c74195",
+        "query": "what medications does the patient take?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient takes Atorvastatin Calcium Oral Tablet 40 MG.",
+        "timestamp": "2025-11-15T23:07:25.585Z",
+        "processing_time_ms": 166192
+      },
+      {
+        "query_id": "130539da-a398-4f48-8e97-02589d550b57",
+        "query": "what medications does the patient take?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin Calcium Oral Tablet 40 MG.",
+        "timestamp": "2025-11-15T23:22:47.313Z",
+        "processing_time_ms": 147309
+      },
+      {
+        "query_id": "f07f685f-eaf2-45bd-bf54-5c57fd3bd916",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin.",
+        "timestamp": "2025-11-16T00:12:42.320Z",
+        "processing_time_ms": 142715
+      },
+      {
+        "query_id": "591027a0-6a1e-4869-b708-8a1869bf5b68",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin, Sertraline, and Simvastatin Oral Tablet.",
+        "timestamp": "2025-11-16T00:18:47.065Z",
+        "processing_time_ms": 139707
+      },
+      {
+        "query_id": "1b8166ca-f7a1-40ac-a6a8-3f0d032fca83",
+        "query": "what medications does the patient take?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin Calcium Oral Tablet 40 MG, Simvastatin Oral Tablet 20 MG, Sertraline, and metFORMIN HCl Oral Tablet 500 MG.",
+        "timestamp": "2025-11-16T00:49:22.043Z",
+        "processing_time_ms": 181243
+      },
+      {
+        "query_id": "0e213005-7c26-48bb-8bd2-9fc5efa63c48",
+        "query": "what medication does the patient take and why",
+        "patient_id": "patient-123",
+        "short_answer": "The patient takes Sertraline, Lisinopril Oral Tablet 20 MG, and metFORMIN HCl 500 MG.",
+        "timestamp": "2025-11-16T01:43:28.583Z",
+        "processing_time_ms": 170331
+      },
+      {
+        "query_id": "0ed5d2a4-bebb-41eb-9025-c616af5de8b6",
+        "query": "what medication does the patient take and why",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Sertraline, Lisinopril Oral Tablet 20 MG, and metFORMIN HCl 500 MG.",
+        "timestamp": "2025-11-16T02:13:38.127Z",
+        "processing_time_ms": 167850
+      },
+      {
+        "query_id": "78817830-99f0-4edb-ac35-f3548628ba3c",
+        "query": "what medication does the patient take and why",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Sertraline, Lisinopril Oral Tablet 20 MG, and metFORMIN HCl 500 MG.",
+        "timestamp": "2025-11-16T02:28:04.046Z",
+        "processing_time_ms": 168998
+      },
+      {
+        "query_id": "fd29e389-aa8e-4542-b3b9-735e71d67260",
+        "query": "what medication does the patient take and why",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Sertraline, Lisinopril, Atorvastatin, and metFORMIN HCl.",
+        "timestamp": "2025-11-16T02:33:04.864Z",
+        "processing_time_ms": 186522
+      },
+      {
+        "query_id": "6237a678-b5f6-4fd9-b059-3840baa29c68",
+        "query": "what medications does the patient take",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin Calcium 40 MG oral tablet, Simvastatin Oral Tablet 20 MG oral, metFORMIN HCl 500 MG oral tablet, Sertraline oral capsule, and Atorvastatin oral - tablet.",
+        "timestamp": "2025-11-16T08:32:13.484Z",
+        "processing_time_ms": 356304
+      },
+      {
+        "query_id": "958dccc6-3361-46b3-a216-0a121e72bfa6",
+        "query": "what medications does the patient take",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin Calcium 40 MG oral tablet, Simvastatin Oral Tablet 20 MG oral, metFORMIN HCl 500 MG oral tablet, and Sertraline oral capsule.",
+        "timestamp": "2025-11-16T10:12:45.194Z",
+        "processing_time_ms": 196480
+      },
+      {
+        "query_id": "dea3a495-29ca-41ac-9d2f-a6adea553041",
+        "query": "what medications does the patient take",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin Calcium oral tablet, Simvastatin Oral Tablet 20 MG, metFORMIN HCl oral tablet 500 MG, Sertraline oral capsule, and Atorvastatin oral tablet.",
+        "timestamp": "2025-11-16T10:21:46.673Z",
+        "processing_time_ms": 375291
+      },
+      {
+        "query_id": "ab5edfee-e156-47ff-b1b2-d2332f8d0056",
+        "query": "does the patient have any chronic conditions",
+        "patient_id": "patient-123",
+        "short_answer": "The patient does not have any documented chronic conditions.",
+        "timestamp": "2025-11-16T10:24:39.633Z",
+        "processing_time_ms": 545743
+      },
+      {
+        "query_id": "86e8cf34-6380-4a34-9860-64201f0715a2",
+        "query": "what medications does the patient take",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin Calcium 40 MG oral tablet, Simvastatin Oral Tablet 20 MG oral, metFORMIN HCl 500 MG oral tablet, Sertraline oral capsule, and Atorvastatin oral - tablet.",
+        "timestamp": "2025-11-16T10:25:02.775Z",
+        "processing_time_ms": 325996
+      },
+      {
+        "query_id": "b26a75f9-9d60-4dfc-8321-a9f65340de04",
+        "query": "what medication does the patient take",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Sertraline oral capsule, Atorvastatin Calcium oral tablet, Simvastatin Oral Tablet 20 MG, and Lisinopril oral tablet.",
+        "timestamp": "2025-11-16T20:21:49.194Z",
+        "processing_time_ms": 192982
+      },
+      {
+        "query_id": "0a22124a-cd1e-470d-996f-796a420f28b7",
+        "query": "what medications does the patient take",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin Calcium 40 MG oral tablet, Simvastatin Oral Tablet 20 MG oral, metFORMIN HCl 500 MG oral tablet, Sertraline oral capsule, and Atorvastatin oral - tablet.",
+        "timestamp": "2025-11-16T20:34:48.871Z",
+        "processing_time_ms": 195438
+      },
+      {
+        "query_id": "305b4f38-62e1-4f2c-9c64-50f4e9fb5922",
+        "query": "what medications does the patient take",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin, Sertraline, and Simvastatin Oral Tablet.",
+        "timestamp": "2025-11-16T20:37:22.274Z",
+        "processing_time_ms": 137974
+      },
+      {
+        "query_id": "0ed749b7-8961-4d66-81ce-e7657ccdf8bc",
+        "query": "what medications does the patient take",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin and Sertraline.",
+        "timestamp": "2025-11-16T21:00:17.041Z",
+        "processing_time_ms": 263771
+      },
+      {
+        "query_id": "282fba46-2172-45da-af39-7bc0896f375f",
+        "query": "list all medications",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Statins Depletion, Simvastatin, Cetirizine HCl, Atorvastatin, Tab-A-Vite, and Lisinopril.",
+        "timestamp": "2025-11-16T21:04:05.484Z",
+        "processing_time_ms": 244612
+      },
+      {
+        "query_id": "1dc3c760-8b6d-48e2-8a52-67b68011d120",
+        "query": "what medications does the patient take?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin, Sertraline, Simvastatin Oral Tablet, and metFORMIN HCl.",
+        "timestamp": "2025-11-16T22:47:02.894Z",
+        "processing_time_ms": 192949
+      },
+      {
+        "query_id": "fdea5304-0a93-49fd-bec9-4020784d6214",
+        "query": "What medications is the patient taking?",
+        "patient_id": "patient-123",
+        "short_answer": "The patient is taking Atorvastatin, Sertraline, Simvastatin Oral Tablet, Lisinopril, and Metformin HCl.",
+        "timestamp": "2025-11-17T01:18:40.982Z",
+        "processing_time_ms": 230997
+      }
+    ]
+  ]
+]

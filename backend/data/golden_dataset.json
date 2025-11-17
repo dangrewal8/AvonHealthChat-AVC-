@@ -1,0 +1,4240 @@
+{
+  "version": "1.0.0",
+  "created_at": "2025-10-27T18:22:53.292Z",
+  "total_entries": 90,
+  "entries": [
+    {
+      "id": "golden_med_001",
+      "category": "medication",
+      "query": "What medications did I recommend for the patient?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "metformin",
+          "type": "medication",
+          "normalized": "Metformin",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-10-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_100",
+          "note_200"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Metformin",
+            "dose": "500mg",
+            "frequency": "twice daily",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_100",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Metformin 500mg twice daily",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_100",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_002",
+      "category": "medication",
+      "query": "Show me all Lisinopril prescriptions",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "lisinopril",
+          "type": "medication",
+          "normalized": "Lisinopril",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_101",
+          "note_201"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Lisinopril",
+            "dose": "10mg",
+            "frequency": "once daily",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_101",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Lisinopril 10mg once daily",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_101",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_003",
+      "category": "medication",
+      "query": "When was Ibuprofen last prescribed?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "ibuprofen",
+          "type": "medication",
+          "normalized": "Ibuprofen",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_102",
+          "note_202"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Ibuprofen",
+            "dose": "400mg",
+            "frequency": "q6h PRN",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_102",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Ibuprofen 400mg q6h PRN",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_102",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_004",
+      "category": "medication",
+      "query": "What dosage of Atorvastatin is the patient taking?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "atorvastatin",
+          "type": "medication",
+          "normalized": "Atorvastatin",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-10-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_103",
+          "note_203"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Atorvastatin",
+            "dose": "20mg",
+            "frequency": "once daily at bedtime",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_103",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Atorvastatin 20mg once daily at bedtime",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_103",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_005",
+      "category": "medication",
+      "query": "Has the patient been prescribed Levothyroxine?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "levothyroxine",
+          "type": "medication",
+          "normalized": "Levothyroxine",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_104",
+          "note_204"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Levothyroxine",
+            "dose": "75mcg",
+            "frequency": "once daily in AM",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_104",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Levothyroxine 75mcg once daily in AM",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_104",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_006",
+      "category": "medication",
+      "query": "What medications did I recommend for the patient?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "metformin",
+          "type": "medication",
+          "normalized": "Metformin",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_105",
+          "note_205"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Metformin",
+            "dose": "500mg",
+            "frequency": "twice daily",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_105",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Metformin 500mg twice daily",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_105",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_007",
+      "category": "medication",
+      "query": "Show me all Lisinopril prescriptions",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "lisinopril",
+          "type": "medication",
+          "normalized": "Lisinopril",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-10-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_106",
+          "note_206"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Lisinopril",
+            "dose": "10mg",
+            "frequency": "once daily",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_106",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Lisinopril 10mg once daily",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_106",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_008",
+      "category": "medication",
+      "query": "When was Ibuprofen last prescribed?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "ibuprofen",
+          "type": "medication",
+          "normalized": "Ibuprofen",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_107",
+          "note_207"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Ibuprofen",
+            "dose": "400mg",
+            "frequency": "q6h PRN",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_107",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Ibuprofen 400mg q6h PRN",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_107",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_009",
+      "category": "medication",
+      "query": "What dosage of Atorvastatin is the patient taking?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "atorvastatin",
+          "type": "medication",
+          "normalized": "Atorvastatin",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_108",
+          "note_208"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Atorvastatin",
+            "dose": "20mg",
+            "frequency": "once daily at bedtime",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_108",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Atorvastatin 20mg once daily at bedtime",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_108",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_010",
+      "category": "medication",
+      "query": "Has the patient been prescribed Levothyroxine?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "levothyroxine",
+          "type": "medication",
+          "normalized": "Levothyroxine",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-10-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_109",
+          "note_209"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Levothyroxine",
+            "dose": "75mcg",
+            "frequency": "once daily in AM",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_109",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Levothyroxine 75mcg once daily in AM",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_109",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_011",
+      "category": "medication",
+      "query": "What medications did I recommend for the patient?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "metformin",
+          "type": "medication",
+          "normalized": "Metformin",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_110",
+          "note_210"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Metformin",
+            "dose": "500mg",
+            "frequency": "twice daily",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_110",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Metformin 500mg twice daily",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_110",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_012",
+      "category": "medication",
+      "query": "Show me all Lisinopril prescriptions",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "lisinopril",
+          "type": "medication",
+          "normalized": "Lisinopril",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_111",
+          "note_211"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Lisinopril",
+            "dose": "10mg",
+            "frequency": "once daily",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_111",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Lisinopril 10mg once daily",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_111",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_013",
+      "category": "medication",
+      "query": "When was Ibuprofen last prescribed?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "ibuprofen",
+          "type": "medication",
+          "normalized": "Ibuprofen",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-10-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_112",
+          "note_212"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Ibuprofen",
+            "dose": "400mg",
+            "frequency": "q6h PRN",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_112",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Ibuprofen 400mg q6h PRN",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_112",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_014",
+      "category": "medication",
+      "query": "What dosage of Atorvastatin is the patient taking?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "atorvastatin",
+          "type": "medication",
+          "normalized": "Atorvastatin",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_113",
+          "note_213"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Atorvastatin",
+            "dose": "20mg",
+            "frequency": "once daily at bedtime",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_113",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Atorvastatin 20mg once daily at bedtime",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_113",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_015",
+      "category": "medication",
+      "query": "Has the patient been prescribed Levothyroxine?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "levothyroxine",
+          "type": "medication",
+          "normalized": "Levothyroxine",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_114",
+          "note_214"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Levothyroxine",
+            "dose": "75mcg",
+            "frequency": "once daily in AM",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_114",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Levothyroxine 75mcg once daily in AM",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_114",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_016",
+      "category": "medication",
+      "query": "What medications did I recommend for the patient?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "metformin",
+          "type": "medication",
+          "normalized": "Metformin",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-10-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_115",
+          "note_215"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Metformin",
+            "dose": "500mg",
+            "frequency": "twice daily",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_115",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Metformin 500mg twice daily",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_115",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_017",
+      "category": "medication",
+      "query": "Show me all Lisinopril prescriptions",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "lisinopril",
+          "type": "medication",
+          "normalized": "Lisinopril",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_116",
+          "note_216"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Lisinopril",
+            "dose": "10mg",
+            "frequency": "once daily",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_116",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Lisinopril 10mg once daily",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_116",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_018",
+      "category": "medication",
+      "query": "When was Ibuprofen last prescribed?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "ibuprofen",
+          "type": "medication",
+          "normalized": "Ibuprofen",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_117",
+          "note_217"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Ibuprofen",
+            "dose": "400mg",
+            "frequency": "q6h PRN",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_117",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Ibuprofen 400mg q6h PRN",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_117",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_019",
+      "category": "medication",
+      "query": "What dosage of Atorvastatin is the patient taking?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "atorvastatin",
+          "type": "medication",
+          "normalized": "Atorvastatin",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-10-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_118",
+          "note_218"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Atorvastatin",
+            "dose": "20mg",
+            "frequency": "once daily at bedtime",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_118",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Atorvastatin 20mg once daily at bedtime",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_118",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_med_020",
+      "category": "medication",
+      "query": "Has the patient been prescribed Levothyroxine?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_medications",
+      "expected_entities": [
+        {
+          "text": "levothyroxine",
+          "type": "medication",
+          "normalized": "Levothyroxine",
+          "confidence": 0.95
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_119",
+          "note_219"
+        ],
+        "expected_extractions": [
+          {
+            "type": "medication_recommendation",
+            "medication": "Levothyroxine",
+            "dose": "75mcg",
+            "frequency": "once daily in AM",
+            "intent": "recommended",
+            "recommended_by": "Dr. Smith",
+            "recommendation_date": "2024-11-15",
+            "provenance": [
+              {
+                "artifact_id": "cp_119",
+                "char_offsets": [
+                  0,
+                  50
+                ],
+                "supporting_text": "Plan: Start Levothyroxine 75mcg once daily in AM",
+                "source": "https://demo-api.avonhealth.com/careplans/cp_119",
+                "score": 0.92
+              }
+            ]
+          }
+        ],
+        "expected_confidence_min": 0.85,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.95,
+        "precision_at_5_min": 0.9,
+        "extraction_f1_min": 0.9,
+        "citation_accuracy_min": 0.98
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "medication",
+          "prescription"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_001",
+      "category": "care_plan",
+      "query": "Show me the care plan for Diabetes",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "diabetes",
+          "type": "condition",
+          "normalized": "Diabetes",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-11-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 2 months",
+        "relativeType": "months",
+        "amount": 2
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_300",
+          "cp_400"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Diabetes",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "care_plan",
+          "diabetes"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_002",
+      "category": "care_plan",
+      "query": "What is the treatment plan for Hypertension?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "hypertension",
+          "type": "condition",
+          "normalized": "Hypertension",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_301",
+          "cp_401"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Hypertension",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "care_plan",
+          "hypertension"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_003",
+      "category": "care_plan",
+      "query": "Find all care plans related to Asthma",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "asthma",
+          "type": "condition",
+          "normalized": "Asthma",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-11-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 2 months",
+        "relativeType": "months",
+        "amount": 2
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_302",
+          "cp_402"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Asthma",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "care_plan",
+          "asthma"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_004",
+      "category": "care_plan",
+      "query": "What are the goals for managing COPD?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "copd",
+          "type": "condition",
+          "normalized": "COPD",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_303",
+          "cp_403"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "COPD",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "care_plan",
+          "copd"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_005",
+      "category": "care_plan",
+      "query": "Show me recent care plans",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "heart failure",
+          "type": "condition",
+          "normalized": "Heart Failure",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-11-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 2 months",
+        "relativeType": "months",
+        "amount": 2
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_304",
+          "cp_404"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Heart Failure",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "care_plan",
+          "heart failure"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_006",
+      "category": "care_plan",
+      "query": "Show me the care plan for Diabetes",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "diabetes",
+          "type": "condition",
+          "normalized": "Diabetes",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_305",
+          "cp_405"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Diabetes",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "care_plan",
+          "diabetes"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_007",
+      "category": "care_plan",
+      "query": "What is the treatment plan for Hypertension?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "hypertension",
+          "type": "condition",
+          "normalized": "Hypertension",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-11-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 2 months",
+        "relativeType": "months",
+        "amount": 2
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_306",
+          "cp_406"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Hypertension",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "care_plan",
+          "hypertension"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_008",
+      "category": "care_plan",
+      "query": "Find all care plans related to Asthma",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "asthma",
+          "type": "condition",
+          "normalized": "Asthma",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_307",
+          "cp_407"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Asthma",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "care_plan",
+          "asthma"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_009",
+      "category": "care_plan",
+      "query": "What are the goals for managing COPD?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "copd",
+          "type": "condition",
+          "normalized": "COPD",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-11-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 2 months",
+        "relativeType": "months",
+        "amount": 2
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_308",
+          "cp_408"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "COPD",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "care_plan",
+          "copd"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_010",
+      "category": "care_plan",
+      "query": "Show me recent care plans",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "heart failure",
+          "type": "condition",
+          "normalized": "Heart Failure",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_309",
+          "cp_409"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Heart Failure",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "care_plan",
+          "heart failure"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_011",
+      "category": "care_plan",
+      "query": "Show me the care plan for Diabetes",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "diabetes",
+          "type": "condition",
+          "normalized": "Diabetes",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-11-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 2 months",
+        "relativeType": "months",
+        "amount": 2
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_310",
+          "cp_410"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Diabetes",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "care_plan",
+          "diabetes"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_012",
+      "category": "care_plan",
+      "query": "What is the treatment plan for Hypertension?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "hypertension",
+          "type": "condition",
+          "normalized": "Hypertension",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_311",
+          "cp_411"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Hypertension",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "care_plan",
+          "hypertension"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_013",
+      "category": "care_plan",
+      "query": "Find all care plans related to Asthma",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "asthma",
+          "type": "condition",
+          "normalized": "Asthma",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-11-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 2 months",
+        "relativeType": "months",
+        "amount": 2
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_312",
+          "cp_412"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Asthma",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "care_plan",
+          "asthma"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_014",
+      "category": "care_plan",
+      "query": "What are the goals for managing COPD?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "copd",
+          "type": "condition",
+          "normalized": "COPD",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_313",
+          "cp_413"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "COPD",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "care_plan",
+          "copd"
+        ]
+      }
+    },
+    {
+      "id": "golden_cp_015",
+      "category": "care_plan",
+      "query": "Show me recent care plans",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_care_plans",
+      "expected_entities": [
+        {
+          "text": "heart failure",
+          "type": "condition",
+          "normalized": "Heart Failure",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": {
+        "dateFrom": "2024-11-01",
+        "dateTo": "2025-01-01",
+        "timeReference": "last 2 months",
+        "relativeType": "months",
+        "amount": 2
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "cp_314",
+          "cp_414"
+        ],
+        "expected_extractions": [
+          {
+            "type": "care_plan",
+            "condition": "Heart Failure",
+            "goals": [
+              "Maintain blood sugar control",
+              "Prevent complications"
+            ],
+            "interventions": [
+              "Medication management",
+              "Lifestyle modifications"
+            ],
+            "created_by": "Dr. Johnson",
+            "created_date": "2024-11-01"
+          }
+        ],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 2
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "care_plan",
+          "heart failure"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_001",
+      "category": "temporal",
+      "query": "What changed in the last week?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-10-20",
+        "dateTo": "2025-10-27",
+        "timeReference": "last week",
+        "relativeType": "weeks",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_500",
+          "note_600",
+          "cp_700"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.289Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "temporal",
+          "last_week"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_002",
+      "category": "temporal",
+      "query": "Show me all updates from last month",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-09-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last month",
+        "relativeType": "months",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_501",
+          "note_601",
+          "cp_701"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "temporal",
+          "last_month"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_003",
+      "category": "temporal",
+      "query": "What new information was added last 3 months?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-07-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_502",
+          "note_602",
+          "cp_702"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "temporal",
+          "last_3 months"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_004",
+      "category": "temporal",
+      "query": "Find notes created last year",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2024-10-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last year",
+        "relativeType": "years",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_503",
+          "note_603",
+          "cp_703"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "temporal",
+          "last_year"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_005",
+      "category": "temporal",
+      "query": "What medications were prescribed last week?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-10-20",
+        "dateTo": "2025-10-27",
+        "timeReference": "last week",
+        "relativeType": "weeks",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_504",
+          "note_604",
+          "cp_704"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "temporal",
+          "last_week"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_006",
+      "category": "temporal",
+      "query": "What changed in the last month?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-09-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last month",
+        "relativeType": "months",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_505",
+          "note_605",
+          "cp_705"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "temporal",
+          "last_month"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_007",
+      "category": "temporal",
+      "query": "Show me all updates from last 3 months",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-07-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_506",
+          "note_606",
+          "cp_706"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "temporal",
+          "last_3 months"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_008",
+      "category": "temporal",
+      "query": "What new information was added last year?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2024-10-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last year",
+        "relativeType": "years",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_507",
+          "note_607",
+          "cp_707"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "temporal",
+          "last_year"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_009",
+      "category": "temporal",
+      "query": "Find notes created last week",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-10-20",
+        "dateTo": "2025-10-27",
+        "timeReference": "last week",
+        "relativeType": "weeks",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_508",
+          "note_608",
+          "cp_708"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "temporal",
+          "last_week"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_010",
+      "category": "temporal",
+      "query": "What medications were prescribed last month?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-09-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last month",
+        "relativeType": "months",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_509",
+          "note_609",
+          "cp_709"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "temporal",
+          "last_month"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_011",
+      "category": "temporal",
+      "query": "What changed in the last 3 months?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-07-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_510",
+          "note_610",
+          "cp_710"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "temporal",
+          "last_3 months"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_012",
+      "category": "temporal",
+      "query": "Show me all updates from last year",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2024-10-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last year",
+        "relativeType": "years",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_511",
+          "note_611",
+          "cp_711"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "temporal",
+          "last_year"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_013",
+      "category": "temporal",
+      "query": "What new information was added last week?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-10-20",
+        "dateTo": "2025-10-27",
+        "timeReference": "last week",
+        "relativeType": "weeks",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_512",
+          "note_612",
+          "cp_712"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "temporal",
+          "last_week"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_014",
+      "category": "temporal",
+      "query": "Find notes created last month",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-09-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last month",
+        "relativeType": "months",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_513",
+          "note_613",
+          "cp_713"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "temporal",
+          "last_month"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_015",
+      "category": "temporal",
+      "query": "What medications were prescribed last 3 months?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-07-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_514",
+          "note_614",
+          "cp_714"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "temporal",
+          "last_3 months"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_016",
+      "category": "temporal",
+      "query": "What changed in the last year?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2024-10-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last year",
+        "relativeType": "years",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_515",
+          "note_615",
+          "cp_715"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "temporal",
+          "last_year"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_017",
+      "category": "temporal",
+      "query": "Show me all updates from last week",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-10-20",
+        "dateTo": "2025-10-27",
+        "timeReference": "last week",
+        "relativeType": "weeks",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_516",
+          "note_616",
+          "cp_716"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "temporal",
+          "last_week"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_018",
+      "category": "temporal",
+      "query": "What new information was added last month?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-09-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last month",
+        "relativeType": "months",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_517",
+          "note_617",
+          "cp_717"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "temporal",
+          "last_month"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_019",
+      "category": "temporal",
+      "query": "Find notes created last 3 months",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2025-07-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last 3 months",
+        "relativeType": "months",
+        "amount": 3
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_518",
+          "note_618",
+          "cp_718"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "temporal",
+          "last_3 months"
+        ]
+      }
+    },
+    {
+      "id": "golden_temp_020",
+      "category": "temporal",
+      "query": "What medications were prescribed last year?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "retrieve_recent",
+      "expected_entities": [],
+      "expected_temporal": {
+        "dateFrom": "2024-10-27",
+        "dateTo": "2025-10-27",
+        "timeReference": "last year",
+        "relativeType": "years",
+        "amount": 1
+      },
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_519",
+          "note_619",
+          "cp_719"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.75,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.85,
+        "precision_at_5_min": 0.8,
+        "extraction_f1_min": 0.8,
+        "citation_accuracy_min": 0.9
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "temporal",
+          "last_year"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_001",
+      "category": "entity",
+      "query": "Find all records mentioning ibuprofen",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "ibuprofen",
+          "type": "medication",
+          "normalized": "ibuprofen",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_800",
+          "cp_900",
+          "med_1000"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "entity",
+          "ibuprofen"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_002",
+      "category": "entity",
+      "query": "Find all records mentioning diabetes",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "diabetes",
+          "type": "condition",
+          "normalized": "diabetes",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_801",
+          "cp_901",
+          "med_1001"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "entity",
+          "diabetes"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_003",
+      "category": "entity",
+      "query": "Find all records mentioning blood pressure",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "blood pressure",
+          "type": "medication",
+          "normalized": "blood pressure",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_802",
+          "cp_902",
+          "med_1002"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "entity",
+          "blood_pressure"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_004",
+      "category": "entity",
+      "query": "Find all records mentioning glucose",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "glucose",
+          "type": "condition",
+          "normalized": "glucose",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_803",
+          "cp_903",
+          "med_1003"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "entity",
+          "glucose"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_005",
+      "category": "entity",
+      "query": "Find all records mentioning insulin",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "insulin",
+          "type": "medication",
+          "normalized": "insulin",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_804",
+          "cp_904",
+          "med_1004"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "easy",
+        "tags": [
+          "entity",
+          "insulin"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_006",
+      "category": "entity",
+      "query": "Find all records mentioning ibuprofen",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "ibuprofen",
+          "type": "condition",
+          "normalized": "ibuprofen",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_805",
+          "cp_905",
+          "med_1005"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "entity",
+          "ibuprofen"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_007",
+      "category": "entity",
+      "query": "Find all records mentioning diabetes",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "diabetes",
+          "type": "medication",
+          "normalized": "diabetes",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_806",
+          "cp_906",
+          "med_1006"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "entity",
+          "diabetes"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_008",
+      "category": "entity",
+      "query": "Find all records mentioning blood pressure",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "blood pressure",
+          "type": "condition",
+          "normalized": "blood pressure",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_807",
+          "cp_907",
+          "med_1007"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "entity",
+          "blood_pressure"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_009",
+      "category": "entity",
+      "query": "Find all records mentioning glucose",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "glucose",
+          "type": "medication",
+          "normalized": "glucose",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_808",
+          "cp_908",
+          "med_1008"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "entity",
+          "glucose"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_010",
+      "category": "entity",
+      "query": "Find all records mentioning insulin",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "insulin",
+          "type": "condition",
+          "normalized": "insulin",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_809",
+          "cp_909",
+          "med_1009"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "entity",
+          "insulin"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_011",
+      "category": "entity",
+      "query": "Find all records mentioning ibuprofen",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "ibuprofen",
+          "type": "medication",
+          "normalized": "ibuprofen",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_810",
+          "cp_910",
+          "med_1010"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "entity",
+          "ibuprofen"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_012",
+      "category": "entity",
+      "query": "Find all records mentioning diabetes",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "diabetes",
+          "type": "condition",
+          "normalized": "diabetes",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_811",
+          "cp_911",
+          "med_1011"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "entity",
+          "diabetes"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_013",
+      "category": "entity",
+      "query": "Find all records mentioning blood pressure",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "blood pressure",
+          "type": "medication",
+          "normalized": "blood pressure",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_812",
+          "cp_912",
+          "med_1012"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "entity",
+          "blood_pressure"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_014",
+      "category": "entity",
+      "query": "Find all records mentioning glucose",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "glucose",
+          "type": "condition",
+          "normalized": "glucose",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_813",
+          "cp_913",
+          "med_1013"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "entity",
+          "glucose"
+        ]
+      }
+    },
+    {
+      "id": "golden_ent_015",
+      "category": "entity",
+      "query": "Find all records mentioning insulin",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [
+        {
+          "text": "insulin",
+          "type": "medication",
+          "normalized": "insulin",
+          "confidence": 0.9
+        }
+      ],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_814",
+          "cp_914",
+          "med_1014"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.8,
+        "expected_sources_min": 3
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.9,
+        "precision_at_5_min": 0.85,
+        "extraction_f1_min": 0.85,
+        "citation_accuracy_min": 0.95
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "entity",
+          "insulin"
+        ]
+      }
+    },
+    {
+      "id": "golden_neg_001",
+      "category": "negative",
+      "query": "Show me prescriptions for penicillin",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [],
+        "expected_extractions": [],
+        "expected_confidence_min": 0,
+        "expected_sources_min": 0
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 1,
+        "precision_at_5_min": 1,
+        "extraction_f1_min": 1,
+        "citation_accuracy_min": 1
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "negative",
+          "no_results_expected"
+        ],
+        "notes": "This query should return no results for this patient"
+      }
+    },
+    {
+      "id": "golden_neg_002",
+      "category": "negative",
+      "query": "Find records about surgery",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [],
+        "expected_extractions": [],
+        "expected_confidence_min": 0,
+        "expected_sources_min": 0
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 1,
+        "precision_at_5_min": 1,
+        "extraction_f1_min": 1,
+        "citation_accuracy_min": 1
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "negative",
+          "no_results_expected"
+        ],
+        "notes": "This query should return no results for this patient"
+      }
+    },
+    {
+      "id": "golden_neg_003",
+      "category": "negative",
+      "query": "What about chemotherapy treatments?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [],
+        "expected_extractions": [],
+        "expected_confidence_min": 0,
+        "expected_sources_min": 0
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 1,
+        "precision_at_5_min": 1,
+        "extraction_f1_min": 1,
+        "citation_accuracy_min": 1
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "negative",
+          "no_results_expected"
+        ],
+        "notes": "This query should return no results for this patient"
+      }
+    },
+    {
+      "id": "golden_neg_004",
+      "category": "negative",
+      "query": "Show me dental procedures",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [],
+        "expected_extractions": [],
+        "expected_confidence_min": 0,
+        "expected_sources_min": 0
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 1,
+        "precision_at_5_min": 1,
+        "extraction_f1_min": 1,
+        "citation_accuracy_min": 1
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "negative",
+          "no_results_expected"
+        ],
+        "notes": "This query should return no results for this patient"
+      }
+    },
+    {
+      "id": "golden_neg_005",
+      "category": "negative",
+      "query": "Find information about broken bones",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [],
+        "expected_extractions": [],
+        "expected_confidence_min": 0,
+        "expected_sources_min": 0
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 1,
+        "precision_at_5_min": 1,
+        "extraction_f1_min": 1,
+        "citation_accuracy_min": 1
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "negative",
+          "no_results_expected"
+        ],
+        "notes": "This query should return no results for this patient"
+      }
+    },
+    {
+      "id": "golden_neg_006",
+      "category": "negative",
+      "query": "What about radiation therapy?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [],
+        "expected_extractions": [],
+        "expected_confidence_min": 0,
+        "expected_sources_min": 0
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 1,
+        "precision_at_5_min": 1,
+        "extraction_f1_min": 1,
+        "citation_accuracy_min": 1
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "negative",
+          "no_results_expected"
+        ],
+        "notes": "This query should return no results for this patient"
+      }
+    },
+    {
+      "id": "golden_neg_007",
+      "category": "negative",
+      "query": "Show me psychiatric evaluations",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [],
+        "expected_extractions": [],
+        "expected_confidence_min": 0,
+        "expected_sources_min": 0
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 1,
+        "precision_at_5_min": 1,
+        "extraction_f1_min": 1,
+        "citation_accuracy_min": 1
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "negative",
+          "no_results_expected"
+        ],
+        "notes": "This query should return no results for this patient"
+      }
+    },
+    {
+      "id": "golden_neg_008",
+      "category": "negative",
+      "query": "Find records about allergies to shellfish",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [],
+        "expected_extractions": [],
+        "expected_confidence_min": 0,
+        "expected_sources_min": 0
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 1,
+        "precision_at_5_min": 1,
+        "extraction_f1_min": 1,
+        "citation_accuracy_min": 1
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "negative",
+          "no_results_expected"
+        ],
+        "notes": "This query should return no results for this patient"
+      }
+    },
+    {
+      "id": "golden_neg_009",
+      "category": "negative",
+      "query": "What about vaccinations for travel?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [],
+        "expected_extractions": [],
+        "expected_confidence_min": 0,
+        "expected_sources_min": 0
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 1,
+        "precision_at_5_min": 1,
+        "extraction_f1_min": 1,
+        "citation_accuracy_min": 1
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "negative",
+          "no_results_expected"
+        ],
+        "notes": "This query should return no results for this patient"
+      }
+    },
+    {
+      "id": "golden_neg_010",
+      "category": "negative",
+      "query": "Show me ophthalmology visits",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [],
+        "expected_extractions": [],
+        "expected_confidence_min": 0,
+        "expected_sources_min": 0
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 1,
+        "precision_at_5_min": 1,
+        "extraction_f1_min": 1,
+        "citation_accuracy_min": 1
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_1",
+      "metadata": {
+        "difficulty": "medium",
+        "tags": [
+          "negative",
+          "no_results_expected"
+        ],
+        "notes": "This query should return no results for this patient"
+      }
+    },
+    {
+      "id": "golden_amb_001",
+      "category": "ambiguous",
+      "query": "What did we discuss?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_1100",
+          "cp_1200"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.5,
+        "expected_sources_min": 1
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.7,
+        "precision_at_5_min": 0.7,
+        "extraction_f1_min": 0.7,
+        "citation_accuracy_min": 0.8
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "ambiguous",
+          "unclear_intent"
+        ],
+        "notes": "Query lacks specificity - system should handle gracefully"
+      }
+    },
+    {
+      "id": "golden_amb_002",
+      "category": "ambiguous",
+      "query": "Show me the thing from before",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_1101",
+          "cp_1201"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.5,
+        "expected_sources_min": 1
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.7,
+        "precision_at_5_min": 0.7,
+        "extraction_f1_min": 0.7,
+        "citation_accuracy_min": 0.8
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "ambiguous",
+          "unclear_intent"
+        ],
+        "notes": "Query lacks specificity - system should handle gracefully"
+      }
+    },
+    {
+      "id": "golden_amb_003",
+      "category": "ambiguous",
+      "query": "What was that medication again?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_1102",
+          "cp_1202"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.5,
+        "expected_sources_min": 1
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.7,
+        "precision_at_5_min": 0.7,
+        "extraction_f1_min": 0.7,
+        "citation_accuracy_min": 0.8
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "ambiguous",
+          "unclear_intent"
+        ],
+        "notes": "Query lacks specificity - system should handle gracefully"
+      }
+    },
+    {
+      "id": "golden_amb_004",
+      "category": "ambiguous",
+      "query": "Find the recent stuff",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_1103",
+          "cp_1203"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.5,
+        "expected_sources_min": 1
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.7,
+        "precision_at_5_min": 0.7,
+        "extraction_f1_min": 0.7,
+        "citation_accuracy_min": 0.8
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "ambiguous",
+          "unclear_intent"
+        ],
+        "notes": "Query lacks specificity - system should handle gracefully"
+      }
+    },
+    {
+      "id": "golden_amb_005",
+      "category": "ambiguous",
+      "query": "What about the problem?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_1104",
+          "cp_1204"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.5,
+        "expected_sources_min": 1
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.7,
+        "precision_at_5_min": 0.7,
+        "extraction_f1_min": 0.7,
+        "citation_accuracy_min": 0.8
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "ambiguous",
+          "unclear_intent"
+        ],
+        "notes": "Query lacks specificity - system should handle gracefully"
+      }
+    },
+    {
+      "id": "golden_amb_006",
+      "category": "ambiguous",
+      "query": "Show me what we talked about",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_1105",
+          "cp_1205"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.5,
+        "expected_sources_min": 1
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.7,
+        "precision_at_5_min": 0.7,
+        "extraction_f1_min": 0.7,
+        "citation_accuracy_min": 0.8
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "ambiguous",
+          "unclear_intent"
+        ],
+        "notes": "Query lacks specificity - system should handle gracefully"
+      }
+    },
+    {
+      "id": "golden_amb_007",
+      "category": "ambiguous",
+      "query": "What was the plan?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_1106",
+          "cp_1206"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.5,
+        "expected_sources_min": 1
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.7,
+        "precision_at_5_min": 0.7,
+        "extraction_f1_min": 0.7,
+        "citation_accuracy_min": 0.8
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "ambiguous",
+          "unclear_intent"
+        ],
+        "notes": "Query lacks specificity - system should handle gracefully"
+      }
+    },
+    {
+      "id": "golden_amb_008",
+      "category": "ambiguous",
+      "query": "Find that thing",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_1107",
+          "cp_1207"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.5,
+        "expected_sources_min": 1
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.7,
+        "precision_at_5_min": 0.7,
+        "extraction_f1_min": 0.7,
+        "citation_accuracy_min": 0.8
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "ambiguous",
+          "unclear_intent"
+        ],
+        "notes": "Query lacks specificity - system should handle gracefully"
+      }
+    },
+    {
+      "id": "golden_amb_009",
+      "category": "ambiguous",
+      "query": "What about it?",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_1108",
+          "cp_1208"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.5,
+        "expected_sources_min": 1
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.7,
+        "precision_at_5_min": 0.7,
+        "extraction_f1_min": 0.7,
+        "citation_accuracy_min": 0.8
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "ambiguous",
+          "unclear_intent"
+        ],
+        "notes": "Query lacks specificity - system should handle gracefully"
+      }
+    },
+    {
+      "id": "golden_amb_010",
+      "category": "ambiguous",
+      "query": "Show me something",
+      "patient_id": "user_3kmUMGZdobZMsMwxp8TFp4eSu1",
+      "expected_intent": "search",
+      "expected_entities": [],
+      "expected_temporal": null,
+      "ground_truth": {
+        "relevant_artifact_ids": [
+          "note_1109",
+          "cp_1209"
+        ],
+        "expected_extractions": [],
+        "expected_confidence_min": 0.5,
+        "expected_sources_min": 1
+      },
+      "acceptance_criteria": {
+        "recall_at_5_min": 0.7,
+        "precision_at_5_min": 0.7,
+        "extraction_f1_min": 0.7,
+        "citation_accuracy_min": 0.8
+      },
+      "created_at": "2025-10-27T18:22:53.290Z",
+      "verified_by": "clinical_reviewer_2",
+      "metadata": {
+        "difficulty": "hard",
+        "tags": [
+          "ambiguous",
+          "unclear_intent"
+        ],
+        "notes": "Query lacks specificity - system should handle gracefully"
+      }
+    }
+  ],
+  "categories": {
+    "medication": 20,
+    "care_plan": 15,
+    "temporal": 20,
+    "entity": 15,
+    "negative": 10,
+    "ambiguous": 10
+  },
+  "metadata": {
+    "description": "Golden dataset for RAG pipeline evaluation",
+    "author": "Avon Health Team",
+    "purpose": "Testing and validation of query processing, retrieval, and extraction"
+  }
+}

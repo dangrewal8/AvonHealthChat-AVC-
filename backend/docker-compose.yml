@@ -1,0 +1,85 @@
+# Docker Compose Configuration
+# For local development and testing
+#
+# Tech Stack: Docker + Node.js + Express
+#
+# Usage:
+#   docker-compose up          # Start services
+#   docker-compose down        # Stop services
+#   docker-compose logs -f     # View logs
+#   docker-compose ps          # List services
+
+version: '3.8'
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: avonhealth-backend
+    image: avonhealth-backend:latest
+    ports:
+      - "3001:3001"
+    environment:
+      # Server configuration
+      - NODE_ENV=production
+      - PORT=3001
+      - HOST=0.0.0.0
+
+      # API configuration
+      - API_URL=${API_URL:-https://demo-api.avonhealth.com}
+      - API_TOKEN=${API_TOKEN}
+
+      # CORS configuration
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+
+      # Cache configuration (optional)
+      - CACHE_ENABLED=${CACHE_ENABLED:-true}
+      - CACHE_TTL=${CACHE_TTL:-3600}
+
+    # Mount volumes for data persistence (optional)
+    volumes:
+      # Uncomment to persist data
+      # - ./data:/app/data
+      # Uncomment for logs
+      # - ./logs:/app/logs
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Networks
+networks:
+  default:
+    name: avonhealth-network
+    driver: bridge
+
+# Volumes (if needed)
+# volumes:
+#   backend-data:
+#     driver: local

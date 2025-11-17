@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+*.js.map
+
+# Environment files
+# Keep environment-specific templates in git (.env.development, .env.production, .env.test)
+# But exclude .env and any .local overrides
+.env
+.env.local
+.env.*.local
+
+# Note: .env.development, .env.production, and .env.test are tracked in git as templates
+# Users should copy and update these files with their actual credentials
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Vector database storage
+chroma_data/
+faiss_index/
+*.index
+*.faiss
+
+# Cache
+.cache/
