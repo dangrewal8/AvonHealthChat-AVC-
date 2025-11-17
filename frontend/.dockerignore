@@ -1,0 +1,79 @@
+# .dockerignore
+# Excludes files from Docker build context for faster builds and smaller images
+
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+yarn.lock
+# package-lock.json  # Needed for npm ci in Dockerfile
+pnpm-lock.yaml
+
+# Build output
+dist
+build
+.vite
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage
+.nyc_output
+**/*.test.tsx
+**/*.test.ts
+**/*.spec.tsx
+**/*.spec.ts
+
+# Documentation
+*.md
+!README.md
+docs
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Miscellaneous
+.eslintrc*
+.prettierrc*
+# tsconfig.json  # NEEDED for build
+# vite.config.ts  # NEEDED for build

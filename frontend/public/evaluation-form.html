@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Human Evaluation Form - RAG Pipeline Assessment</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #7f8c8d;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #34495e;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #3498db;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 8px;
+    }
+
+    .required {
+      color: #e74c3c;
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .rating-group {
+      margin-bottom: 25px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+
+    .rating-label {
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .rating-description {
+      font-size: 13px;
+      color: #7f8c8d;
+      margin-bottom: 12px;
+    }
+
+    .rating-options {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .rating-option {
+      flex: 1;
+      min-width: 80px;
+    }
+
+    .rating-option input[type="radio"] {
+      display: none;
+    }
+
+    .rating-option label {
+      display: block;
+      padding: 10px;
+      text-align: center;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 500;
+    }
+
+    .rating-option input[type="radio"]:checked + label {
+      background: #3498db;
+      color: white;
+      border-color: #3498db;
+    }
+
+    .rating-option label:hover {
+      border-color: #3498db;
+      background: #ecf0f1;
+    }
+
+    .rating-option input[type="radio"]:checked + label:hover {
+      background: #2980b9;
+    }
+
+    .rating-scale {
+      font-size: 12px;
+      color: #95a5a6;
+      margin-top: 8px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      margin-right: 8px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .checkbox-item label {
+      margin: 0;
+      font-weight: normal;
+      cursor: pointer;
+    }
+
+    .response-preview {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      border-left: 4px solid #3498db;
+      margin-top: 10px;
+    }
+
+    .response-preview h4 {
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+
+    .response-preview pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .submit-button {
+      background: #3498db;
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+      width: 100%;
+    }
+
+    .submit-button:hover {
+      background: #2980b9;
+    }
+
+    .submit-button:disabled {
+      background: #95a5a6;
+      cursor: not-allowed;
+    }
+
+    .success-message,
+    .error-message {
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .guidelines {
+      background: #fff3cd;
+      padding: 15px;
+      border-radius: 4px;
+      border-left: 4px solid #ffc107;
+      margin-bottom: 20px;
+    }
+
+    .guidelines h3 {
+      margin-bottom: 10px;
+      color: #856404;
+    }
+
+    .guidelines ul {
+      margin-left: 20px;
+    }
+
+    .guidelines li {
+      margin-bottom: 5px;
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Human Evaluation Form</h1>
+    <p class="subtitle">RAG Pipeline Response Assessment</p>
+
+    <div class="success-message" id="successMessage">
+      Evaluation submitted successfully!
+    </div>
+
+    <div class="error-message" id="errorMessage">
+      Error submitting evaluation. Please check your inputs and try again.
+    </div>
+
+    <div class="guidelines">
+      <h3>Evaluation Guidelines</h3>
+      <ul>
+        <li><strong>Accuracy</strong>: Is the answer factually correct?</li>
+        <li><strong>Completeness</strong>: Does it answer all parts of the question?</li>
+        <li><strong>Citation Quality</strong>: Are sources relevant and properly cited?</li>
+        <li><strong>Relevance</strong>: Is the response on-topic?</li>
+      </ul>
+    </div>
+
+    <form id="evaluationForm">
+      <!-- Query Information -->
+      <div class="section">
+        <h2 class="section-title">Query Information</h2>
+
+        <div class="form-group">
+          <label for="queryId">Query ID <span class="required">*</span></label>
+          <input type="text" id="queryId" name="queryId" required placeholder="e.g., query-12345">
+        </div>
+
+        <div class="form-group">
+          <label for="queryText">Query Text <span class="required">*</span></label>
+          <textarea id="queryText" name="queryText" required placeholder="Enter the original query that was asked..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="responseText">Response (Short Answer) <span class="required">*</span></label>
+          <textarea id="responseText" name="responseText" required placeholder="Enter the short answer provided by the system..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="detailedSummary">Response (Detailed Summary)</label>
+          <textarea id="detailedSummary" name="detailedSummary" placeholder="Enter the detailed summary if available..."></textarea>
+        </div>
+      </div>
+
+      <!-- Ratings -->
+      <div class="section">
+        <h2 class="section-title">Evaluation Ratings</h2>
+
+        <div class="rating-group">
+          <span class="rating-label">Accuracy <span class="required">*</span></span>
+          <p class="rating-description">Is the answer factually correct?</p>
+          <div class="rating-options">
+            <div class="rating-option">
+              <input type="radio" id="accuracy1" name="accuracy" value="1" required>
+              <label for="accuracy1">1<br>Unacceptable</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="accuracy2" name="accuracy" value="2">
+              <label for="accuracy2">2<br>Poor</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="accuracy3" name="accuracy" value="3">
+              <label for="accuracy3">3<br>Acceptable</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="accuracy4" name="accuracy" value="4">
+              <label for="accuracy4">4<br>Good</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="accuracy5" name="accuracy" value="5">
+              <label for="accuracy5">5<br>Excellent</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="rating-group">
+          <span class="rating-label">Completeness <span class="required">*</span></span>
+          <p class="rating-description">Does it answer all parts of the question?</p>
+          <div class="rating-options">
+            <div class="rating-option">
+              <input type="radio" id="completeness1" name="completeness" value="1" required>
+              <label for="completeness1">1<br>Unacceptable</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="completeness2" name="completeness" value="2">
+              <label for="completeness2">2<br>Poor</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="completeness3" name="completeness" value="3">
+              <label for="completeness3">3<br>Acceptable</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="completeness4" name="completeness" value="4">
+              <label for="completeness4">4<br>Good</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="completeness5" name="completeness" value="5">
+              <label for="completeness5">5<br>Excellent</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="rating-group">
+          <span class="rating-label">Citation Quality <span class="required">*</span></span>
+          <p class="rating-description">Are sources relevant and properly cited?</p>
+          <div class="rating-options">
+            <div class="rating-option">
+              <input type="radio" id="citationQuality1" name="citationQuality" value="1" required>
+              <label for="citationQuality1">1<br>Unacceptable</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="citationQuality2" name="citationQuality" value="2">
+              <label for="citationQuality2">2<br>Poor</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="citationQuality3" name="citationQuality" value="3">
+              <label for="citationQuality3">3<br>Acceptable</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="citationQuality4" name="citationQuality" value="4">
+              <label for="citationQuality4">4<br>Good</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="citationQuality5" name="citationQuality" value="5">
+              <label for="citationQuality5">5<br>Excellent</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="rating-group">
+          <span class="rating-label">Relevance <span class="required">*</span></span>
+          <p class="rating-description">Is the response on-topic?</p>
+          <div class="rating-options">
+            <div class="rating-option">
+              <input type="radio" id="relevance1" name="relevance" value="1" required>
+              <label for="relevance1">1<br>Unacceptable</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="relevance2" name="relevance" value="2">
+              <label for="relevance2">2<br>Poor</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="relevance3" name="relevance" value="3">
+              <label for="relevance3">3<br>Acceptable</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="relevance4" name="relevance" value="4">
+              <label for="relevance4">4<br>Good</label>
+            </div>
+            <div class="rating-option">
+              <input type="radio" id="relevance5" name="relevance" value="5">
+              <label for="relevance5">5<br>Excellent</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Issues -->
+      <div class="section">
+        <h2 class="section-title">Issues Identified</h2>
+        <p style="margin-bottom: 15px; color: #7f8c8d;">Select any issues you identified during evaluation:</p>
+
+        <div class="checkbox-group">
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue1" name="issues" value="Missing information">
+            <label for="issue1">Missing information</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue2" name="issues" value="Incorrect facts">
+            <label for="issue2">Incorrect facts</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue3" name="issues" value="Irrelevant sources">
+            <label for="issue3">Irrelevant sources</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue4" name="issues" value="Missing citations">
+            <label for="issue4">Missing citations</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue5" name="issues" value="Off-topic content">
+            <label for="issue5">Off-topic content</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue6" name="issues" value="Incomplete answer">
+            <label for="issue6">Incomplete answer</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue7" name="issues" value="Unclear explanation">
+            <label for="issue7">Unclear explanation</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue8" name="issues" value="Contradictory information">
+            <label for="issue8">Contradictory information</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue9" name="issues" value="Out of date information">
+            <label for="issue9">Out of date information</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue10" name="issues" value="Poor formatting">
+            <label for="issue10">Poor formatting</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="issue11" name="issues" value="Other">
+            <label for="issue11">Other</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Notes -->
+      <div class="section">
+        <h2 class="section-title">Additional Notes</h2>
+
+        <div class="form-group">
+          <label for="notes">Notes (optional)</label>
+          <textarea id="notes" name="notes" placeholder="Any additional comments or observations about this response..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="evaluator">Evaluator Name <span class="required">*</span></label>
+          <input type="text" id="evaluator" name="evaluator" required placeholder="Your name">
+        </div>
+      </div>
+
+      <button type="submit" class="submit-button">Submit Evaluation</button>
+    </form>
+  </div>
+
+  <script>
+    const API_BASE_URL = 'http://localhost:3000';
+
+    document.getElementById('evaluationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const form = e.target;
+      const submitButton = form.querySelector('.submit-button');
+      const successMessage = document.getElementById('successMessage');
+      const errorMessage = document.getElementById('errorMessage');
+
+      // Hide messages
+      successMessage.style.display = 'none';
+      errorMessage.style.display = 'none';
+
+      // Disable submit button
+      submitButton.disabled = true;
+      submitButton.textContent = 'Submitting...';
+
+      try {
+        // Collect form data
+        const formData = new FormData(form);
+
+        // Collect checked issues
+        const issues = Array.from(form.querySelectorAll('input[name="issues"]:checked'))
+          .map(cb => cb.value);
+
+        // Build evaluation request
+        const evaluationRequest = {
+          query_id: formData.get('queryId'),
+          query_text: formData.get('queryText'),
+          response: {
+            short_answer: formData.get('responseText'),
+            detailed_summary: formData.get('detailedSummary') || formData.get('responseText'),
+            provenance: [],
+            confidence: 0,
+            metadata: {
+              detail_level: 3,
+              processing_time_ms: 0,
+              total_artifacts_searched: 0,
+              timestamp: new Date().toISOString()
+            }
+          },
+          ratings: {
+            accuracy: parseInt(formData.get('accuracy')),
+            completeness: parseInt(formData.get('completeness')),
+            citation_quality: parseInt(formData.get('citationQuality')),
+            relevance: parseInt(formData.get('relevance'))
+          },
+          issues: issues,
+          notes: formData.get('notes') || '',
+          evaluator: formData.get('evaluator')
+        };
+
+        // Submit evaluation
+        const response = await fetch(`${API_BASE_URL}/api/evaluations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(evaluationRequest)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // Show success message
+        successMessage.style.display = 'block';
+        successMessage.textContent = `Evaluation submitted successfully! ID: ${result.evaluation_id}`;
+
+        // Reset form
+        form.reset();
+
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      } catch (error) {
+        console.error('Error submitting evaluation:', error);
+
+        // Show error message
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = `Error: ${error.message}`;
+
+        // Scroll to error
+        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } finally {
+        // Re-enable submit button
+        submitButton.disabled = false;
+        submitButton.textContent = 'Submit Evaluation';
+      }
+    });
+  </script>
+</body>
+</html>
