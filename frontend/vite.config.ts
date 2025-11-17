@@ -49,13 +49,10 @@ export default defineConfig({
         // Manual chunk splitting for better caching
         manualChunks: {
           // Vendor chunk for React core
-          vendor: ['react', 'react-dom', 'react-router-dom'],
+          vendor: ['react', 'react-dom'],
 
-          // React Query chunk
-          query: ['@tanstack/react-query'],
-
-          // UI library chunk (if using)
-          // ui: ['@mui/material', '@emotion/react', '@emotion/styled'],
+          // Additional chunks can be added as needed
+          // Example: ui: ['lucide-react'],
         },
 
         // Asset file naming

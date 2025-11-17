@@ -10,7 +10,6 @@ import type {
   OllamaEmbeddingResponse,
   OllamaGenerateRequest,
   OllamaGenerateResponse,
-  AppError,
 } from '../types';
 
 export class OllamaService {

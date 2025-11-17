@@ -1,82 +1,26 @@
 /**
- * React Query Hooks
+ * React Hooks for API Queries
  *
- * Custom hooks for data fetching and caching with React Query.
+ * Custom hooks for data fetching using native React hooks.
  *
  * Hooks:
- * - useSearch: Query hook for automatic search execution
- * - useRAGQuery: Mutation hook for manual search execution (legacy)
- * - useRecentQueries: Query hook for fetching recent query history
+ * - useRAGQuery: Hook for manual search execution (user-triggered)
+ * - useRecentQueries: Hook for fetching recent query history
  *
- * Tech Stack: @tanstack/react-query + TypeScript
+ * Tech Stack: React + TypeScript (native hooks only)
  */
 
-import { useMutation, useQuery as useReactQuery } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
 import { queryRAG, getRecentQueries } from '../services/api';
 import { UIResponse, QueryRequest, QueryHistoryItem } from '../types';
 
 /**
- * Options for useSearch hook
- */
-interface UseSearchOptions {
-  patientId: string;
-  enabled?: boolean;
-  detail_level?: number;
-  max_results?: number;
-}
-
-/**
- * useSearch Hook (Prompt 68 Specification)
+ * useRAGQuery Hook
  *
- * Query hook for automatic search execution when query changes.
- * Uses React Query's useQuery for automatic caching and refetching.
+ * Hook for manual search execution (user-triggered).
+ * Uses native React useState for state management.
  *
- * @param query - Search query string
- * @param options - Search options (patientId, enabled, etc.)
- * @returns React Query result with data, loading, error states
- *
- * @example
- * ```tsx
- * const { data, isLoading, error, refetch } = useSearch(
- *   "What medications is the patient taking?",
- *   { patientId: "patient-123" }
- * );
- * ```
- */
-export function useSearch(
-  query: string,
-  options: UseSearchOptions = { patientId: 'default', enabled: true }
-) {
-  return useReactQuery<UIResponse | null, Error>({
-    queryKey: ['search', query, options.patientId],
-    queryFn: async () => {
-      if (!query) return null;
-
-      const response = await queryRAG({
-        query,
-        patient_id: options.patientId,
-        options: {
-          detail_level: options.detail_level || 3,
-          max_results: options.max_results || 5,
-        },
-      });
-
-      return response;
-    },
-    enabled: !!query && (options.enabled !== false),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1,
-    refetchOnWindowFocus: false,
-  });
-}
-
-/**
- * useRAGQuery Hook (Legacy)
- *
- * Mutation hook for manual search execution (user-triggered).
- * Uses React Query's useMutation for imperative queries.
- *
- * @returns Mutation hook with mutate, mutateAsync, isPending, isError
+ * @returns Hook with mutateAsync, isPending, isError, error, data
  *
  * @example
  * ```tsx
@@ -91,23 +35,46 @@ export function useSearch(
  * ```
  */
 export function useRAGQuery() {
-  return useMutation<UIResponse, Error, QueryRequest>({
-    mutationFn: queryRAG,
-    onError: (error) => {
-      console.error('Query error:', error);
-    },
-  });
+  const [data, setData] = useState<UIResponse | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [isPending, setIsPending] = useState(false);
+
+  const mutateAsync = useCallback(async (request: QueryRequest): Promise<UIResponse> => {
+    setIsPending(true);
+    setError(null);
+
+    try {
+      const result = await queryRAG(request);
+      setData(result);
+      return result;
+    } catch (err) {
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
+      console.error('Query error:', errorObj);
+      throw errorObj;
+    } finally {
+      setIsPending(false);
+    }
+  }, []);
+
+  return {
+    mutateAsync,
+    isPending,
+    isError: !!error,
+    error,
+    data,
+  };
 }
 
 /**
  * useRecentQueries Hook
  *
- * Query hook for fetching recent query history.
- * Automatically refetches when patient changes.
+ * Hook for fetching recent query history.
+ * Uses native React useState for state management.
  *
  * @param patientId - Patient ID
  * @param limit - Number of queries to fetch (default: 10)
- * @returns Query hook with history data
+ * @returns Hook with data, isLoading, error, refetch
  *
  * @example
  * ```tsx
@@ -115,14 +82,34 @@ export function useRAGQuery() {
  * ```
  */
 export function useRecentQueries(patientId: string, limit: number = 10) {
-  return useReactQuery<QueryHistoryItem[], Error>({
-    queryKey: ['recent-queries', patientId, limit],
-    queryFn: () => getRecentQueries(patientId, limit),
-    enabled: !!patientId,
-    staleTime: 1 * 60 * 1000, // 1 minute (per Prompt 68 spec)
-    retry: 1,
-    refetchOnWindowFocus: false,
-  });
+  const [data, setData] = useState<QueryHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refetch = useCallback(async () => {
+    if (!patientId) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await getRecentQueries(patientId, limit);
+      setData(result);
+    } catch (err) {
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
+      console.error('Failed to fetch recent queries:', errorObj);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [patientId, limit]);
+
+  return {
+    data,
+    isLoading,
+    error,
+    refetch,
+  };
 }
 
 // Default export for backward compatibility

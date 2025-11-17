@@ -10,7 +10,7 @@ const router = Router();
  * Basic health check
  * GET /health
  */
-router.get('/health', (req: Request, res: Response) => {
+router.get('/health', (_req: Request, res: Response): void => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -22,7 +22,7 @@ router.get('/health', (req: Request, res: Response) => {
  * Detailed health check
  * GET /health/detailed
  */
-router.get('/health/detailed', async (req: Request, res: Response) => {
+router.get('/health/detailed', async (_req: Request, res: Response): Promise<void> => {
   const health = {
     status: 'ok',
     timestamp: new Date().toISOString(),

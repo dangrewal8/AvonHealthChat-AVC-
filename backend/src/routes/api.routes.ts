@@ -28,7 +28,7 @@ export function initializeServices(ollama: OllamaService, avonHealth: AvonHealth
  * Main RAG Query Endpoint
  * POST /api/query
  */
-router.post('/query', async (req: Request, res: Response) => {
+router.post('/query', async (req: Request, res: Response): Promise<void> => {
   const startTime = Date.now();
 
   try {
@@ -41,9 +41,10 @@ router.post('/query', async (req: Request, res: Response) => {
 
     // Validation
     if (!query || !patient_id) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Missing required fields: query and patient_id',
       });
+      return;
     }
 
     console.log(`Processing query for patient ${patient_id}: "${query}"`);
@@ -175,7 +176,7 @@ router.post('/query', async (req: Request, res: Response) => {
  * Get recent queries (simplified - would need database)
  * GET /api/queries/recent
  */
-router.get('/queries/recent', async (req: Request, res: Response) => {
+router.get('/queries/recent', async (_req: Request, res: Response): Promise<void> => {
   res.json({
     queries: [],
     message: 'Query history not yet implemented',
@@ -186,11 +187,12 @@ router.get('/queries/recent', async (req: Request, res: Response) => {
  * EMR Data Endpoints
  */
 
-router.get('/emr/care_plans', async (req: Request, res: Response) => {
+router.get('/emr/care_plans', async (req: Request, res: Response): Promise<void> => {
   try {
     const { patient_id } = req.query;
     if (!patient_id) {
-      return res.status(400).json({ error: 'patient_id required' });
+      res.status(400).json({ error: 'patient_id required' });
+      return;
     }
 
     const carePlans = await avonHealthService.getCarePlans(patient_id as string);
@@ -200,11 +202,12 @@ router.get('/emr/care_plans', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/emr/medications', async (req: Request, res: Response) => {
+router.get('/emr/medications', async (req: Request, res: Response): Promise<void> => {
   try {
     const { patient_id } = req.query;
     if (!patient_id) {
-      return res.status(400).json({ error: 'patient_id required' });
+      res.status(400).json({ error: 'patient_id required' });
+      return;
     }
 
     const medications = await avonHealthService.getMedications(patient_id as string);
@@ -214,11 +217,12 @@ router.get('/emr/medications', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/emr/notes', async (req: Request, res: Response) => {
+router.get('/emr/notes', async (req: Request, res: Response): Promise<void> => {
   try {
     const { patient_id } = req.query;
     if (!patient_id) {
-      return res.status(400).json({ error: 'patient_id required' });
+      res.status(400).json({ error: 'patient_id required' });
+      return;
     }
 
     const notes = await avonHealthService.getNotes(patient_id as string);
@@ -228,11 +232,12 @@ router.get('/emr/notes', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/emr/all', async (req: Request, res: Response) => {
+router.get('/emr/all', async (req: Request, res: Response): Promise<void> => {
   try {
     const { patient_id } = req.query;
     if (!patient_id) {
-      return res.status(400).json({ error: 'patient_id required' });
+      res.status(400).json({ error: 'patient_id required' });
+      return;
     }
 
     const data = await avonHealthService.getAllPatientData(patient_id as string);
@@ -246,7 +251,7 @@ router.get('/emr/all', async (req: Request, res: Response) => {
  * Index patient data (simplified - would update vector DB)
  * POST /api/index/patient/:id
  */
-router.post('/index/patient/:id', async (req: Request, res: Response) => {
+router.post('/index/patient/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const data = await avonHealthService.getAllPatientData(id);
@@ -266,7 +271,7 @@ router.post('/index/patient/:id', async (req: Request, res: Response) => {
  * Metrics endpoint
  * GET /api/metrics
  */
-router.get('/metrics', (req: Request, res: Response) => {
+router.get('/metrics', (_req: Request, res: Response): void => {
   res.json({
     uptime: process.uptime(),
     memory: process.memoryUsage(),
