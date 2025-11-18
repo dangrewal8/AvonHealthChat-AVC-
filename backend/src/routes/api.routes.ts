@@ -48,6 +48,37 @@ function generateFallbackShortAnswer(
     }
   };
 
+  // Helper: Format medication strength/dosage for readability
+  const formatStrength = (strength: string): string => {
+    if (!strength) return '';
+
+    // Convert large UNIT numbers to abbreviated format
+    const unitMatch = strength.match(/^(\d+)\s*UNIT$/i);
+    if (unitMatch) {
+      const units = parseInt(unitMatch[1]);
+      if (units >= 1000000) {
+        return `${(units / 1000000).toFixed(1).replace(/\.0$/, '')}m units`;
+      }
+      if (units >= 1000) {
+        return `${(units / 1000).toFixed(1).replace(/\.0$/, '')}K units`;
+      }
+    }
+
+    return strength;
+  };
+
+  // Helper: Format medication name for short display
+  const formatMedicationName = (med: any): string => {
+    let name = med.name || 'Unknown medication';
+    const strength = formatStrength(med.strength);
+
+    // If strength is already in the name, don't duplicate it
+    if (strength && !name.includes(strength)) {
+      return `${name} (${strength})`;
+    }
+    return name;
+  };
+
   // SPECIFIC MEDICATION QUESTIONS
   // "What is the patient taking for [condition]?"
   if ((queryLower.includes('taking for') || queryLower.includes('prescribed for')) && medications) {
@@ -56,7 +87,7 @@ function generateFallbackShortAnswer(
       const condition = conditionMatch[1];
       const relatedMeds = medications.filter((m: any) =>
         m.name?.toLowerCase().includes(condition) ||
-        care_plans?.some(cp => cp.title?.toLowerCase().includes(condition))
+        care_plans?.some(cp => cp.name?.toLowerCase().includes(condition))  // API uses 'name', not 'title'
       );
       if (relatedMeds.length > 0) {
         const medNames = relatedMeds.map((m: any) => m.name).join(', ');
@@ -101,7 +132,7 @@ function generateFallbackShortAnswer(
       queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
     if (medications && medications.length > 0) {
       const medCount = medications.length;
-      const medNames = medications.slice(0, 3).map((m: any) => m.name || 'Unknown').join(', ');
+      const medNames = medications.slice(0, 3).map((m: any) => formatMedicationName(m)).join(', ');
       return `The patient is currently taking ${medCount} medication${medCount > 1 ? 's' : ''}, including ${medNames}${medCount > 3 ? ', and others' : ''}.`;
     }
     return 'No medications found in the patient records.';
@@ -122,7 +153,7 @@ function generateFallbackShortAnswer(
       if (conditionIndex > 0 && conditionIndex < words.length) {
         const potentialCondition = words.slice(conditionIndex).join(' ').replace(/[?.,]/g, '');
         const matchingPlan = care_plans.find((cp: any) =>
-          cp.title?.toLowerCase().includes(potentialCondition.toLowerCase())
+          cp.name?.toLowerCase().includes(potentialCondition.toLowerCase())
         );
         if (matchingPlan) {
           return `Yes, there is ${matchingPlan.status === 'active' ? 'an active' : 'a'} care plan for ${matchingPlan.title}.`;
@@ -133,14 +164,13 @@ function generateFallbackShortAnswer(
   }
 
   // "What is the status of [care plan]?" or "Is [plan] active?"
+  // NOTE: Care plans API doesn't have a simple 'status' field, so we show all plans
   if ((queryLower.includes('status') || queryLower.includes('active')) && care_plans) {
-    const activePlans = care_plans.filter((cp: any) => cp.status === 'active');
-    if (activePlans.length > 0) {
-      return `${activePlans.length} active care plan${activePlans.length !== 1 ? 's' : ''}: ${activePlans.map((cp: any) => cp.title).join(', ')}.`;
+    if (care_plans.length > 0) {
+      const planNames = care_plans.map((cp: any) => cp.name).join(', ');
+      return `Found ${care_plans.length} care plan${care_plans.length !== 1 ? 's' : ''}: ${planNames}.`;
     }
-    return care_plans.length > 0
-      ? `No currently active care plans. ${care_plans.length} inactive plan${care_plans.length !== 1 ? 's' : ''} on file.`
-      : 'No care plans found.';
+    return 'No care plans found.';
   }
 
   // General care plan / diagnosis queries
@@ -148,9 +178,8 @@ function generateFallbackShortAnswer(
       queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
     if (care_plans && care_plans.length > 0) {
       const planCount = care_plans.length;
-      const activePlans = care_plans.filter((cp: any) => cp.status === 'active');
-      const planTitles = care_plans.slice(0, 3).map((cp: any) => cp.title).join(', ');
-      return `The patient has ${planCount} care plan${planCount > 1 ? 's' : ''} (${activePlans.length} active): ${planTitles}${planCount > 3 ? ', and others' : ''}.`;
+      const planTitles = care_plans.slice(0, 3).map((cp: any) => cp.name).join(', ');
+      return `The patient has ${planCount} care plan${planCount > 1 ? 's' : ''}: ${planTitles}${planCount > 3 ? ', and others' : ''}.`;
     }
     return 'No care plans found in the patient records.';
   }
@@ -183,9 +212,13 @@ function generateFallbackShortAnswer(
   if ((queryLower.includes('who is') || queryLower.includes('who are')) &&
       (queryLower.includes('doctor') || queryLower.includes('provider') || queryLower.includes('treating'))) {
     const providers = new Set<string>();
-    notes?.forEach((n: any) => n.author && providers.add(n.author));
-    care_plans?.forEach((cp: any) => cp.provider && providers.add(cp.provider));
-    medications?.forEach((m: any) => m.prescriber && providers.add(m.prescriber));
+    // API uses 'created_by', not 'author' or 'provider' or 'prescriber'
+    notes?.forEach((n: any) => n.created_by && providers.add(n.created_by));
+    care_plans?.forEach((cp: any) => {
+      if (cp.created_by) providers.add(cp.created_by);
+      if (cp.assigned_to && cp.assigned_to !== 'user_null') providers.add(cp.assigned_to);
+    });
+    medications?.forEach((m: any) => m.created_by && providers.add(m.created_by));
 
     if (providers.size > 0) {
       return `Healthcare providers: ${Array.from(providers).join(', ')}.`;
@@ -261,243 +294,214 @@ function generateFallbackDetailedSummary(
     }
   };
 
-  // Helper: Format medication with all details
+  // Helper: Format medication strength/dosage for readability
+  const formatStrength = (strength: string): string => {
+    if (!strength) return '';
+
+    // Convert large UNIT numbers to abbreviated format
+    const unitMatch = strength.match(/^(\d+)\s*UNIT$/i);
+    if (unitMatch) {
+      const units = parseInt(unitMatch[1]);
+      if (units >= 1000000) {
+        return `${(units / 1000000).toFixed(1).replace(/\.0$/, '')}m units`;
+      }
+      if (units >= 1000) {
+        return `${(units / 1000).toFixed(1).replace(/\.0$/, '')}K units`;
+      }
+    }
+
+    return strength;
+  };
+
+  // Helper: Format medication with all details (using actual API fields)
   const formatMedication = (med: any, idx: number): string => {
-    let text = `${idx + 1}. **${med.name || 'Unknown medication'}**`;
-    if (med.dosage) text += ` - ${med.dosage}`;
+    const name = med.name || 'Unknown medication';
+    const strength = formatStrength(med.strength || '');
+
+    let text = `${idx + 1}. ${name}`;
+    if (strength) text += ` - ${strength}`;
     text += '\n';
 
     const details = [];
-    if (med.frequency) details.push(`Frequency: ${med.frequency}`);
-    if (med.prescribed_date) details.push(`Prescribed: ${formatDate(med.prescribed_date)}`);
-    if (med.prescriber) details.push(`Prescriber: ${med.prescriber}`);
-    if (med.status) details.push(`Status: ${med.status}`);
+    if (med.sig) details.push(med.sig); // Administration instructions
+    if (med.start_date) details.push(`Started: ${formatDate(med.start_date)}`);
+    if (med.active !== undefined) details.push(med.active ? 'Active' : 'Inactive');
+    if (med.created_at) details.push(`Added: ${formatDate(med.created_at)}`);
 
     if (details.length > 0) {
-      text += `   ${details.join(' • ')}\n`;
+      text += `   ${details.join(' | ')}\n`;
     }
 
-    if (med.instructions || med.notes) {
-      const info = med.instructions || med.notes;
-      text += `   _${info.substring(0, 150)}${info.length > 150 ? '...' : ''}_\n`;
+    if (med.comment) {
+      text += `   Note: ${med.comment.substring(0, 100)}${med.comment.length > 100 ? '...' : ''}\n`;
     }
 
-    return text + '\n';
+    return text;
   };
 
-  // Helper: Format care plan with all details
+  // Helper: Format care plan with all details (using actual API fields)
   const formatCarePlan = (cp: any, idx: number): string => {
-    let text = `${idx + 1}. **${cp.title || 'Untitled Plan'}**`;
-    if (cp.status) {
-      const statusEmoji = cp.status === 'active' ? '✓' : cp.status === 'completed' ? '✔' : '○';
-      text += ` ${statusEmoji} _${cp.status}_`;
-    }
-    text += '\n';
+    const name = cp.name || 'Untitled Plan';
+    const shareStatus = cp.share_with_patient ? 'Shared with patient' : 'Not shared';
+
+    let text = `${idx + 1}. ${name}\n`;
 
     if (cp.description) {
-      text += `   ${cp.description.substring(0, 250)}${cp.description.length > 250 ? '...' : ''}\n`;
+      text += `   ${cp.description.substring(0, 200)}${cp.description.length > 200 ? '...' : ''}\n`;
     }
 
     const details = [];
-    if (cp.provider) details.push(`Provider: ${cp.provider}`);
+    details.push(shareStatus);
+    if (cp.start_date) details.push(`Started: ${formatDate(cp.start_date)}`);
     if (cp.created_at) details.push(`Created: ${formatDate(cp.created_at)}`);
-    if (cp.updated_at) details.push(`Updated: ${formatDate(cp.updated_at)}`);
 
     if (details.length > 0) {
-      text += `   ${details.join(' • ')}\n`;
+      text += `   ${details.join(' | ')}\n`;
     }
 
-    return text + '\n';
+    return text;
   };
 
-  // Helper: Format clinical note with all details
+  // Helper: Extract content from note sections (notes don't have simple 'content' field)
+  const extractNoteContent = (note: any): string => {
+    if (!note.sections || !Array.isArray(note.sections)) {
+      return '';
+    }
+
+    const contentParts: string[] = [];
+
+    note.sections.forEach((section: any) => {
+      if (section.name) {
+        contentParts.push(`${section.name}:`);
+      }
+
+      if (section.answers && Array.isArray(section.answers)) {
+        section.answers.forEach((answer: any) => {
+          // Extract value from answer based on type
+          if (answer.name) contentParts.push(`  - ${answer.name}`);
+          if (answer.value) contentParts.push(`  ${answer.value}`);
+          if (answer.text) contentParts.push(`  ${answer.text}`);
+        });
+      }
+    });
+
+    return contentParts.join(' ').trim();
+  };
+
+  // Helper: Format clinical note with all details (using CORRECT API fields)
   const formatNote = (note: any, idx: number): string => {
-    let text = `${idx + 1}. **${note.note_type || 'Clinical Note'}**`;
-    if (note.created_at) text += ` - ${formatDate(note.created_at)}`;
-    text += '\n';
+    const noteName = note.name || 'Clinical Note';  // API uses 'name', not 'note_type'
+    const date = note.created_at ? formatDate(note.created_at) : 'No date';
 
-    if (note.author) text += `   _Author: ${note.author}_\n`;
+    let text = `${idx + 1}. ${noteName} - ${date}\n`;
 
-    if (note.content) {
-      const content = note.content.trim();
-      // Show more content for notes since they're usually the most informative
-      text += `   ${content.substring(0, 300)}${content.length > 300 ? '...' : ''}\n`;
+    // API uses 'created_by', not 'author'
+    if (note.created_by) {
+      text += `   Provider: ${note.created_by}\n`;
     }
 
-    return text + '\n';
+    // Extract content from sections (notes don't have simple 'content' field)
+    const content = extractNoteContent(note);
+    if (content) {
+      text += `   ${content.substring(0, 250)}${content.length > 250 ? '...' : ''}\n`;
+    }
+
+    return text;
   };
 
-  // SPECIFIC MEDICATION QUESTIONS with enhanced formatting
+  // SPECIFIC MEDICATION QUESTIONS with clean formatting
   if (queryIntent.primary === 'medications' || queryLower.includes('medication') ||
       queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
     if (medications && medications.length > 0) {
-      summary = `## Current Medications\n\n`;
-      summary += `_Total: ${medications.length} medication${medications.length !== 1 ? 's' : ''}_\n\n`;
+      summary = `CURRENT MEDICATIONS (${medications.length} total)\n\n`;
 
-      // Show up to 15 medications with full details
-      medications.slice(0, 15).forEach((med: any, idx: number) => {
-        summary += formatMedication(med, idx);
+      // Show all medications with details
+      medications.forEach((med: any, idx: number) => {
+        summary += formatMedication(med, idx) + '\n';
       });
 
-      if (medications.length > 15) {
-        summary += `_...and ${medications.length - 15} more medication${medications.length - 15 !== 1 ? 's' : ''}_\n`;
-      }
-
-      // Add summary by prescriber if multiple prescribers
-      const prescribers = [...new Set(medications.map((m: any) => m.prescriber).filter(Boolean))];
-      if (prescribers.length > 1) {
-        summary += `\n**Prescribers:** ${prescribers.join(', ')}\n`;
-      }
-
-      return summary;
+      return summary.trim();
     }
-    return '**Medications:** No medications found in patient records.';
+    return 'No medications found in patient records.';
   }
 
-  // SPECIFIC CARE PLAN QUESTIONS with enhanced formatting
+  // SPECIFIC CARE PLAN QUESTIONS with clean formatting
   if (queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' ||
       queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
     if (care_plans && care_plans.length > 0) {
-      const activePlans = care_plans.filter((cp: any) => cp.status === 'active');
-      const inactivePlans = care_plans.filter((cp: any) => cp.status !== 'active');
+      summary = `CARE PLANS (${care_plans.length} total)\n\n`;
 
-      summary = `## Care Plans\n\n`;
-      summary += `_Total: ${care_plans.length} plan${care_plans.length !== 1 ? 's' : ''} `;
-      summary += `(${activePlans.length} active, ${inactivePlans.length} inactive)_\n\n`;
+      care_plans.forEach((cp: any, idx: number) => {
+        summary += formatCarePlan(cp, idx) + '\n';
+      });
 
-      // Show active plans first
-      if (activePlans.length > 0) {
-        summary += `### Active Care Plans\n\n`;
-        activePlans.forEach((cp: any, idx: number) => {
-          summary += formatCarePlan(cp, idx);
-        });
-      }
-
-      // Then inactive plans
-      if (inactivePlans.length > 0 && care_plans.length <= 10) {
-        summary += `### Inactive Care Plans\n\n`;
-        inactivePlans.forEach((cp: any, idx: number) => {
-          summary += formatCarePlan(cp, activePlans.length + idx);
-        });
-      }
-
-      return summary;
+      return summary.trim();
     }
-    return '**Care Plans:** No care plans found in patient records.';
+    return 'No care plans found in patient records.';
   }
 
-  // SPECIFIC CLINICAL NOTE QUESTIONS with enhanced formatting
+  // SPECIFIC CLINICAL NOTE QUESTIONS with clean formatting
   if (queryIntent.primary === 'history' || queryLower.includes('note') ||
       queryLower.includes('visit') || queryLower.includes('history')) {
     if (notes && notes.length > 0) {
-      summary = `## Clinical Notes & Visit History\n\n`;
-      summary += `_Total: ${notes.length} note${notes.length !== 1 ? 's' : ''}_\n\n`;
+      summary = `CLINICAL NOTES (${notes.length} total)\n\n`;
 
-      // Group notes by type if there are multiple types
-      const noteTypes = [...new Set(notes.map((n: any) => n.note_type || 'Clinical Note'))];
+      notes.slice(0, 10).forEach((note: any, idx: number) => {
+        summary += formatNote(note, idx) + '\n';
+      });
 
-      if (noteTypes.length > 1 && notes.length > 5) {
-        // Show grouped by type
-        noteTypes.slice(0, 3).forEach(noteType => {
-          const typeNotes = notes.filter((n: any) => (n.note_type || 'Clinical Note') === noteType);
-          if (typeNotes.length > 0) {
-            summary += `### ${noteType} (${typeNotes.length})\n\n`;
-            typeNotes.slice(0, 3).forEach((note: any, idx: number) => {
-              summary += formatNote(note, idx);
-            });
-            if (typeNotes.length > 3) {
-              summary += `_...and ${typeNotes.length - 3} more ${noteType.toLowerCase()}${typeNotes.length - 3 !== 1 ? 's' : ''}_\n\n`;
-            }
-          }
-        });
-      } else {
-        // Show chronologically (most recent first)
-        notes.slice(0, 8).forEach((note: any, idx: number) => {
-          summary += formatNote(note, idx);
-        });
-
-        if (notes.length > 8) {
-          summary += `_...and ${notes.length - 8} more note${notes.length - 8 !== 1 ? 's' : ''}_\n`;
-        }
+      if (notes.length > 10) {
+        summary += `\n...and ${notes.length - 10} more notes`;
       }
 
-      return summary;
+      return summary.trim();
     }
-    return '**Clinical Notes:** No clinical notes found in patient records.';
+    return 'No clinical notes found in patient records.';
   }
 
-  // COMPREHENSIVE SUMMARY - show everything organized by category
-  summary = `## Patient Record Summary\n\n`;
+  // COMPREHENSIVE SUMMARY - clean overview of all data
+  summary = `PATIENT RECORD OVERVIEW\n\n`;
 
-  // Active Care Plans Section
-  const activePlans = care_plans?.filter((cp: any) => cp.status === 'active') || [];
-  if (activePlans.length > 0) {
-    summary += `### Active Care Plans (${activePlans.length})\n\n`;
-    activePlans.slice(0, 5).forEach((cp: any, idx: number) => {
-      summary += `${idx + 1}. **${cp.title || 'Untitled'}**`;
-      if (cp.provider) summary += ` - ${cp.provider}`;
-      summary += '\n';
-      if (cp.description) {
-        summary += `   ${cp.description.substring(0, 150)}${cp.description.length > 150 ? '...' : ''}\n`;
-      }
-      summary += '\n';
+  // Care Plans
+  if (care_plans && care_plans.length > 0) {
+    summary += `CARE PLANS (${care_plans.length} total)\n`;
+    care_plans.slice(0, 5).forEach((cp: any, idx: number) => {
+      summary += formatCarePlan(cp, idx) + '\n';
     });
+    if (care_plans.length > 5) {
+      summary += `...and ${care_plans.length - 5} more care plans\n`;
+    }
+    summary += '\n';
   }
 
-  // Current Medications Section
+  // Medications
   if (medications && medications.length > 0) {
-    summary += `### Current Medications (${medications.length})\n\n`;
+    summary += `MEDICATIONS (${medications.length} total)\n`;
     medications.slice(0, 8).forEach((med: any, idx: number) => {
-      summary += `${idx + 1}. **${med.name || 'Unknown'}**`;
-      if (med.dosage) summary += ` - ${med.dosage}`;
-      summary += '\n';
-      if (med.frequency || med.prescriber) {
-        const details = [];
-        if (med.frequency) details.push(med.frequency);
-        if (med.prescriber) details.push(`by ${med.prescriber}`);
-        summary += `   ${details.join(', ')}\n`;
-      }
-      summary += '\n';
+      summary += formatMedication(med, idx) + '\n';
     });
     if (medications.length > 8) {
-      summary += `_...and ${medications.length - 8} more medication${medications.length - 8 !== 1 ? 's' : ''}_\n\n`;
+      summary += `...and ${medications.length - 8} more medications\n`;
     }
+    summary += '\n';
   }
 
-  // Recent Clinical Notes Section
+  // Clinical Notes
   if (notes && notes.length > 0) {
-    summary += `### Recent Clinical Notes (${notes.length})\n\n`;
+    summary += `CLINICAL NOTES (${notes.length} total)\n`;
     notes.slice(0, 5).forEach((note: any, idx: number) => {
-      const noteDate = note.created_at ? formatDate(note.created_at) : 'No date';
-      summary += `${idx + 1}. **${note.note_type || 'Note'}** - ${noteDate}\n`;
-      if (note.author) summary += `   _${note.author}_\n`;
-      if (note.content) {
-        summary += `   ${note.content.substring(0, 200)}${note.content.length > 200 ? '...' : ''}\n`;
-      }
-      summary += '\n';
+      summary += formatNote(note, idx) + '\n';
     });
     if (notes.length > 5) {
-      summary += `_...and ${notes.length - 5} more note${notes.length - 5 !== 1 ? 's' : ''}_\n`;
-    }
-  }
-
-  // Inactive/Other Care Plans
-  const inactivePlans = care_plans?.filter((cp: any) => cp.status !== 'active') || [];
-  if (inactivePlans.length > 0) {
-    summary += `\n### Other Care Plans (${inactivePlans.length})\n\n`;
-    inactivePlans.slice(0, 3).forEach((cp: any, idx: number) => {
-      summary += `${idx + 1}. ${cp.title || 'Untitled'} (${cp.status || 'unknown status'})\n`;
-    });
-    if (inactivePlans.length > 3) {
-      summary += `_...and ${inactivePlans.length - 3} more_\n`;
+      summary += `...and ${notes.length - 5} more notes\n`;
     }
   }
 
   if (!care_plans?.length && !medications?.length && !notes?.length) {
-    summary += '_No records found for this patient._';
+    summary = 'No records found for this patient.';
   }
 
-  return summary;
+  return summary.trim();
 }
 
 /**
@@ -613,19 +617,23 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
     contextPriority.forEach((sourceType) => {
       if (sourceType === 'care_plans' && care_plans) {
         care_plans.forEach((cp: any) => {
-          const title = cp.title || 'Untitled Care Plan';
+          const name = cp.name || 'Untitled Care Plan';
           const description = cp.description || '';
-          const status = cp.status || 'unknown';
-          const provider = cp.provider || 'unknown';
+          const created_by = cp.created_by || 'unknown';
+          const assigned_to = cp.assigned_to && cp.assigned_to !== 'user_null' ? cp.assigned_to : null;
+          const share_status = cp.share_with_patient ? 'Shared with patient' : 'Not shared';
 
-          const text = `Care Plan: ${title}\n${description}\nStatus: ${status}\nProvider: ${provider}`;
+          let text = `Care Plan: ${name}\n${description}\nCreated by: ${created_by}`;
+          if (assigned_to) text += `\nAssigned to: ${assigned_to}`;
+          text += `\n${share_status}`;
+
           context += `\n\n[CARE_PLAN_${cp.id || 'unknown'}] ${text}`;
           artifacts_searched++;
 
           provenance.push({
             artifact_id: cp.id || 'unknown',
             artifact_type: 'care_plan',
-            snippet: description ? description.substring(0, 200) : title,
+            snippet: description ? description.substring(0, 200) : name,
             occurred_at: cp.created_at || new Date().toISOString(),
             relevance_score: 0.8,
             char_offsets: [0, text.length],
@@ -660,19 +668,34 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
 
       if (sourceType === 'notes' && notes) {
         notes.forEach((note: any) => {
-          const note_type = note.note_type || 'Clinical Note';
-          const author = note.author || 'unknown';
+          const note_name = note.name || 'Clinical Note';  // API uses 'name', not 'note_type'
+          const created_by = note.created_by || 'unknown';  // API uses 'created_by', not 'author'
           const created_at = note.created_at || 'unknown';
-          const content = note.content || '';
 
-          const text = `Clinical Note (${note_type})\nAuthor: ${author}\nDate: ${created_at}\n${content}`;
+          // Extract content from sections (notes don't have simple 'content' field)
+          let content = '';
+          if (note.sections && Array.isArray(note.sections)) {
+            const parts: string[] = [];
+            note.sections.forEach((section: any) => {
+              if (section.name) parts.push(section.name);
+              if (section.answers && Array.isArray(section.answers)) {
+                section.answers.forEach((answer: any) => {
+                  if (answer.name) parts.push(answer.name);
+                  if (answer.value) parts.push(String(answer.value));
+                });
+              }
+            });
+            content = parts.join(' ');
+          }
+
+          const text = `Clinical Note (${note_name})\nProvider: ${created_by}\nDate: ${created_at}\n${content}`;
           context += `\n\n[NOTE_${note.id || 'unknown'}] ${text}`;
           artifacts_searched++;
 
           provenance.push({
             artifact_id: note.id || 'unknown',
             artifact_type: 'note',
-            snippet: content ? content.substring(0, 200) : note_type,
+            snippet: content ? content.substring(0, 200) : note_name,
             occurred_at: created_at !== 'unknown' ? created_at : new Date().toISOString(),
             relevance_score: 0.9,
             char_offsets: [0, text.length],
@@ -726,10 +749,10 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
     // Extract care plans mentioned
     if (care_plans && detailed_summary) {
       care_plans.forEach((cp: any) => {
-        if (cp.title && detailed_summary.toLowerCase().includes(cp.title.toLowerCase())) {
+        if (cp.name && detailed_summary.toLowerCase().includes(cp.name.toLowerCase())) {
           structured_extractions.push({
             type: 'condition',
-            value: cp.title,
+            value: cp.name,
             relevance: 0.85,
             confidence: 0.9,
             source_artifact_id: cp.id || 'unknown',

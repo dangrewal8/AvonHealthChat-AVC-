@@ -101,42 +101,117 @@ export interface AvonHealthJWTResponse {
   expires_in: number;
 }
 
+/**
+ * Avon Health API Types - UPDATED to match actual API structure
+ * These match the real fields returned by /v2/care_plans, /v2/medications, /v2/notes
+ */
+
 export interface CarePlan {
   id: string;
-  patient_id: string;
-  title: string;
-  description: string;
-  status: string;
+  object: string;
+  patient: string;  // NOT patient_id
+  score: number;
+  care_plan_template: string;
+  care_plan_template_version: string;
+  name: string;  // NOT title
+  share_with_patient: boolean;
+  created_by: string;
   created_at: string;
-  updated_at: string;
-  provider: string;
-  goals?: string[];
-  interventions?: string[];
+  last_updated_at: string;  // NOT updated_at
+  account: string;
+  start_date: string | null;
+  end_date: string | null;
+  description: string | null;
+  assigned_to: string;
+  is_entered_in_error: boolean | null;
+  external_id: string | null;
+  entered_in_error: {
+    marked_by: string;
+    reason: string | null;
+    marked_at: string | null;
+  };
+  request_signature_from: any[];
+  sections: any[];  // Complex nested structure
+  signers: any[];
+  reviews: any[];
+  comments: any[];
+  addendums: any[];
+  status_history: any[];
 }
 
 export interface Medication {
   id: string;
-  patient_id: string;
+  object: string;
+  patient: string;  // NOT patient_id
+  source: string | null;
   name: string;
-  dosage: string;
-  frequency: string;
-  prescribed_date: string;
-  prescriber: string;
-  status: string;
-  instructions?: string;
-  side_effects?: string[];
+  strength: string;  // NOT dosage
+  ndc: string | null;
+  sig: string | null;  // Administration instructions (NOT frequency)
+  active: boolean;
+  start_date: string | null;
+  end_date: string | null;
+  comment: string | null;
+  created_by: string;
+  created_at: string;
+  last_updated_at: string;
+  account: string;
+  drug_id: string | null;
+  quantity: string | null;
+  dose_form: string | null;
+  refills: number | null;
+  last_filled_at: string | null;
+  status: string | null;
+  external_accounts: {
+    dosespot?: string | null;
+    [key: string]: any;
+  };
 }
 
 export interface ClinicalNote {
   id: string;
-  patient_id: string;
-  note_type: string;
-  content: string;
-  author: string;
+  object: string;
+  patient: string;  // NOT patient_id
+  score: number;
+  note_template: string;
+  note_template_version: string;
+  appointment: string | null;
+  insurance_claim: string | null;
+  name: string;  // Note name/title
+  share_with_patient: boolean | null;
+  created_by: string;  // NOT author
   created_at: string;
-  encounter_id?: string;
-  diagnoses?: string[];
-  symptoms?: string[];
+  last_updated_at: string;
+  account: string;
+  appointment_occurrence: string | null;
+  is_entered_in_error: boolean | null;
+  external_id: string | null;
+  superbill: string | null;
+  psychotherapy_note: boolean | null;
+  appointment_required: boolean | null;
+  entered_in_error: {
+    marked_by: string;
+    reason: string | null;
+    marked_at: string | null;
+  };
+  sections: NoteSection[];  // Content is in sections/answers, NOT a simple string
+}
+
+export interface NoteSection {
+  id: string;
+  object: string;
+  name: string;
+  logic: any;
+  answers: NoteAnswer[];
+}
+
+export interface NoteAnswer {
+  id: string;
+  type: string;
+  name?: string;
+  value?: any;
+  score?: number;
+  [key: string]: any;  // Various fields depending on answer type
 }
 
 // ============================================================================
