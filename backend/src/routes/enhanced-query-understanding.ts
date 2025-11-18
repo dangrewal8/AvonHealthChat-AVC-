@@ -186,9 +186,36 @@ const SYNONYM_MAP: { [key: string]: string[] } = {
     "background",
     "previous",
     "prior",
+    "past",
+    "before",
+    "previously",
   ],
   "family history": ["family", "hereditary", "genetic", "familial", "relatives"],
   "smoking": ["smoke", "smoker", "tobacco", "cigarette", "nicotine"],
+
+  // Clinical Notes & Documentation
+  "clinical notes": [
+    "notes",
+    "note",
+    "documentation",
+    "documented",
+    "chart",
+    "medical record",
+    "records",
+    "encounter",
+    "visit note",
+  ],
+
+  // Care Plans
+  "care plans": [
+    "care plan",
+    "treatment plan",
+    "plan of care",
+    "management plan",
+    "therapy plan",
+    "treatment",
+    "management",
+  ],
 
   // Contact
   contact: ["phone", "email", "call", "reach", "address"],
@@ -197,6 +224,19 @@ const SYNONYM_MAP: { [key: string]: string[] } = {
   // Demographics
   name: ["called", "patient name", "identity", "who"],
   age: ["old", "years old", "born", "birthday", "birth date", "dob"],
+
+  // Summary & Overview
+  summary: [
+    "summary",
+    "overview",
+    "everything",
+    "all",
+    "complete",
+    "full",
+    "entire",
+    "comprehensive",
+    "tell me about",
+  ],
 };
 
 /**
@@ -329,6 +369,47 @@ export function detectIntent(query: string): {
       "drug",
       "prescription",
       "pill",
+      "taking",
+    ]),
+    // Enhanced: Specific medication questions
+    medication_for_condition: scoreIntent(normalized, [
+      "taking for",
+      "prescribed for",
+      "medication for",
+      "treating",
+    ]),
+    medication_timing: scoreIntent(normalized, [
+      "when prescribed",
+      "when was prescribed",
+      "prescribed when",
+      "started when",
+      "prescription date",
+    ]),
+    prescriber: scoreIntent(normalized, [
+      "who prescribed",
+      "which doctor prescribed",
+      "what doctor prescribed",
+      "prescriber",
+      "prescribed by",
+    ]),
+    medication_count: scoreIntent(normalized, [
+      "how many medication",
+      "how many med",
+      "how many drug",
+      "number of medication",
+    ]),
+    // Enhanced: Care plan specific questions
+    care_plan_status: scoreIntent(normalized, [
+      "status",
+      "active",
+      "inactive",
+      "plan status",
+    ]),
+    has_condition: scoreIntent(normalized, [
+      "does have",
+      "is there",
+      "has condition",
+      "diagnosed with",
     ]),
     diabetes: scoreIntent(normalized, [
       "diabetes",
@@ -363,11 +444,28 @@ export function detectIntent(query: string): {
       "next",
       "upcoming",
     ]),
+    // Enhanced: Provider/doctor questions
     doctor: scoreIntent(normalized, [
       "doctor",
       "physician",
       "provider",
       "treating",
+      "who is treating",
+      "healthcare provider",
+    ]),
+    // Enhanced: Visit/note questions
+    last_visit: scoreIntent(normalized, [
+      "last visit",
+      "recent visit",
+      "latest visit",
+      "most recent visit",
+      "last appointment",
+    ]),
+    note_content: scoreIntent(normalized, [
+      "what did doctor say",
+      "what was noted",
+      "what did say about",
+      "what was documented",
     ]),
     medical_history: scoreIntent(normalized, [
       "history",
@@ -408,6 +506,24 @@ export function detectIntent(query: string): {
       "disease",
       "problem",
     ]),
+    history: scoreIntent(normalized, [
+      "notes",
+      "note",
+      "history",
+      "visit",
+      "encounter",
+      "records",
+      "chart",
+      "documentation",
+    ]),
+    summary: scoreIntent(normalized, [
+      "summary",
+      "overview",
+      "everything",
+      "all about",
+      "tell me about",
+      "comprehensive",
+    ]),
   };
 
   // Add bonus points for exact matches
@@ -419,6 +535,9 @@ export function detectIntent(query: string): {
   if (matchesSynonyms(normalized, "immunizations")) intentScores.immunizations += 3;
   if (matchesSynonyms(normalized, "appointment")) intentScores.appointments += 3;
   if (matchesSynonyms(normalized, "diabetes")) intentScores.diabetes += 3;
+  if (matchesSynonyms(normalized, "clinical notes")) intentScores.history += 3;
+  if (matchesSynonyms(normalized, "care plans")) intentScores.care_plans += 3;
+  if (matchesSynonyms(normalized, "summary")) intentScores.summary += 3;
 
   // Find highest scoring intent
   let maxScore = 0;

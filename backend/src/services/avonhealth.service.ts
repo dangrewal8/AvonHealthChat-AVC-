@@ -167,26 +167,35 @@ export class AvonHealthService {
   /**
    * Fetch care plans for a patient
    * API returns data in format: { object: "list", data: [...] }
+   * CRITICAL: API returns ALL records across ALL patients - must filter client-side
    */
   async getCarePlans(patientId?: string): Promise<CarePlan[]> {
     console.log(`🔍 Fetching care plans${patientId ? ` for patient_id: ${patientId}` : ''}`);
 
-    // API returns all data for the authenticated user (via JWT token)
-    // patient_id filtering happens server-side based on JWT
     const response = await this.authenticatedRequest<any>(
       'get',
       `/v2/care_plans`
     );
 
     // Extract data array from response
-    const carePlans = response.data || [];
-    console.log(`   Found ${carePlans.length} care plan(s)`);
+    let carePlans = response.data || [];
+    const totalCount = carePlans.length;
+
+    // CRITICAL: Filter by patient field - API returns ALL records from database
+    if (patientId) {
+      carePlans = carePlans.filter((cp: any) => cp.patient === patientId);
+      console.log(`   ✅ Filtered to ${carePlans.length} care plan(s) for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${carePlans.length} total care plan(s) (NO PATIENT FILTER - returning all records)`);
+    }
+
     return carePlans;
   }
 
   /**
    * Fetch medications for a patient
    * API returns data in format: { object: "list", data: [...] }
+   * CRITICAL: API returns ALL records across ALL patients - must filter client-side
    */
   async getMedications(patientId?: string): Promise<Medication[]> {
     console.log(`🔍 Fetching medications${patientId ? ` for patient_id: ${patientId}` : ''}`);
@@ -196,14 +205,24 @@ export class AvonHealthService {
       `/v2/medications`
     );
 
-    const medications = response.data || [];
-    console.log(`   Found ${medications.length} medication(s)`);
+    let medications = response.data || [];
+    const totalCount = medications.length;
+
+    // CRITICAL: Filter by patient field - API returns ALL records from database
+    if (patientId) {
+      medications = medications.filter((med: any) => med.patient === patientId);
+      console.log(`   ✅ Filtered to ${medications.length} medication(s) for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${medications.length} total medication(s) (NO PATIENT FILTER - returning all records)`);
+    }
+
     return medications;
   }
 
   /**
    * Fetch clinical notes for a patient
    * API returns data in format: { object: "list", data: [...] }
+   * CRITICAL: API returns ALL records across ALL patients - must filter client-side
    */
   async getNotes(patientId?: string): Promise<ClinicalNote[]> {
     console.log(`🔍 Fetching notes${patientId ? ` for patient_id: ${patientId}` : ''}`);
@@ -213,8 +232,17 @@ export class AvonHealthService {
       `/v2/notes`
     );
 
-    const notes = response.data || [];
-    console.log(`   Found ${notes.length} note(s)`);
+    let notes = response.data || [];
+    const totalCount = notes.length;
+
+    // CRITICAL: Filter by patient field - API returns ALL records from database
+    if (patientId) {
+      notes = notes.filter((note: any) => note.patient === patientId);
+      console.log(`   ✅ Filtered to ${notes.length} note(s) for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${notes.length} total note(s) (NO PATIENT FILTER - returning all records)`);
+    }
+
     return notes;
   }
 
