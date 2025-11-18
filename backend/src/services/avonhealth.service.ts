@@ -17,6 +17,8 @@ export class AvonHealthService {
   private credentials: AvonHealthCredentials;
   private accessToken: string | null = null;
   private tokenExpiry: number = 0;
+  private jwtToken: string | null = null;
+  private jwtExpiry: number = 0;
 
   constructor(credentials: AvonHealthCredentials) {
     this.credentials = credentials;
@@ -64,25 +66,84 @@ export class AvonHealthService {
   }
 
   /**
-   * Make authenticated request to Avon Health API using bearer token
+   * Get JWT Token for user-level authentication (with caching)
+   * Requires bearer token first
+   */
+  private async getJWTToken(): Promise<string> {
+    // Return cached JWT if still valid
+    if (this.jwtToken && Date.now() < this.jwtExpiry) {
+      return this.jwtToken;
+    }
+
+    try {
+      // First get the bearer token
+      const bearerToken = await this.getAccessToken();
+
+      console.log('🔐 Step 2: Generating JWT token for user...');
+      console.log(`   User ID: ${this.credentials.user_id}`);
+
+      const response = await this.client.post(
+        '/v2/auth/get-jwt',
+        { id: this.credentials.user_id },
+        {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.data || !response.data.jwt) {
+        throw new Error('JWT token not returned in response');
+      }
+
+      const jwt = response.data.jwt;
+      this.jwtToken = jwt;
+      // JWT tokens typically have 24hr expiry like bearer tokens
+      this.jwtExpiry = Date.now() + (86400 * 1000 * 0.9);
+
+      console.log('✅ JWT token generated successfully');
+      return jwt;
+    } catch (error: any) {
+      console.error('❌ JWT generation error:', error.response?.data || error.message);
+      throw new Error(`Failed to generate JWT: ${error.message}`);
+    }
+  }
+
+  /**
+   * Make authenticated request to Avon Health API using TWO-KEY authentication
+   * Key 1: Bearer token (organization-level)
+   * Key 2: JWT token (user-level) in x-jwt header
    */
   private async authenticatedRequest<T>(
     method: 'get' | 'post',
     endpoint: string,
     data?: any
   ): Promise<T> {
-    // Get bearer token from /v2/auth/token
-    const token = await this.getAccessToken();
+    // Get both tokens
+    const bearerToken = await this.getAccessToken();
+    const jwtToken = await this.getJWTToken();
 
     try {
       console.log(`📡 Making ${method.toUpperCase()} request to ${endpoint}`);
+      console.log(`   Using TWO-KEY authentication (Bearer + JWT)`);
+
+      const headers: any = {
+        Authorization: `Bearer ${bearerToken}`,
+        'x-jwt': jwtToken,
+        'Content-Type': 'application/json',
+      };
+
+      // Add account header for sandbox environment
+      if (this.credentials.account) {
+        headers['account'] = this.credentials.account;
+        console.log(`   Sandbox account: ${this.credentials.account}`);
+      }
+
       const response = await this.client.request<T>({
         method,
         url: endpoint,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         data,
       });
 
@@ -95,8 +156,8 @@ export class AvonHealthService {
       console.error(`   Details:`, error.response?.data);
 
       if (error.response?.status === 401) {
-        console.error('   ⚠️  Authentication failed - check credentials and token');
-        console.error('   ⚠️  Ensure account and user_id are correct');
+        console.error('   ⚠️  Authentication failed');
+        console.error('   ⚠️  Check: Bearer token, JWT token, account header');
       }
 
       throw new Error(`API request failed: ${error.message}`);
@@ -105,45 +166,56 @@ export class AvonHealthService {
 
   /**
    * Fetch care plans for a patient
-   *
-   * NOTE: patient_id might be different from user_id used in JWT auth
-   * Common patterns:
-   * - patient_id could be: user_id, "patient_" + user_id, or a separate ID
-   * - Check API documentation or try user_id first
+   * API returns data in format: { object: "list", data: [...] }
    */
-  async getCarePlans(patientId: string): Promise<CarePlan[]> {
-    console.log(`🔍 Fetching care plans for patient_id: ${patientId}`);
-    if (patientId === this.credentials.user_id) {
-      console.log(`   ℹ️  Using user_id as patient_id`);
-    } else {
-      console.log(`   ℹ️  Patient ID differs from user_id (${this.credentials.user_id})`);
-    }
-    return this.authenticatedRequest<CarePlan[]>(
+  async getCarePlans(patientId?: string): Promise<CarePlan[]> {
+    console.log(`🔍 Fetching care plans${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    // API returns all data for the authenticated user (via JWT token)
+    // patient_id filtering happens server-side based on JWT
+    const response = await this.authenticatedRequest<any>(
       'get',
-      `/v2/care_plans?patient_id=${patientId}`
+      `/v2/care_plans`
     );
+
+    // Extract data array from response
+    const carePlans = response.data || [];
+    console.log(`   Found ${carePlans.length} care plan(s)`);
+    return carePlans;
   }
 
   /**
    * Fetch medications for a patient
+   * API returns data in format: { object: "list", data: [...] }
    */
-  async getMedications(patientId: string): Promise<Medication[]> {
-    console.log(`🔍 Fetching medications for patient_id: ${patientId}`);
-    return this.authenticatedRequest<Medication[]>(
+  async getMedications(patientId?: string): Promise<Medication[]> {
+    console.log(`🔍 Fetching medications${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
       'get',
-      `/v2/medications?patient_id=${patientId}`
+      `/v2/medications`
     );
+
+    const medications = response.data || [];
+    console.log(`   Found ${medications.length} medication(s)`);
+    return medications;
   }
 
   /**
    * Fetch clinical notes for a patient
+   * API returns data in format: { object: "list", data: [...] }
    */
-  async getNotes(patientId: string): Promise<ClinicalNote[]> {
-    console.log(`🔍 Fetching notes for patient_id: ${patientId}`);
-    return this.authenticatedRequest<ClinicalNote[]>(
+  async getNotes(patientId?: string): Promise<ClinicalNote[]> {
+    console.log(`🔍 Fetching notes${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
       'get',
-      `/v2/notes?patient_id=${patientId}`
+      `/v2/notes`
     );
+
+    const notes = response.data || [];
+    console.log(`   Found ${notes.length} note(s)`);
+    return notes;
   }
 
   /**
@@ -173,16 +245,19 @@ export class AvonHealthService {
   }
 
   /**
-   * Health check - tests authentication
+   * Health check - tests TWO-KEY authentication
    */
   async healthCheck(): Promise<boolean> {
     try {
-      console.log('🏥 Testing Avon Health API authentication...');
+      console.log('🏥 Testing Avon Health API TWO-KEY authentication...');
 
-      // Test: Get bearer token from /v2/auth/token
+      // Test Step 1: Get bearer token (organization-level)
       await this.getAccessToken();
 
-      console.log('✅ Authentication successful');
+      // Test Step 2: Get JWT token (user-level)
+      await this.getJWTToken();
+
+      console.log('✅ TWO-KEY authentication successful (Bearer + JWT)');
       return true;
     } catch (error: any) {
       console.error('❌ Authentication failed:', error.message);

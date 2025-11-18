@@ -154,10 +154,10 @@ async function initializeApp() {
   } else {
     const avonHealthy = await avonHealthService.healthCheck();
     if (avonHealthy) {
-      console.log('✅ Avon Health API connected successfully (OAuth2 client credentials)');
+      console.log('✅ Avon Health API connected successfully (TWO-KEY: Bearer + JWT)');
     } else {
       console.warn('⚠️  WARNING: Avon Health API authentication failed');
-      console.warn('   Check AVON_CLIENT_ID and AVON_CLIENT_SECRET are correct');
+      console.warn('   Check credentials and ensure user_id is correct');
     }
   }
 
