@@ -267,6 +267,271 @@ function generateFallbackShortAnswer(
     return 'No data found for this patient.';
   }
 
+  // DEMOGRAPHICS QUERIES - Patient name, age, gender, contact info
+  // "What is the patient's name?" or "Who is this patient?"
+  if (queryIntent.primary === 'patient_name' ||
+      (queryLower.includes('name') && (queryLower.includes('patient') || queryLower.match(/^what.*name/))) ||
+      queryLower.includes('patient called') || (queryLower.includes('who is') && queryLower.includes('patient'))) {
+
+    // Try to extract patient name from clinical notes sections
+    let patientName = null;
+    if (notes && notes.length > 0) {
+      for (const note of notes) {
+        if (note.sections && Array.isArray(note.sections)) {
+          for (const section of note.sections) {
+            // Look for demographics, patient info, or name sections
+            if (section.name && (
+              section.name.toLowerCase().includes('demographic') ||
+              section.name.toLowerCase().includes('patient') ||
+              section.name.toLowerCase().includes('name')
+            )) {
+              if (section.answers && Array.isArray(section.answers)) {
+                for (const answer of section.answers) {
+                  if (answer.name && (
+                    answer.name.toLowerCase().includes('name') ||
+                    answer.name.toLowerCase().includes('patient')
+                  ) && answer.value && typeof answer.value === 'string') {
+                    patientName = answer.value;
+                    break;
+                  }
+                }
+              }
+            }
+            if (patientName) break;
+          }
+        }
+        if (patientName) break;
+      }
+    }
+
+    if (patientName) {
+      return `The patient's name is ${patientName}.`;
+    }
+    return 'Patient name information is not available in the current records. The system has access to medications, care plans, and clinical notes, but demographic information may not be included in these records.';
+  }
+
+  // "How old is the patient?" or "What is the patient's age?"
+  if (queryIntent.primary === 'patient_age' ||
+      ((queryLower.includes('age') || queryLower.includes('old') || queryLower.includes('born')) &&
+      (queryLower.includes('patient') || queryLower.match(/^how old/)))) {
+
+    // Try to extract age or DOB from clinical notes
+    let patientAge = null;
+    let patientDOB = null;
+    if (notes && notes.length > 0) {
+      for (const note of notes) {
+        if (note.sections && Array.isArray(note.sections)) {
+          for (const section of note.sections) {
+            if (section.answers && Array.isArray(section.answers)) {
+              for (const answer of section.answers) {
+                if (answer.name) {
+                  const answerNameLower = answer.name.toLowerCase();
+                  if (answerNameLower.includes('age') && answer.value) {
+                    patientAge = answer.value;
+                  }
+                  if ((answerNameLower.includes('birth') || answerNameLower.includes('dob')) && answer.value) {
+                    patientDOB = answer.value;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (patientAge) {
+      return `The patient is ${patientAge} years old.`;
+    }
+    if (patientDOB) {
+      return `The patient's date of birth is ${formatDate(patientDOB)}.`;
+    }
+    return 'Patient age information is not available in the current records.';
+  }
+
+  // "What is the patient's gender?" or "Is the patient male or female?"
+  if (queryIntent.primary === 'patient_gender' ||
+      ((queryLower.includes('gender') || queryLower.includes('sex') || queryLower.includes('male') || queryLower.includes('female')) &&
+      queryLower.includes('patient'))) {
+
+    // Try to extract gender from clinical notes
+    let patientGender = null;
+    if (notes && notes.length > 0) {
+      for (const note of notes) {
+        if (note.sections && Array.isArray(note.sections)) {
+          for (const section of note.sections) {
+            if (section.answers && Array.isArray(section.answers)) {
+              for (const answer of section.answers) {
+                if (answer.name && (answer.name.toLowerCase().includes('gender') || answer.name.toLowerCase().includes('sex')) && answer.value) {
+                  patientGender = answer.value;
+                  break;
+                }
+              }
+            }
+            if (patientGender) break;
+          }
+        }
+        if (patientGender) break;
+      }
+    }
+
+    if (patientGender) {
+      return `The patient's gender is ${patientGender}.`;
+    }
+    return 'Patient gender information is not available in the current records.';
+  }
+
+  // INFERENCE & MEDICAL KNOWLEDGE QUESTIONS
+  // "Why is the patient on [medication]?" or "What is [medication] for?"
+  if ((queryLower.includes('why') || queryLower.includes('what') && queryLower.includes('for')) &&
+      (queryLower.includes('taking') || queryLower.includes('on') || queryLower.includes('prescribed'))) {
+
+    // Try to match medication name in query
+    const words = queryLower.split(/\s+/);
+    let matchedMed = null;
+
+    if (medications) {
+      for (const med of medications) {
+        if (med.name && med.active) {
+          const medNameWords = med.name.toLowerCase().split(/\s+/);
+          const hasMatch = medNameWords.some((medWord: string) => words.includes(medWord.replace(/[^a-z0-9]/g, '')));
+          if (hasMatch) {
+            matchedMed = med;
+            break;
+          }
+        }
+      }
+
+      if (matchedMed) {
+        // Look for related care plan to infer the reason
+        let relatedCondition = null;
+        if (care_plans) {
+          for (const cp of care_plans) {
+            const cpNameLower = cp.name?.toLowerCase() || '';
+            const medNameLower = matchedMed.name.toLowerCase();
+
+            // Common medication-condition associations
+            if (medNameLower.includes('metformin') && cpNameLower.includes('diabetes')) relatedCondition = cp.name;
+            else if (medNameLower.includes('lisinopril') && cpNameLower.includes('hypertension')) relatedCondition = cp.name;
+            else if (medNameLower.includes('atorvastatin') && cpNameLower.includes('cholesterol')) relatedCondition = cp.name;
+            else if (medNameLower.includes('levothyroxine') && cpNameLower.includes('thyroid')) relatedCondition = cp.name;
+            else if (medNameLower.includes('insulin') && cpNameLower.includes('diabetes')) relatedCondition = cp.name;
+            else if (medNameLower.includes('albuterol') && cpNameLower.includes('asthma')) relatedCondition = cp.name;
+
+            if (relatedCondition) break;
+          }
+        }
+
+        if (relatedCondition) {
+          return `The patient is taking ${matchedMed.name} for ${relatedCondition}. This medication was started on ${matchedMed.start_date ? formatDate(matchedMed.start_date) : 'an unknown date'}.`;
+        }
+        return `The patient is taking ${matchedMed.name}, which was started on ${matchedMed.start_date ? formatDate(matchedMed.start_date) : 'an unknown date'}. Based on the available records, I can see this is an active medication, but the specific condition it's treating may be documented in the care plans or clinical notes.`;
+      }
+    }
+  }
+
+  // "When did the patient start [medication]?" or "When was [medication] prescribed?"
+  if ((queryLower.includes('when') && (queryLower.includes('start') || queryLower.includes('prescribe') || queryLower.includes('begin')))) {
+
+    // Try to match medication name
+    const words = queryLower.split(/\s+/);
+    let matchedMed = null;
+
+    if (medications) {
+      for (const med of medications) {
+        if (med.name) {
+          const medNameWords = med.name.toLowerCase().split(/\s+/);
+          const hasMatch = medNameWords.some((medWord: string) => words.includes(medWord.replace(/[^a-z0-9]/g, '')));
+          if (hasMatch) {
+            matchedMed = med;
+            break;
+          }
+        }
+      }
+
+      if (matchedMed) {
+        if (matchedMed.start_date) {
+          return `${matchedMed.name} was started on ${formatDate(matchedMed.start_date)}${matchedMed.active ? ' and is currently active' : ' but is now inactive'}.`;
+        }
+        return `${matchedMed.name} is in the patient's records${matchedMed.active ? ' as an active medication' : ' but is inactive'}, however the start date is not available.`;
+      }
+    }
+  }
+
+  // "How much [medication] is the patient taking?" or "What's the dosage of [medication]?"
+  if ((queryLower.includes('how much') || queryLower.includes('dosage') || queryLower.includes('dose') || queryLower.includes('strength')) &&
+      medications) {
+
+    // Try to match medication name
+    const words = queryLower.split(/\s+/);
+    let matchedMed = null;
+
+    for (const med of medications) {
+      if (med.name && med.active) {
+        const medNameWords = med.name.toLowerCase().split(/\s+/);
+        const hasMatch = medNameWords.some((medWord: string) => words.includes(medWord.replace(/[^a-z0-9]/g, '')));
+        if (hasMatch) {
+          matchedMed = med;
+          break;
+        }
+      }
+    }
+
+    if (matchedMed) {
+      const strength = formatStrength(matchedMed.strength || '');
+      const sig = matchedMed.sig || '';
+
+      if (strength && sig) {
+        return `The patient is taking ${strength} of ${matchedMed.name}. Instructions: ${sig}`;
+      } else if (strength) {
+        return `The patient is taking ${strength} of ${matchedMed.name}.`;
+      } else if (sig) {
+        return `For ${matchedMed.name}: ${sig}`;
+      }
+      return `${matchedMed.name} is in the patient's active medications, but specific dosage information is not available.`;
+    }
+  }
+
+  // "Does the patient have [condition]?" or "Is the patient diagnosed with [condition]?"
+  if ((queryLower.includes('does') || queryLower.includes('is')) &&
+      (queryLower.includes('have') || queryLower.includes('diagnos') || queryLower.includes('condition'))) {
+
+    // Extract potential condition from query
+    const commonConditions = ['diabetes', 'hypertension', 'asthma', 'copd', 'depression', 'anxiety', 'cholesterol', 'heart disease', 'kidney'];
+    let mentionedCondition = null;
+
+    for (const condition of commonConditions) {
+      if (queryLower.includes(condition)) {
+        mentionedCondition = condition;
+        break;
+      }
+    }
+
+    if (mentionedCondition && care_plans) {
+      const matchingPlan = care_plans.find(cp =>
+        cp.name?.toLowerCase().includes(mentionedCondition)
+      );
+
+      if (matchingPlan) {
+        return `Yes, the patient has a care plan for ${matchingPlan.name}. This was created on ${formatDate(matchingPlan.created_at)}.`;
+      }
+      return `No care plan found for ${mentionedCondition}. The patient has ${care_plans.length} care plan${care_plans.length !== 1 ? 's' : ''} on file for other conditions.`;
+    }
+  }
+
+  // "What conditions does the patient have?" or "What is the patient being treated for?"
+  if ((queryLower.includes('condition') || queryLower.includes('diagnosis') || queryLower.includes('treated for')) &&
+      (queryLower.includes('what') || queryLower.includes('which'))) {
+
+    if (care_plans && care_plans.length > 0) {
+      const conditions = care_plans.map(cp => cp.name).filter(Boolean);
+      if (conditions.length > 0) {
+        return `The patient is being treated for: ${conditions.join(', ')}.`;
+      }
+    }
+    return 'No specific conditions or care plans are documented in the current records.';
+  }
+
   // Default for any other queries - provide helpful summary
   const medCount = medications?.length || 0;
   const planCount = care_plans?.length || 0;

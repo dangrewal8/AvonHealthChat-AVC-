@@ -353,8 +353,11 @@ export function detectIntent(query: string): {
 
   // Score all possible intents
   const intentScores: { [key: string]: number } = {
-    name: scoreIntent(normalized, ["name", "called", "who", "identity", "patient"]),
-    age: scoreIntent(normalized, ["age", "old", "born", "birthday", "birth"]),
+    // Demographics - Enhanced with more patterns
+    patient_name: scoreIntent(normalized, ["patient name", "name", "called", "patient called"]),
+    patient_age: scoreIntent(normalized, ["age", "old", "years old", "born", "birthday", "birth date", "dob"]),
+    patient_gender: scoreIntent(normalized, ["gender", "sex", "male", "female"]),
+    patient_contact: scoreIntent(normalized, ["phone", "email", "address", "contact info"]),
     allergies: scoreIntent(normalized, [
       "allergy",
       "allergic",
