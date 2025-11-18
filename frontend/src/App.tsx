@@ -50,7 +50,7 @@ function App() {
   // Conversation management
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [patientId] = useState('patient-123');
+  const [patientId] = useState('user_BPJpEJejcMVFPmTx5OQwggCVAun1'); // Real patient with 1,568 records
   const [inputValue, setInputValue] = useState('');
   const [isLoadingResponse, setIsLoadingResponse] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
