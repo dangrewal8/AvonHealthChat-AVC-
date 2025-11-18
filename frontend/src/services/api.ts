@@ -42,7 +42,7 @@ class APIClient {
   constructor() {
     // Create axios instance with defaults
     this.client = axios.create({
-      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002',
+      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
       timeout: 300000, // 5 minutes (RAG queries with Ollama can take 2-3 minutes)
       headers: {
         'Content-Type': 'application/json',
