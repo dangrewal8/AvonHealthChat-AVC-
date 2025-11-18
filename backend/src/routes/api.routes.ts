@@ -52,12 +52,12 @@ function generateFallbackShortAnswer(
   const formatStrength = (strength: string): string => {
     if (!strength) return '';
 
-    // Convert large UNIT numbers to readable format
+    // Convert large UNIT numbers to abbreviated format
     const unitMatch = strength.match(/^(\d+)\s*UNIT$/i);
     if (unitMatch) {
       const units = parseInt(unitMatch[1]);
       if (units >= 1000000) {
-        return `${(units / 1000000).toFixed(1).replace(/\.0$/, '')} million units`;
+        return `${(units / 1000000).toFixed(1).replace(/\.0$/, '')}m units`;
       }
       if (units >= 1000) {
         return `${(units / 1000).toFixed(1).replace(/\.0$/, '')}K units`;
@@ -87,7 +87,7 @@ function generateFallbackShortAnswer(
       const condition = conditionMatch[1];
       const relatedMeds = medications.filter((m: any) =>
         m.name?.toLowerCase().includes(condition) ||
-        care_plans?.some(cp => cp.title?.toLowerCase().includes(condition))
+        care_plans?.some(cp => cp.name?.toLowerCase().includes(condition))  // API uses 'name', not 'title'
       );
       if (relatedMeds.length > 0) {
         const medNames = relatedMeds.map((m: any) => m.name).join(', ');
@@ -153,7 +153,7 @@ function generateFallbackShortAnswer(
       if (conditionIndex > 0 && conditionIndex < words.length) {
         const potentialCondition = words.slice(conditionIndex).join(' ').replace(/[?.,]/g, '');
         const matchingPlan = care_plans.find((cp: any) =>
-          cp.title?.toLowerCase().includes(potentialCondition.toLowerCase())
+          cp.name?.toLowerCase().includes(potentialCondition.toLowerCase())
         );
         if (matchingPlan) {
           return `Yes, there is ${matchingPlan.status === 'active' ? 'an active' : 'a'} care plan for ${matchingPlan.title}.`;
@@ -164,14 +164,13 @@ function generateFallbackShortAnswer(
   }
 
   // "What is the status of [care plan]?" or "Is [plan] active?"
+  // NOTE: Care plans API doesn't have a simple 'status' field, so we show all plans
   if ((queryLower.includes('status') || queryLower.includes('active')) && care_plans) {
-    const activePlans = care_plans.filter((cp: any) => cp.status === 'active');
-    if (activePlans.length > 0) {
-      return `${activePlans.length} active care plan${activePlans.length !== 1 ? 's' : ''}: ${activePlans.map((cp: any) => cp.title).join(', ')}.`;
+    if (care_plans.length > 0) {
+      const planNames = care_plans.map((cp: any) => cp.name).join(', ');
+      return `Found ${care_plans.length} care plan${care_plans.length !== 1 ? 's' : ''}: ${planNames}.`;
     }
-    return care_plans.length > 0
-      ? `No currently active care plans. ${care_plans.length} inactive plan${care_plans.length !== 1 ? 's' : ''} on file.`
-      : 'No care plans found.';
+    return 'No care plans found.';
   }
 
   // General care plan / diagnosis queries
@@ -179,9 +178,8 @@ function generateFallbackShortAnswer(
       queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
     if (care_plans && care_plans.length > 0) {
       const planCount = care_plans.length;
-      const activePlans = care_plans.filter((cp: any) => cp.status === 'active');
-      const planTitles = care_plans.slice(0, 3).map((cp: any) => cp.title).join(', ');
-      return `The patient has ${planCount} care plan${planCount > 1 ? 's' : ''} (${activePlans.length} active): ${planTitles}${planCount > 3 ? ', and others' : ''}.`;
+      const planTitles = care_plans.slice(0, 3).map((cp: any) => cp.name).join(', ');
+      return `The patient has ${planCount} care plan${planCount > 1 ? 's' : ''}: ${planTitles}${planCount > 3 ? ', and others' : ''}.`;
     }
     return 'No care plans found in the patient records.';
   }
@@ -214,9 +212,13 @@ function generateFallbackShortAnswer(
   if ((queryLower.includes('who is') || queryLower.includes('who are')) &&
       (queryLower.includes('doctor') || queryLower.includes('provider') || queryLower.includes('treating'))) {
     const providers = new Set<string>();
-    notes?.forEach((n: any) => n.author && providers.add(n.author));
-    care_plans?.forEach((cp: any) => cp.provider && providers.add(cp.provider));
-    medications?.forEach((m: any) => m.prescriber && providers.add(m.prescriber));
+    // API uses 'created_by', not 'author' or 'provider' or 'prescriber'
+    notes?.forEach((n: any) => n.created_by && providers.add(n.created_by));
+    care_plans?.forEach((cp: any) => {
+      if (cp.created_by) providers.add(cp.created_by);
+      if (cp.assigned_to && cp.assigned_to !== 'user_null') providers.add(cp.assigned_to);
+    });
+    medications?.forEach((m: any) => m.created_by && providers.add(m.created_by));
 
     if (providers.size > 0) {
       return `Healthcare providers: ${Array.from(providers).join(', ')}.`;
@@ -296,12 +298,12 @@ function generateFallbackDetailedSummary(
   const formatStrength = (strength: string): string => {
     if (!strength) return '';
 
-    // Convert large UNIT numbers to readable format
+    // Convert large UNIT numbers to abbreviated format
     const unitMatch = strength.match(/^(\d+)\s*UNIT$/i);
     if (unitMatch) {
       const units = parseInt(unitMatch[1]);
       if (units >= 1000000) {
-        return `${(units / 1000000).toFixed(1).replace(/\.0$/, '')} million units`;
+        return `${(units / 1000000).toFixed(1).replace(/\.0$/, '')}m units`;
       }
       if (units >= 1000) {
         return `${(units / 1000).toFixed(1).replace(/\.0$/, '')}K units`;
@@ -360,19 +362,47 @@ function generateFallbackDetailedSummary(
     return text;
   };
 
-  // Helper: Format clinical note with all details (using actual API fields)
-  const formatNote = (note: any, idx: number): string => {
-    const noteType = note.note_type || 'Clinical Note';
-    const date = note.created_at ? formatDate(note.created_at) : 'No date';
-
-    let text = `${idx + 1}. ${noteType} - ${date}\n`;
-
-    if (note.author) {
-      text += `   Provider: ${note.author}\n`;
+  // Helper: Extract content from note sections (notes don't have simple 'content' field)
+  const extractNoteContent = (note: any): string => {
+    if (!note.sections || !Array.isArray(note.sections)) {
+      return '';
     }
 
-    if (note.content) {
-      const content = note.content.trim();
+    const contentParts: string[] = [];
+
+    note.sections.forEach((section: any) => {
+      if (section.name) {
+        contentParts.push(`${section.name}:`);
+      }
+
+      if (section.answers && Array.isArray(section.answers)) {
+        section.answers.forEach((answer: any) => {
+          // Extract value from answer based on type
+          if (answer.name) contentParts.push(`  - ${answer.name}`);
+          if (answer.value) contentParts.push(`  ${answer.value}`);
+          if (answer.text) contentParts.push(`  ${answer.text}`);
+        });
+      }
+    });
+
+    return contentParts.join(' ').trim();
+  };
+
+  // Helper: Format clinical note with all details (using CORRECT API fields)
+  const formatNote = (note: any, idx: number): string => {
+    const noteName = note.name || 'Clinical Note';  // API uses 'name', not 'note_type'
+    const date = note.created_at ? formatDate(note.created_at) : 'No date';
+
+    let text = `${idx + 1}. ${noteName} - ${date}\n`;
+
+    // API uses 'created_by', not 'author'
+    if (note.created_by) {
+      text += `   Provider: ${note.created_by}\n`;
+    }
+
+    // Extract content from sections (notes don't have simple 'content' field)
+    const content = extractNoteContent(note);
+    if (content) {
       text += `   ${content.substring(0, 250)}${content.length > 250 ? '...' : ''}\n`;
     }
 
@@ -587,19 +617,23 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
     contextPriority.forEach((sourceType) => {
       if (sourceType === 'care_plans' && care_plans) {
         care_plans.forEach((cp: any) => {
-          const title = cp.title || 'Untitled Care Plan';
+          const name = cp.name || 'Untitled Care Plan';
           const description = cp.description || '';
-          const status = cp.status || 'unknown';
-          const provider = cp.provider || 'unknown';
+          const created_by = cp.created_by || 'unknown';
+          const assigned_to = cp.assigned_to && cp.assigned_to !== 'user_null' ? cp.assigned_to : null;
+          const share_status = cp.share_with_patient ? 'Shared with patient' : 'Not shared';
 
-          const text = `Care Plan: ${title}\n${description}\nStatus: ${status}\nProvider: ${provider}`;
+          let text = `Care Plan: ${name}\n${description}\nCreated by: ${created_by}`;
+          if (assigned_to) text += `\nAssigned to: ${assigned_to}`;
+          text += `\n${share_status}`;
+
           context += `\n\n[CARE_PLAN_${cp.id || 'unknown'}] ${text}`;
           artifacts_searched++;
 
           provenance.push({
             artifact_id: cp.id || 'unknown',
             artifact_type: 'care_plan',
-            snippet: description ? description.substring(0, 200) : title,
+            snippet: description ? description.substring(0, 200) : name,
             occurred_at: cp.created_at || new Date().toISOString(),
             relevance_score: 0.8,
             char_offsets: [0, text.length],
@@ -634,19 +668,34 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
 
       if (sourceType === 'notes' && notes) {
         notes.forEach((note: any) => {
-          const note_type = note.note_type || 'Clinical Note';
-          const author = note.author || 'unknown';
+          const note_name = note.name || 'Clinical Note';  // API uses 'name', not 'note_type'
+          const created_by = note.created_by || 'unknown';  // API uses 'created_by', not 'author'
           const created_at = note.created_at || 'unknown';
-          const content = note.content || '';
 
-          const text = `Clinical Note (${note_type})\nAuthor: ${author}\nDate: ${created_at}\n${content}`;
+          // Extract content from sections (notes don't have simple 'content' field)
+          let content = '';
+          if (note.sections && Array.isArray(note.sections)) {
+            const parts: string[] = [];
+            note.sections.forEach((section: any) => {
+              if (section.name) parts.push(section.name);
+              if (section.answers && Array.isArray(section.answers)) {
+                section.answers.forEach((answer: any) => {
+                  if (answer.name) parts.push(answer.name);
+                  if (answer.value) parts.push(String(answer.value));
+                });
+              }
+            });
+            content = parts.join(' ');
+          }
+
+          const text = `Clinical Note (${note_name})\nProvider: ${created_by}\nDate: ${created_at}\n${content}`;
           context += `\n\n[NOTE_${note.id || 'unknown'}] ${text}`;
           artifacts_searched++;
 
           provenance.push({
             artifact_id: note.id || 'unknown',
             artifact_type: 'note',
-            snippet: content ? content.substring(0, 200) : note_type,
+            snippet: content ? content.substring(0, 200) : note_name,
             occurred_at: created_at !== 'unknown' ? created_at : new Date().toISOString(),
             relevance_score: 0.9,
             char_offsets: [0, text.length],
@@ -700,10 +749,10 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
     // Extract care plans mentioned
     if (care_plans && detailed_summary) {
       care_plans.forEach((cp: any) => {
-        if (cp.title && detailed_summary.toLowerCase().includes(cp.title.toLowerCase())) {
+        if (cp.name && detailed_summary.toLowerCase().includes(cp.name.toLowerCase())) {
           structured_extractions.push({
             type: 'condition',
-            value: cp.title,
+            value: cp.name,
             relevance: 0.85,
             confidence: 0.9,
             source_artifact_id: cp.id || 'unknown',
