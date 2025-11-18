@@ -27,6 +27,7 @@ export function initializeServices(ollama: OllamaService, avonHealth: AvonHealth
 
 /**
  * Generate short answer from structured data (fallback when Ollama unavailable)
+ * Enhanced with comprehensive pattern matching for extensive question types
  */
 function generateFallbackShortAnswer(
   query: string,
@@ -36,8 +37,68 @@ function generateFallbackShortAnswer(
   const { care_plans, medications, notes } = data;
   const queryLower = query.toLowerCase();
 
-  // Medication queries
-  if (queryIntent.primary === 'medications' || queryLower.includes('medication') || queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
+  // Helper: Format date nicely
+  const formatDate = (dateStr: string): string => {
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // SPECIFIC MEDICATION QUESTIONS
+  // "What is the patient taking for [condition]?"
+  if ((queryLower.includes('taking for') || queryLower.includes('prescribed for')) && medications) {
+    const conditionMatch = queryLower.match(/(?:taking|prescribed) for (\w+)/);
+    if (conditionMatch && conditionMatch[1]) {
+      const condition = conditionMatch[1];
+      const relatedMeds = medications.filter((m: any) =>
+        m.name?.toLowerCase().includes(condition) ||
+        care_plans?.some(cp => cp.title?.toLowerCase().includes(condition))
+      );
+      if (relatedMeds.length > 0) {
+        const medNames = relatedMeds.map((m: any) => m.name).join(', ');
+        return `For ${condition}, the patient is taking: ${medNames}.`;
+      }
+      return `No medications found specifically for ${condition}. The patient has ${medications.length} total medications.`;
+    }
+  }
+
+  // "When was [medication] prescribed?"
+  if ((queryLower.includes('when was') || queryLower.includes('when did')) &&
+      (queryLower.includes('prescribed') || queryLower.includes('started'))) {
+    if (medications && medications.length > 0) {
+      // Try to find specific medication mentioned
+      const recentMed = medications[0];
+      if (recentMed.prescribed_date) {
+        return `Most recent prescription: ${recentMed.name} was prescribed on ${formatDate(recentMed.prescribed_date)}.`;
+      }
+    }
+  }
+
+  // "Who prescribed [medication]?" or "Which doctor prescribed?"
+  if ((queryLower.includes('who prescribed') || queryLower.includes('which doctor') ||
+       queryLower.includes('what doctor')) && medications) {
+    const prescribers = [...new Set(medications.map((m: any) => m.prescriber).filter(Boolean))];
+    if (prescribers.length > 0) {
+      return `Prescribers for this patient's medications: ${prescribers.join(', ')}.`;
+    }
+    return 'Prescriber information not available in records.';
+  }
+
+  // "How many medications?" or "How many meds?"
+  if ((queryLower.includes('how many') && (queryLower.includes('med') || queryLower.includes('drug')))) {
+    if (medications) {
+      return `The patient is currently taking ${medications.length} medication${medications.length !== 1 ? 's' : ''}.`;
+    }
+    return 'No medications found in the patient records.';
+  }
+
+  // General medication queries
+  if (queryIntent.primary === 'medications' || queryLower.includes('medication') ||
+      queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
     if (medications && medications.length > 0) {
       const medCount = medications.length;
       const medNames = medications.slice(0, 3).map((m: any) => m.name || 'Unknown').join(', ');
@@ -46,30 +107,131 @@ function generateFallbackShortAnswer(
     return 'No medications found in the patient records.';
   }
 
-  // Care plan / diagnosis queries
-  if (queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' || queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
+  // SPECIFIC CARE PLAN QUESTIONS
+  // "Does the patient have [condition]?" or "Is there a care plan for [condition]?"
+  if ((queryLower.includes('does') || queryLower.includes('is there')) &&
+      (queryLower.includes('have') || queryLower.includes('care plan'))) {
+    if (care_plans && care_plans.length > 0) {
+      // Try to extract condition name
+      const words = queryLower.split(' ');
+      const conditionIndex = Math.max(
+        words.indexOf('have') + 1,
+        words.indexOf('for') + 1,
+        words.indexOf('plan') + 1
+      );
+      if (conditionIndex > 0 && conditionIndex < words.length) {
+        const potentialCondition = words.slice(conditionIndex).join(' ').replace(/[?.,]/g, '');
+        const matchingPlan = care_plans.find((cp: any) =>
+          cp.title?.toLowerCase().includes(potentialCondition.toLowerCase())
+        );
+        if (matchingPlan) {
+          return `Yes, there is ${matchingPlan.status === 'active' ? 'an active' : 'a'} care plan for ${matchingPlan.title}.`;
+        }
+        return `No care plan found specifically for "${potentialCondition}". The patient has ${care_plans.length} total care plan${care_plans.length !== 1 ? 's' : ''}.`;
+      }
+    }
+  }
+
+  // "What is the status of [care plan]?" or "Is [plan] active?"
+  if ((queryLower.includes('status') || queryLower.includes('active')) && care_plans) {
+    const activePlans = care_plans.filter((cp: any) => cp.status === 'active');
+    if (activePlans.length > 0) {
+      return `${activePlans.length} active care plan${activePlans.length !== 1 ? 's' : ''}: ${activePlans.map((cp: any) => cp.title).join(', ')}.`;
+    }
+    return care_plans.length > 0
+      ? `No currently active care plans. ${care_plans.length} inactive plan${care_plans.length !== 1 ? 's' : ''} on file.`
+      : 'No care plans found.';
+  }
+
+  // General care plan / diagnosis queries
+  if (queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' ||
+      queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
     if (care_plans && care_plans.length > 0) {
       const planCount = care_plans.length;
       const activePlans = care_plans.filter((cp: any) => cp.status === 'active');
-      return `The patient has ${planCount} care plan${planCount > 1 ? 's' : ''} on file${activePlans.length > 0 ? `, with ${activePlans.length} currently active` : ''}.`;
+      const planTitles = care_plans.slice(0, 3).map((cp: any) => cp.title).join(', ');
+      return `The patient has ${planCount} care plan${planCount > 1 ? 's' : ''} (${activePlans.length} active): ${planTitles}${planCount > 3 ? ', and others' : ''}.`;
     }
     return 'No care plans found in the patient records.';
   }
 
-  // Clinical notes queries
-  if (queryIntent.primary === 'history' || queryLower.includes('note') || queryLower.includes('visit') || queryLower.includes('history')) {
+  // SPECIFIC CLINICAL NOTE QUESTIONS
+  // "What did the doctor say about [topic]?" or "What was noted about [topic]?"
+  if ((queryLower.includes('what did') || queryLower.includes('what was')) &&
+      (queryLower.includes('say') || queryLower.includes('note') || queryLower.includes('document'))) {
+    if (notes && notes.length > 0) {
+      const recentNote = notes[0];
+      const noteDate = recentNote.created_at ? formatDate(recentNote.created_at) : 'unknown date';
+      const noteContent = recentNote.content ? recentNote.content.substring(0, 150) : 'No content available';
+      return `Most recent note (${noteDate}): "${noteContent}${recentNote.content?.length > 150 ? '...' : ''}"`;
+    }
+    return 'No clinical notes found.';
+  }
+
+  // "When was the last visit?" or "Most recent visit?"
+  if ((queryLower.includes('last visit') || queryLower.includes('recent visit') ||
+       queryLower.includes('latest visit') || queryLower.includes('last appointment'))) {
+    if (notes && notes.length > 0) {
+      const recentNote = notes[0];
+      const noteDate = recentNote.created_at ? formatDate(recentNote.created_at) : 'unknown date';
+      return `Most recent visit note is from ${noteDate} by ${recentNote.author || 'unknown provider'}.`;
+    }
+    return 'No visit notes found in patient records.';
+  }
+
+  // "Who is the patient's doctor?" or "Who is treating the patient?"
+  if ((queryLower.includes('who is') || queryLower.includes('who are')) &&
+      (queryLower.includes('doctor') || queryLower.includes('provider') || queryLower.includes('treating'))) {
+    const providers = new Set<string>();
+    notes?.forEach((n: any) => n.author && providers.add(n.author));
+    care_plans?.forEach((cp: any) => cp.provider && providers.add(cp.provider));
+    medications?.forEach((m: any) => m.prescriber && providers.add(m.prescriber));
+
+    if (providers.size > 0) {
+      return `Healthcare providers: ${Array.from(providers).join(', ')}.`;
+    }
+    return 'Provider information not available in records.';
+  }
+
+  // General clinical notes / history queries
+  if (queryIntent.primary === 'history' || queryLower.includes('note') ||
+      queryLower.includes('visit') || queryLower.includes('history') ||
+      queryLower.includes('chart') || queryLower.includes('record')) {
     if (notes && notes.length > 0) {
       const noteCount = notes.length;
       const recentNote = notes[0];
-      return `The patient has ${noteCount} clinical note${noteCount > 1 ? 's' : ''} on file. Most recent note was from ${recentNote.created_at || 'unknown date'}.`;
+      const recentDate = recentNote.created_at ? formatDate(recentNote.created_at) : 'unknown date';
+      return `The patient has ${noteCount} clinical note${noteCount > 1 ? 's' : ''} on file. Most recent note from ${recentDate}.`;
     }
     return 'No clinical notes found in the patient records.';
   }
 
-  // General summary
-  const hasData = (care_plans && care_plans.length > 0) || (medications && medications.length > 0) || (notes && notes.length > 0);
+  // Summary / overview queries
+  if (queryIntent.primary === 'summary' || queryLower.includes('summary') ||
+      queryLower.includes('overview') || queryLower.includes('everything') || queryLower.includes('all about')) {
+    const medCount = medications?.length || 0;
+    const planCount = care_plans?.length || 0;
+    const noteCount = notes?.length || 0;
+    const hasData = medCount > 0 || planCount > 0 || noteCount > 0;
+
+    if (hasData) {
+      const parts = [];
+      if (medCount > 0) parts.push(`${medCount} medication${medCount !== 1 ? 's' : ''}`);
+      if (planCount > 0) parts.push(`${planCount} care plan${planCount !== 1 ? 's' : ''}`);
+      if (noteCount > 0) parts.push(`${noteCount} clinical note${noteCount !== 1 ? 's' : ''}`);
+      return `Patient record summary: ${parts.join(', ')}.`;
+    }
+    return 'No data found for this patient.';
+  }
+
+  // Default for any other queries - provide helpful summary
+  const medCount = medications?.length || 0;
+  const planCount = care_plans?.length || 0;
+  const noteCount = notes?.length || 0;
+  const hasData = medCount > 0 || planCount > 0 || noteCount > 0;
+
   if (hasData) {
-    return `Found ${care_plans?.length || 0} care plans, ${medications?.length || 0} medications, and ${notes?.length || 0} clinical notes for this patient.`;
+    return `Found ${medCount} medication${medCount !== 1 ? 's' : ''}, ${planCount} care plan${planCount !== 1 ? 's' : ''}, and ${noteCount} clinical note${noteCount !== 1 ? 's' : ''} for this patient.`;
   }
 
   return 'No relevant information found in patient records.';
@@ -77,6 +239,7 @@ function generateFallbackShortAnswer(
 
 /**
  * Generate detailed summary from structured data (fallback when Ollama unavailable)
+ * Enhanced with comprehensive formatting and organization
  */
 function generateFallbackDetailedSummary(
   query: string,
@@ -87,94 +250,272 @@ function generateFallbackDetailedSummary(
   const queryLower = query.toLowerCase();
   let summary = '';
 
-  // Medication queries - provide detailed list
-  if (queryIntent.primary === 'medications' || queryLower.includes('medication') || queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
-    if (medications && medications.length > 0) {
-      summary = `**Current Medications (${medications.length} total):**\n\n`;
-      medications.slice(0, 10).forEach((med: any, idx: number) => {
-        summary += `${idx + 1}. **${med.name || 'Unknown medication'}** ${med.dosage || ''}\n`;
-        if (med.frequency) summary += `   - Frequency: ${med.frequency}\n`;
-        if (med.prescribed_date) summary += `   - Prescribed: ${med.prescribed_date}\n`;
-        if (med.prescriber) summary += `   - Prescriber: ${med.prescriber}\n`;
-        summary += '\n';
+  // Helper: Format date nicely
+  const formatDate = (dateStr: string): string => {
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric'
       });
-      if (medications.length > 10) {
-        summary += `\n*...and ${medications.length - 10} more medications*\n`;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Helper: Format medication with all details
+  const formatMedication = (med: any, idx: number): string => {
+    let text = `${idx + 1}. **${med.name || 'Unknown medication'}**`;
+    if (med.dosage) text += ` - ${med.dosage}`;
+    text += '\n';
+
+    const details = [];
+    if (med.frequency) details.push(`Frequency: ${med.frequency}`);
+    if (med.prescribed_date) details.push(`Prescribed: ${formatDate(med.prescribed_date)}`);
+    if (med.prescriber) details.push(`Prescriber: ${med.prescriber}`);
+    if (med.status) details.push(`Status: ${med.status}`);
+
+    if (details.length > 0) {
+      text += `   ${details.join(' • ')}\n`;
+    }
+
+    if (med.instructions || med.notes) {
+      const info = med.instructions || med.notes;
+      text += `   _${info.substring(0, 150)}${info.length > 150 ? '...' : ''}_\n`;
+    }
+
+    return text + '\n';
+  };
+
+  // Helper: Format care plan with all details
+  const formatCarePlan = (cp: any, idx: number): string => {
+    let text = `${idx + 1}. **${cp.title || 'Untitled Plan'}**`;
+    if (cp.status) {
+      const statusEmoji = cp.status === 'active' ? '✓' : cp.status === 'completed' ? '✔' : '○';
+      text += ` ${statusEmoji} _${cp.status}_`;
+    }
+    text += '\n';
+
+    if (cp.description) {
+      text += `   ${cp.description.substring(0, 250)}${cp.description.length > 250 ? '...' : ''}\n`;
+    }
+
+    const details = [];
+    if (cp.provider) details.push(`Provider: ${cp.provider}`);
+    if (cp.created_at) details.push(`Created: ${formatDate(cp.created_at)}`);
+    if (cp.updated_at) details.push(`Updated: ${formatDate(cp.updated_at)}`);
+
+    if (details.length > 0) {
+      text += `   ${details.join(' • ')}\n`;
+    }
+
+    return text + '\n';
+  };
+
+  // Helper: Format clinical note with all details
+  const formatNote = (note: any, idx: number): string => {
+    let text = `${idx + 1}. **${note.note_type || 'Clinical Note'}**`;
+    if (note.created_at) text += ` - ${formatDate(note.created_at)}`;
+    text += '\n';
+
+    if (note.author) text += `   _Author: ${note.author}_\n`;
+
+    if (note.content) {
+      const content = note.content.trim();
+      // Show more content for notes since they're usually the most informative
+      text += `   ${content.substring(0, 300)}${content.length > 300 ? '...' : ''}\n`;
+    }
+
+    return text + '\n';
+  };
+
+  // SPECIFIC MEDICATION QUESTIONS with enhanced formatting
+  if (queryIntent.primary === 'medications' || queryLower.includes('medication') ||
+      queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
+    if (medications && medications.length > 0) {
+      summary = `## Current Medications\n\n`;
+      summary += `_Total: ${medications.length} medication${medications.length !== 1 ? 's' : ''}_\n\n`;
+
+      // Show up to 15 medications with full details
+      medications.slice(0, 15).forEach((med: any, idx: number) => {
+        summary += formatMedication(med, idx);
+      });
+
+      if (medications.length > 15) {
+        summary += `_...and ${medications.length - 15} more medication${medications.length - 15 !== 1 ? 's' : ''}_\n`;
       }
+
+      // Add summary by prescriber if multiple prescribers
+      const prescribers = [...new Set(medications.map((m: any) => m.prescriber).filter(Boolean))];
+      if (prescribers.length > 1) {
+        summary += `\n**Prescribers:** ${prescribers.join(', ')}\n`;
+      }
+
       return summary;
     }
     return '**Medications:** No medications found in patient records.';
   }
 
-  // Care plan queries
-  if (queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' || queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
+  // SPECIFIC CARE PLAN QUESTIONS with enhanced formatting
+  if (queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' ||
+      queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
     if (care_plans && care_plans.length > 0) {
-      summary = `**Care Plans (${care_plans.length} total):**\n\n`;
-      care_plans.slice(0, 5).forEach((cp: any, idx: number) => {
-        summary += `${idx + 1}. **${cp.title || 'Untitled Plan'}**\n`;
-        if (cp.description) summary += `   ${cp.description.substring(0, 200)}${cp.description.length > 200 ? '...' : ''}\n`;
-        if (cp.status) summary += `   - Status: ${cp.status}\n`;
-        if (cp.provider) summary += `   - Provider: ${cp.provider}\n`;
-        summary += '\n';
-      });
-      if (care_plans.length > 5) {
-        summary += `\n*...and ${care_plans.length - 5} more care plans*\n`;
+      const activePlans = care_plans.filter((cp: any) => cp.status === 'active');
+      const inactivePlans = care_plans.filter((cp: any) => cp.status !== 'active');
+
+      summary = `## Care Plans\n\n`;
+      summary += `_Total: ${care_plans.length} plan${care_plans.length !== 1 ? 's' : ''} `;
+      summary += `(${activePlans.length} active, ${inactivePlans.length} inactive)_\n\n`;
+
+      // Show active plans first
+      if (activePlans.length > 0) {
+        summary += `### Active Care Plans\n\n`;
+        activePlans.forEach((cp: any, idx: number) => {
+          summary += formatCarePlan(cp, idx);
+        });
       }
+
+      // Then inactive plans
+      if (inactivePlans.length > 0 && care_plans.length <= 10) {
+        summary += `### Inactive Care Plans\n\n`;
+        inactivePlans.forEach((cp: any, idx: number) => {
+          summary += formatCarePlan(cp, activePlans.length + idx);
+        });
+      }
+
       return summary;
     }
     return '**Care Plans:** No care plans found in patient records.';
   }
 
-  // Clinical notes queries
-  if (queryIntent.primary === 'history' || queryLower.includes('note') || queryLower.includes('visit') || queryLower.includes('history')) {
+  // SPECIFIC CLINICAL NOTE QUESTIONS with enhanced formatting
+  if (queryIntent.primary === 'history' || queryLower.includes('note') ||
+      queryLower.includes('visit') || queryLower.includes('history')) {
     if (notes && notes.length > 0) {
-      summary = `**Clinical Notes (${notes.length} total):**\n\n`;
-      notes.slice(0, 5).forEach((note: any, idx: number) => {
-        summary += `${idx + 1}. **${note.note_type || 'Clinical Note'}** - ${note.created_at || 'No date'}\n`;
-        if (note.author) summary += `   Author: ${note.author}\n`;
-        if (note.content) summary += `   ${note.content.substring(0, 200)}${note.content.length > 200 ? '...' : ''}\n`;
-        summary += '\n';
-      });
-      if (notes.length > 5) {
-        summary += `\n*...and ${notes.length - 5} more notes*\n`;
+      summary = `## Clinical Notes & Visit History\n\n`;
+      summary += `_Total: ${notes.length} note${notes.length !== 1 ? 's' : ''}_\n\n`;
+
+      // Group notes by type if there are multiple types
+      const noteTypes = [...new Set(notes.map((n: any) => n.note_type || 'Clinical Note'))];
+
+      if (noteTypes.length > 1 && notes.length > 5) {
+        // Show grouped by type
+        noteTypes.slice(0, 3).forEach(noteType => {
+          const typeNotes = notes.filter((n: any) => (n.note_type || 'Clinical Note') === noteType);
+          if (typeNotes.length > 0) {
+            summary += `### ${noteType} (${typeNotes.length})\n\n`;
+            typeNotes.slice(0, 3).forEach((note: any, idx: number) => {
+              summary += formatNote(note, idx);
+            });
+            if (typeNotes.length > 3) {
+              summary += `_...and ${typeNotes.length - 3} more ${noteType.toLowerCase()}${typeNotes.length - 3 !== 1 ? 's' : ''}_\n\n`;
+            }
+          }
+        });
+      } else {
+        // Show chronologically (most recent first)
+        notes.slice(0, 8).forEach((note: any, idx: number) => {
+          summary += formatNote(note, idx);
+        });
+
+        if (notes.length > 8) {
+          summary += `_...and ${notes.length - 8} more note${notes.length - 8 !== 1 ? 's' : ''}_\n`;
+        }
       }
+
       return summary;
     }
     return '**Clinical Notes:** No clinical notes found in patient records.';
   }
 
-  // General summary - show everything
-  summary = '**Patient Record Summary:**\n\n';
+  // COMPREHENSIVE SUMMARY - show everything organized by category
+  summary = `## Patient Record Summary\n\n`;
 
-  if (care_plans && care_plans.length > 0) {
-    summary += `**Care Plans:** ${care_plans.length} on file\n`;
-    care_plans.slice(0, 3).forEach((cp: any) => {
-      summary += `  - ${cp.title || 'Untitled'} (${cp.status || 'unknown status'})\n`;
+  // Active Care Plans Section
+  const activePlans = care_plans?.filter((cp: any) => cp.status === 'active') || [];
+  if (activePlans.length > 0) {
+    summary += `### Active Care Plans (${activePlans.length})\n\n`;
+    activePlans.slice(0, 5).forEach((cp: any, idx: number) => {
+      summary += `${idx + 1}. **${cp.title || 'Untitled'}**`;
+      if (cp.provider) summary += ` - ${cp.provider}`;
+      summary += '\n';
+      if (cp.description) {
+        summary += `   ${cp.description.substring(0, 150)}${cp.description.length > 150 ? '...' : ''}\n`;
+      }
+      summary += '\n';
     });
-    summary += '\n';
   }
 
+  // Current Medications Section
   if (medications && medications.length > 0) {
-    summary += `**Medications:** ${medications.length} current\n`;
-    medications.slice(0, 5).forEach((med: any) => {
-      summary += `  - ${med.name || 'Unknown'} ${med.dosage || ''}\n`;
+    summary += `### Current Medications (${medications.length})\n\n`;
+    medications.slice(0, 8).forEach((med: any, idx: number) => {
+      summary += `${idx + 1}. **${med.name || 'Unknown'}**`;
+      if (med.dosage) summary += ` - ${med.dosage}`;
+      summary += '\n';
+      if (med.frequency || med.prescriber) {
+        const details = [];
+        if (med.frequency) details.push(med.frequency);
+        if (med.prescriber) details.push(`by ${med.prescriber}`);
+        summary += `   ${details.join(', ')}\n`;
+      }
+      summary += '\n';
     });
-    summary += '\n';
+    if (medications.length > 8) {
+      summary += `_...and ${medications.length - 8} more medication${medications.length - 8 !== 1 ? 's' : ''}_\n\n`;
+    }
   }
 
+  // Recent Clinical Notes Section
   if (notes && notes.length > 0) {
-    summary += `**Clinical Notes:** ${notes.length} on file\n`;
-    const recentNotes = notes.slice(0, 3);
-    recentNotes.forEach((note: any) => {
-      summary += `  - ${note.note_type || 'Note'} from ${note.created_at || 'unknown date'}\n`;
+    summary += `### Recent Clinical Notes (${notes.length})\n\n`;
+    notes.slice(0, 5).forEach((note: any, idx: number) => {
+      const noteDate = note.created_at ? formatDate(note.created_at) : 'No date';
+      summary += `${idx + 1}. **${note.note_type || 'Note'}** - ${noteDate}\n`;
+      if (note.author) summary += `   _${note.author}_\n`;
+      if (note.content) {
+        summary += `   ${note.content.substring(0, 200)}${note.content.length > 200 ? '...' : ''}\n`;
+      }
+      summary += '\n';
     });
+    if (notes.length > 5) {
+      summary += `_...and ${notes.length - 5} more note${notes.length - 5 !== 1 ? 's' : ''}_\n`;
+    }
+  }
+
+  // Inactive/Other Care Plans
+  const inactivePlans = care_plans?.filter((cp: any) => cp.status !== 'active') || [];
+  if (inactivePlans.length > 0) {
+    summary += `\n### Other Care Plans (${inactivePlans.length})\n\n`;
+    inactivePlans.slice(0, 3).forEach((cp: any, idx: number) => {
+      summary += `${idx + 1}. ${cp.title || 'Untitled'} (${cp.status || 'unknown status'})\n`;
+    });
+    if (inactivePlans.length > 3) {
+      summary += `_...and ${inactivePlans.length - 3} more_\n`;
+    }
   }
 
   if (!care_plans?.length && !medications?.length && !notes?.length) {
-    summary += 'No records found for this patient.';
+    summary += '_No records found for this patient._';
   }
 
   return summary;
+}
+
+/**
+ * Map patient ID aliases to real patient IDs
+ * Recognizes: "patient123", "patient 123", "patient-123", etc.
+ */
+function normalizePatientId(patientId: string): string {
+  // Patient ID mapping: friendly names -> real API IDs
+  const patientMap: { [key: string]: string } = {
+    'patient123': 'user_BPJpEJejcMVFPmTx5OQwggCVAun1',
+    'patient-123': 'user_BPJpEJejcMVFPmTx5OQwggCVAun1',
+    'patient 123': 'user_BPJpEJejcMVFPmTx5OQwggCVAun1',
+    'test-patient': 'user_BPJpEJejcMVFPmTx5OQwggCVAun1',
+    'testpatient': 'user_BPJpEJejcMVFPmTx5OQwggCVAun1',
+  };
+
+  const normalized = patientId.toLowerCase().replace(/\s+/g, '');
+  return patientMap[normalized] || patientId;
 }
 
 /**
@@ -185,7 +526,7 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
   const startTime = Date.now();
 
   try {
-    const {
+    let {
       query,
       patient_id,
       options = {},
@@ -199,6 +540,9 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
+
+    // Normalize patient ID (maps "patient123" -> real ID)
+    patient_id = normalizePatientId(patient_id);
 
     console.log(`\n${'='.repeat(80)}`);
     console.log(`📝 Processing query for patient ${patient_id}:`);

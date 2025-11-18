@@ -50,7 +50,7 @@ function App() {
   // Conversation management
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [patientId] = useState('user_BPJpEJejcMVFPmTx5OQwggCVAun1'); // Real patient with 1,568 records
+  const [patientId] = useState('patient123'); // Friendly ID - maps to real patient with data
   const [inputValue, setInputValue] = useState('');
   const [isLoadingResponse, setIsLoadingResponse] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
