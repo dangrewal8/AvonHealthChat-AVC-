@@ -28,14 +28,61 @@ export function initializeServices(ollama: OllamaService, avonHealth: AvonHealth
 /**
  * Generate short answer from structured data (fallback when Ollama unavailable)
  * Enhanced with comprehensive pattern matching for extensive question types
+ * NOW SUPPORTS: Patient demographics, allergies, conditions, vitals, family history, appointments, and more
  */
 function generateFallbackShortAnswer(
   query: string,
   queryIntent: any,
-  data: { care_plans: any[]; medications: any[]; notes: any[] }
+  data: {
+    patient: any | null;
+    care_plans: any[];
+    medications: any[];
+    notes: any[];
+    allergies: any[];
+    conditions: any[];
+    vitals: any[];
+    family_history: any[];
+    appointments: any[];
+    documents: any[];
+    form_responses: any[];
+    insurance_policies: any[];
+  }
 ): string {
-  const { care_plans, medications, notes } = data;
+  const {
+    patient,
+    care_plans,
+    medications,
+    notes,
+    allergies,
+    conditions,
+    vitals,
+    family_history,
+    appointments,
+    documents,
+    form_responses,
+    insurance_policies
+  } = data;
   const queryLower = query.toLowerCase();
+
+  // Suppress TypeScript warnings for conditionally-used variables
+  void conditions; void documents; void form_responses;
+
+  // MULTI-PART QUESTION SUPPORT
+  // Handle questions like "what meds is the patient taking and what is their name?"
+  if (queryLower.includes(' and ') || queryLower.includes(' & ')) {
+    const parts = queryLower.split(/ and | & /).map(p => p.trim());
+
+    // Only process if we have 2 distinct parts (not just a list like "medications and allergies")
+    if (parts.length === 2 && parts[0].split(' ').length > 2 && parts[1].split(' ').length > 2) {
+      const answers = parts.map((part) => {
+        // Recursively call this function for each part
+        return generateFallbackShortAnswer(part, queryIntent, data);
+      });
+
+      // Combine answers intelligently
+      return answers.join(' ') + '';
+    }
+  }
 
   // Helper: Format date nicely
   const formatDate = (dateStr: string): string => {
@@ -273,41 +320,34 @@ function generateFallbackShortAnswer(
       (queryLower.includes('name') && (queryLower.includes('patient') || queryLower.match(/^what.*name/))) ||
       queryLower.includes('patient called') || (queryLower.includes('who is') && queryLower.includes('patient'))) {
 
-    // Try to extract patient name from clinical notes sections
-    let patientName = null;
-    if (notes && notes.length > 0) {
-      for (const note of notes) {
-        if (note.sections && Array.isArray(note.sections)) {
-          for (const section of note.sections) {
-            // Look for demographics, patient info, or name sections
-            if (section.name && (
-              section.name.toLowerCase().includes('demographic') ||
-              section.name.toLowerCase().includes('patient') ||
-              section.name.toLowerCase().includes('name')
-            )) {
-              if (section.answers && Array.isArray(section.answers)) {
-                for (const answer of section.answers) {
-                  if (answer.name && (
-                    answer.name.toLowerCase().includes('name') ||
-                    answer.name.toLowerCase().includes('patient')
-                  ) && answer.value && typeof answer.value === 'string') {
-                    patientName = answer.value;
-                    break;
-                  }
-                }
-              }
-            }
-            if (patientName) break;
-          }
-        }
-        if (patientName) break;
+    if (patient) {
+      const fullName = `${patient.first_name} ${patient.middle_name ? patient.middle_name + ' ' : ''}${patient.last_name}`.trim();
+      const preferredName = patient.preferred_name;
+
+      if (preferredName && preferredName !== fullName) {
+        return `The patient's name is ${fullName} (prefers to be called ${preferredName}).`;
+      }
+      return `The patient's name is ${fullName}.`;
+    }
+    return 'Patient demographic information is not available.';
+  }
+
+  // "What is the patient's email?" or "How can I contact the patient?"
+  if (queryIntent.primary === 'patient_contact' ||
+      (queryLower.includes('email') || queryLower.includes('phone') || queryLower.includes('contact')) &&
+      queryLower.includes('patient')) {
+
+    if (patient) {
+      const contactParts = [];
+      if (patient.email) contactParts.push(`Email: ${patient.email}`);
+      if (patient.phone) contactParts.push(`Phone: ${patient.phone}`);
+      if (patient.alternate_phone) contactParts.push(`Alternate: ${patient.alternate_phone}`);
+
+      if (contactParts.length > 0) {
+        return `Patient contact information: ${contactParts.join(', ')}.`;
       }
     }
-
-    if (patientName) {
-      return `The patient's name is ${patientName}.`;
-    }
-    return 'Patient name information is not available in the current records. The system has access to medications, care plans, and clinical notes, but demographic information may not be included in these records.';
+    return 'Patient contact information is not available.';
   }
 
   // "How old is the patient?" or "What is the patient's age?"
@@ -315,38 +355,18 @@ function generateFallbackShortAnswer(
       ((queryLower.includes('age') || queryLower.includes('old') || queryLower.includes('born')) &&
       (queryLower.includes('patient') || queryLower.match(/^how old/)))) {
 
-    // Try to extract age or DOB from clinical notes
-    let patientAge = null;
-    let patientDOB = null;
-    if (notes && notes.length > 0) {
-      for (const note of notes) {
-        if (note.sections && Array.isArray(note.sections)) {
-          for (const section of note.sections) {
-            if (section.answers && Array.isArray(section.answers)) {
-              for (const answer of section.answers) {
-                if (answer.name) {
-                  const answerNameLower = answer.name.toLowerCase();
-                  if (answerNameLower.includes('age') && answer.value) {
-                    patientAge = answer.value;
-                  }
-                  if ((answerNameLower.includes('birth') || answerNameLower.includes('dob')) && answer.value) {
-                    patientDOB = answer.value;
-                  }
-                }
-              }
-            }
-          }
-        }
+    if (patient && patient.date_of_birth) {
+      const dob = new Date(patient.date_of_birth);
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const monthDiff = today.getMonth() - dob.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+        age--;
       }
-    }
 
-    if (patientAge) {
-      return `The patient is ${patientAge} years old.`;
+      return `The patient is ${age} years old (born ${formatDate(patient.date_of_birth)}).`;
     }
-    if (patientDOB) {
-      return `The patient's date of birth is ${formatDate(patientDOB)}.`;
-    }
-    return 'Patient age information is not available in the current records.';
+    return 'Patient age/date of birth information is not available.';
   }
 
   // "What is the patient's gender?" or "Is the patient male or female?"
@@ -354,31 +374,17 @@ function generateFallbackShortAnswer(
       ((queryLower.includes('gender') || queryLower.includes('sex') || queryLower.includes('male') || queryLower.includes('female')) &&
       queryLower.includes('patient'))) {
 
-    // Try to extract gender from clinical notes
-    let patientGender = null;
-    if (notes && notes.length > 0) {
-      for (const note of notes) {
-        if (note.sections && Array.isArray(note.sections)) {
-          for (const section of note.sections) {
-            if (section.answers && Array.isArray(section.answers)) {
-              for (const answer of section.answers) {
-                if (answer.name && (answer.name.toLowerCase().includes('gender') || answer.name.toLowerCase().includes('sex')) && answer.value) {
-                  patientGender = answer.value;
-                  break;
-                }
-              }
-            }
-            if (patientGender) break;
-          }
-        }
-        if (patientGender) break;
+    if (patient) {
+      const genderInfo = [];
+      if (patient.gender) genderInfo.push(`Gender: ${patient.gender}`);
+      if (patient.sex && patient.sex !== patient.gender) genderInfo.push(`Sex: ${patient.sex}`);
+      if (patient.pronouns) genderInfo.push(`Pronouns: ${patient.pronouns}`);
+
+      if (genderInfo.length > 0) {
+        return genderInfo.join(', ') + '.';
       }
     }
-
-    if (patientGender) {
-      return `The patient's gender is ${patientGender}.`;
-    }
-    return 'Patient gender information is not available in the current records.';
+    return 'Patient gender information is not available.';
   }
 
   // INFERENCE & MEDICAL KNOWLEDGE QUESTIONS
@@ -530,6 +536,189 @@ function generateFallbackShortAnswer(
       }
     }
     return 'No specific conditions or care plans are documented in the current records.';
+  }
+
+  // ALLERGY QUERIES
+  // "What allergies does the patient have?" or "Is the patient allergic to penicillin?"
+  if ((queryLower.includes('allerg') || queryLower.includes('allergic')) &&
+      !queryLower.includes('family')) {
+
+    if (allergies && allergies.length > 0) {
+      const activeAllergies = allergies.filter((a: any) => a.active);
+
+      // Specific allergy check
+      const words = queryLower.split(/\s+/);
+      const matchedAllergy = activeAllergies.find((a: any) =>
+        words.some(word => a.name?.toLowerCase().includes(word))
+      );
+
+      if (matchedAllergy) {
+        const details = [];
+        details.push(`Yes, the patient is allergic to ${matchedAllergy.name}`);
+        if (matchedAllergy.severity) details.push(`Severity: ${matchedAllergy.severity}`);
+        if (matchedAllergy.reaction) details.push(`Reaction: ${matchedAllergy.reaction}`);
+        if (matchedAllergy.onset_date) details.push(`Since: ${formatDate(matchedAllergy.onset_date)}`);
+        return details.join('. ') + '.';
+      }
+
+      // General allergy list
+      if (activeAllergies.length > 0) {
+        const allergyNames = activeAllergies.slice(0, 5).map((a: any) => a.name).join(', ');
+        return `The patient has ${activeAllergies.length} active allerg${activeAllergies.length === 1 ? 'y' : 'ies'}: ${allergyNames}${activeAllergies.length > 5 ? ', and others' : ''}.`;
+      }
+      return 'The patient has no active allergies on record.';
+    }
+
+    if (patient && patient.has_no_known_allergies) {
+      return 'The patient has no known allergies (NKDA).';
+    }
+    return 'No allergy information is available for this patient.';
+  }
+
+  // VITAL SIGNS QUERIES
+  // "What is the patient's blood pressure?" or "What was the temperature at the last visit?"
+  if (queryLower.includes('blood pressure') || queryLower.includes('temperature') ||
+      queryLower.includes('pulse') || queryLower.includes('heart rate') ||
+      queryLower.includes('oxygen') || queryLower.includes('weight') ||
+      queryLower.includes('height') || queryLower.includes('vital')) {
+
+    if (vitals && vitals.length > 0) {
+      // Sort by most recent
+      const sortedVitals = [...vitals].sort((a: any, b: any) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      const latest = sortedVitals[0];
+
+      // Specific vital requested
+      if (queryLower.includes('blood pressure') && latest.blood_pressure) {
+        return `The patient's most recent blood pressure is ${latest.blood_pressure} (recorded ${formatDate(latest.created_at)}).`;
+      }
+      if (queryLower.includes('temperature') && latest.temperature) {
+        return `The patient's most recent temperature is ${latest.temperature} (recorded ${formatDate(latest.created_at)}).`;
+      }
+      if ((queryLower.includes('pulse') || queryLower.includes('heart rate')) && latest.pulse) {
+        return `The patient's most recent pulse is ${latest.pulse} (recorded ${formatDate(latest.created_at)}).`;
+      }
+      if (queryLower.includes('oxygen') && latest.oxygen_saturation) {
+        return `The patient's most recent oxygen saturation is ${latest.oxygen_saturation} (recorded ${formatDate(latest.created_at)}).`;
+      }
+      if (queryLower.includes('weight') && latest.weight) {
+        return `The patient's most recent weight is ${latest.weight} (recorded ${formatDate(latest.created_at)}).`;
+      }
+      if (queryLower.includes('height') && latest.height) {
+        return `The patient's height is ${latest.height}.`;
+      }
+
+      // General vital signs
+      const vitalParts = [];
+      if (latest.blood_pressure) vitalParts.push(`BP: ${latest.blood_pressure}`);
+      if (latest.pulse) vitalParts.push(`Pulse: ${latest.pulse}`);
+      if (latest.temperature) vitalParts.push(`Temp: ${latest.temperature}`);
+      if (latest.oxygen_saturation) vitalParts.push(`O2: ${latest.oxygen_saturation}`);
+      if (latest.weight) vitalParts.push(`Weight: ${latest.weight}`);
+
+      if (vitalParts.length > 0) {
+        return `Latest vital signs (${formatDate(latest.created_at)}): ${vitalParts.join(', ')}.`;
+      }
+    }
+    return 'No vital signs data available for this patient.';
+  }
+
+  // APPOINTMENT QUERIES
+  // "When is the next appointment?" or "When was the last visit?"
+  if (queryLower.includes('appointment') || queryLower.includes('next visit') ||
+      queryLower.includes('last visit') || queryLower.includes('upcoming')) {
+
+    if (appointments && appointments.length > 0) {
+      const now = new Date();
+
+      // Find next appointment
+      if (queryLower.includes('next') || queryLower.includes('upcoming')) {
+        const futureAppts = appointments
+          .filter((a: any) => new Date(a.start_time) > now)
+          .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+        if (futureAppts.length > 0) {
+          const next = futureAppts[0];
+          return `Next appointment: ${next.name} on ${formatDate(next.start_time)} at ${new Date(next.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} (${next.interaction_type}).`;
+        }
+        return 'No upcoming appointments scheduled.';
+      }
+
+      // Find last visit
+      if (queryLower.includes('last') || queryLower.includes('recent')) {
+        const pastAppts = appointments
+          .filter((a: any) => new Date(a.start_time) <= now)
+          .sort((a: any, b: any) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+
+        if (pastAppts.length > 0) {
+          const last = pastAppts[0];
+          return `Last visit: ${last.name} on ${formatDate(last.start_time)} (${last.interaction_type}).`;
+        }
+        return 'No past appointments on record.';
+      }
+
+      // General appointment count
+      const futureCount = appointments.filter((a: any) => new Date(a.start_time) > now).length;
+      const pastCount = appointments.filter((a: any) => new Date(a.start_time) <= now).length;
+      return `The patient has ${futureCount} upcoming appointment${futureCount !== 1 ? 's' : ''} and ${pastCount} past visit${pastCount !== 1 ? 's' : ''} on record.`;
+    }
+    return 'No appointment information available.';
+  }
+
+  // FAMILY HISTORY QUERIES
+  // "Does heart disease run in the family?" or "What is the mother's medical history?"
+  if ((queryLower.includes('family') && (queryLower.includes('history') || queryLower.includes('disease'))) ||
+      queryLower.includes('mother') || queryLower.includes('father') ||
+      queryLower.includes('hereditary') || queryLower.includes('genetic')) {
+
+    if (family_history && family_history.length > 0) {
+      // Specific relationship query
+      if (queryLower.includes('mother') || queryLower.includes('father') ||
+          queryLower.includes('sibling') || queryLower.includes('parent')) {
+        const relationshipMap: {[key: string]: string} = {
+          'mother': '72705000',
+          'father': '66839005',
+          'sibling': '375005',
+          'brother': '70924004',
+          'sister': '27733009',
+        };
+
+        for (const [rel, code] of Object.entries(relationshipMap)) {
+          if (queryLower.includes(rel)) {
+            const familyMember = family_history.find((fh: any) => fh.relationship === code);
+            if (familyMember && familyMember.diagnoses && familyMember.diagnoses.length > 0) {
+              const conditions = familyMember.diagnoses.map((d: any) => d.description || d.diagnosis).join(', ');
+              return `${rel.charAt(0).toUpperCase() + rel.slice(1)}'s medical history: ${conditions}.`;
+            }
+            return `No family history recorded for ${rel}.`;
+          }
+        }
+      }
+
+      // General family history
+      const allDiagnoses = family_history.flatMap((fh: any) => fh.diagnoses || []);
+      if (allDiagnoses.length > 0) {
+        const uniqueConditions = [...new Set(allDiagnoses.map((d: any) => d.description || d.diagnosis))];
+        return `Family history includes: ${uniqueConditions.slice(0, 5).join(', ')}${uniqueConditions.length > 5 ? ', and others' : ''}.`;
+      }
+    }
+    return 'No family medical history available.';
+  }
+
+  // INSURANCE QUERIES
+  // "What is the patient's insurance?" or "Does the patient have coverage?"
+  if (queryLower.includes('insurance') || queryLower.includes('coverage') ||
+      queryLower.includes('policy')) {
+
+    if (insurance_policies && insurance_policies.length > 0) {
+      const primaryPolicy = insurance_policies.find((ip: any) => ip.type?.toLowerCase() === 'primary');
+      if (primaryPolicy) {
+        return `The patient has ${insurance_policies.length} insurance polic${insurance_policies.length === 1 ? 'y' : 'ies'} on file. Primary insurance: ${primaryPolicy.type}.`;
+      }
+      return `The patient has ${insurance_policies.length} insurance polic${insurance_policies.length === 1 ? 'y' : 'ies'} on file.`;
+    }
+    return 'No insurance information available.';
   }
 
   // Default for any other queries - provide helpful summary
@@ -889,7 +1078,20 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { care_plans, medications, notes } = patientData;
+    const {
+      patient,
+      care_plans,
+      medications,
+      notes,
+      allergies,
+      conditions,
+      vitals,
+      family_history,
+      appointments,
+      documents,
+      form_responses,
+      insurance_policies
+    } = patientData;
 
     // 2. Build context from all sources (prioritize based on query intent)
     let context = '';
@@ -1034,9 +1236,22 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
       console.warn('⚠️  Ollama unavailable, using structured fallback response');
 
       // Graceful fallback: Generate intelligent response from structured data
-      short_answer = generateFallbackShortAnswer(query, queryIntent, { care_plans, medications, notes });
+      short_answer = generateFallbackShortAnswer(query, queryIntent, {
+        patient,
+        care_plans,
+        medications,
+        notes,
+        allergies,
+        conditions,
+        vitals,
+        family_history,
+        appointments,
+        documents,
+        form_responses,
+        insurance_policies
+      });
       detailed_summary = generateFallbackDetailedSummary(query, queryIntent, { care_plans, medications, notes });
-      console.log('✅ Generated fallback answer using structured patient data');
+      console.log('✅ Generated fallback answer using comprehensive structured patient data');
     }
 
     // 4. Extract structured information from REAL data with CORRECT API fields
