@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import { OllamaService } from '../services/ollama.service';
 import { AvonHealthService } from '../services/avonhealth.service';
+import { generateComprehensiveResponse } from './comprehensive-query-handler';
 
 const router = Router();
 
@@ -24,7 +25,7 @@ export function initializeServices(ollama: OllamaService, avonHealth: AvonHealth
   avonHealthService = avonHealth;
 }
 
-// Demo mode mock data
+// Comprehensive Demo Mode Patient Data
 const DEMO_PATIENT_DATA = {
   patient_info: {
     id: 'patient-123',
@@ -35,6 +36,185 @@ const DEMO_PATIENT_DATA = {
     age: 59,
     gender: 'Male',
     mrn: 'MRN-789456123',
+    phone: '(555) 123-4567',
+    email: 'john.smith@email.com',
+    address: '123 Main Street, Anytown, ST 12345',
+    emergency_contact: {
+      name: 'Mary Smith',
+      relationship: 'Spouse',
+      phone: '(555) 123-4568',
+    },
+    primary_language: 'English',
+    marital_status: 'Married',
+  },
+  allergies: [
+    {
+      allergen: 'Penicillin',
+      reaction: 'Severe rash and hives',
+      severity: 'High',
+      onset_date: '1998-06-15',
+    },
+    {
+      allergen: 'Shellfish',
+      reaction: 'Anaphylaxis',
+      severity: 'Critical',
+      onset_date: '2005-08-20',
+    },
+    {
+      allergen: 'Latex',
+      reaction: 'Contact dermatitis',
+      severity: 'Moderate',
+      onset_date: '2010-03-10',
+    },
+  ],
+  vital_signs: {
+    latest: {
+      date: '2024-03-20',
+      blood_pressure: '128/82 mmHg',
+      heart_rate: '72 bpm',
+      temperature: '98.6°F (37.0°C)',
+      respiratory_rate: '16 breaths/min',
+      oxygen_saturation: '98%',
+      weight: '185 lbs (84 kg)',
+      height: '5\'10" (178 cm)',
+      bmi: '26.5',
+    },
+    trends: {
+      blood_pressure_trend: 'Improving - was 142/90 mmHg in January',
+      weight_trend: 'Stable - lost 8 lbs since starting diabetes plan',
+    },
+  },
+  lab_results: {
+    latest_date: '2024-03-10',
+    hemoglobin_a1c: {
+      value: '7.1%',
+      previous: '8.2%',
+      date: '2024-03-10',
+      status: 'Improved',
+      target: '<7.0%',
+    },
+    lipid_panel: {
+      total_cholesterol: '195 mg/dL',
+      ldl: '115 mg/dL',
+      hdl: '48 mg/dL',
+      triglycerides: '160 mg/dL',
+      date: '2024-03-10',
+      status: 'Within target range',
+    },
+    kidney_function: {
+      creatinine: '1.0 mg/dL',
+      egfr: '85 mL/min/1.73m2',
+      bun: '18 mg/dL',
+      date: '2024-03-10',
+      status: 'Normal',
+    },
+    liver_function: {
+      alt: '28 U/L',
+      ast: '24 U/L',
+      date: '2024-03-10',
+      status: 'Normal',
+    },
+  },
+  immunizations: [
+    {
+      vaccine: 'Influenza',
+      date: '2023-10-15',
+      status: 'Current',
+      next_due: '2024-10-15',
+    },
+    {
+      vaccine: 'COVID-19 Booster',
+      date: '2023-09-20',
+      status: 'Current',
+    },
+    {
+      vaccine: 'Pneumococcal (PPSV23)',
+      date: '2020-05-10',
+      status: 'Current',
+    },
+    {
+      vaccine: 'Tdap',
+      date: '2021-03-15',
+      status: 'Current',
+      next_due: '2031-03-15',
+    },
+  ],
+  medical_history: {
+    chronic_conditions: [
+      {
+        condition: 'Type 2 Diabetes Mellitus',
+        diagnosed_date: '2022-06-15',
+        status: 'Active',
+        icd10: 'E11.9',
+      },
+      {
+        condition: 'Essential Hypertension',
+        diagnosed_date: '2020-11-20',
+        status: 'Active',
+        icd10: 'I10',
+      },
+      {
+        condition: 'Hyperlipidemia',
+        diagnosed_date: '2021-02-10',
+        status: 'Active',
+        icd10: 'E78.5',
+      },
+    ],
+    past_surgeries: [
+      {
+        procedure: 'Appendectomy',
+        date: '1985-07-12',
+        hospital: 'General Hospital',
+      },
+      {
+        procedure: 'Knee Arthroscopy (Right)',
+        date: '2018-04-20',
+        hospital: 'Orthopedic Center',
+      },
+    ],
+  },
+  family_history: {
+    father: 'Type 2 Diabetes, Coronary Artery Disease (deceased at 72)',
+    mother: 'Hypertension, Osteoporosis (living, age 84)',
+    siblings: '1 brother with Type 2 Diabetes, 1 sister healthy',
+    notes: 'Strong family history of cardiovascular disease and diabetes',
+  },
+  social_history: {
+    smoking: 'Former smoker - quit 10 years ago (20 pack-year history)',
+    alcohol: 'Occasional - 1-2 drinks per week',
+    exercise: 'Walks 30 minutes, 3-4 times per week',
+    occupation: 'Retired teacher',
+    lives_with: 'Spouse',
+  },
+  appointments: {
+    upcoming: [
+      {
+        date: '2024-04-05',
+        time: '10:00 AM',
+        provider: 'Dr. Sarah Johnson',
+        type: 'Follow-up - Diabetes Management',
+        location: 'Primary Care Clinic',
+      },
+      {
+        date: '2024-05-15',
+        time: '2:00 PM',
+        provider: 'Dr. Robert Chen',
+        type: 'Annual Eye Exam',
+        location: 'Ophthalmology Department',
+      },
+    ],
+    past: [
+      {
+        date: '2024-03-20',
+        provider: 'Nurse Practitioner Mary Williams',
+        type: 'Blood Pressure Check',
+      },
+      {
+        date: '2024-03-15',
+        provider: 'Dr. Sarah Johnson',
+        type: 'Quarterly Diabetes Check',
+      },
+    ],
   },
   care_plans: [
     {
@@ -98,102 +278,11 @@ const DEMO_PATIENT_DATA = {
   ],
 };
 
-// Intelligent demo mode response generator with query understanding
+/**
+ * Demo Mode Response Generator - Wrapper for comprehensive query handler
+ */
 function generateDemoResponse(query: string): { short_answer: string; detailed_summary: string } {
-  const lowerQuery = query.toLowerCase();
-  const patientInfo = DEMO_PATIENT_DATA.patient_info;
-
-  // Query Intent Detection
-
-  // 1. Patient Identity/Name Questions
-  // Must check for doctor/provider questions first to avoid false matches
-  const isDoctorQuestion = lowerQuery.includes('doctor') || lowerQuery.includes('provider') || lowerQuery.includes('physician');
-
-  if (
-    !isDoctorQuestion && (
-      lowerQuery.includes('name') ||
-      lowerQuery.includes('who is the patient') ||
-      lowerQuery.includes('who is this patient') ||
-      lowerQuery.includes('identify the patient') ||
-      lowerQuery.includes('patient is') ||
-      (lowerQuery.match(/\bwho\b/) && lowerQuery.includes('patient'))
-    )
-  ) {
-    return {
-      short_answer: `The patient's name is ${patientInfo.name}.`,
-      detailed_summary: `**Patient Information:**\n\n- **Full Name**: ${patientInfo.name}\n- **First Name**: ${patientInfo.first_name}\n- **Last Name**: ${patientInfo.last_name}\n- **Medical Record Number (MRN)**: ${patientInfo.mrn}\n- **Date of Birth**: ${patientInfo.date_of_birth}\n- **Age**: ${patientInfo.age} years old\n- **Gender**: ${patientInfo.gender}`,
-    };
-  }
-
-  // 2. Age Questions
-  if (lowerQuery.includes('age') || lowerQuery.includes('old') || lowerQuery.includes('born')) {
-    return {
-      short_answer: `${patientInfo.first_name} ${patientInfo.last_name} is ${patientInfo.age} years old, born on ${patientInfo.date_of_birth}.`,
-      detailed_summary: `**Patient Age Information:**\n\n- **Age**: ${patientInfo.age} years old\n- **Date of Birth**: ${patientInfo.date_of_birth}\n- **Gender**: ${patientInfo.gender}\n- **Full Name**: ${patientInfo.name}`,
-    };
-  }
-
-  // 3. Medication Questions
-  if (lowerQuery.includes('medication') || lowerQuery.includes('medicine') || lowerQuery.includes('drug') || lowerQuery.includes('prescription') || lowerQuery.includes('pill')) {
-    return {
-      short_answer: `${patientInfo.first_name} is currently taking Metformin 500mg twice daily, Lisinopril 10mg once daily, and Atorvastatin 20mg at bedtime.`,
-      detailed_summary: `Based on ${patientInfo.first_name} ${patientInfo.last_name}'s medical records, the patient is currently on three medications:\n\n1. **Metformin 500mg** - Prescribed for diabetes management, taken twice daily with meals (prescribed by Dr. Sarah Johnson on 01/15/2024)\n\n2. **Lisinopril 10mg** - Prescribed for blood pressure control, taken once daily in the morning (prescribed by Dr. Sarah Johnson on 02/01/2024)\n\n3. **Atorvastatin 20mg** - Prescribed for cholesterol management, taken once daily at bedtime (prescribed by Dr. Sarah Johnson on 01/20/2024)\n\nAll medications are part of the active care plans for diabetes and hypertension management.`,
-    };
-  }
-
-  // 4. Diabetes Questions
-  if (lowerQuery.includes('diabetes') || lowerQuery.includes('blood sugar') || lowerQuery.includes('a1c') || lowerQuery.includes('glucose')) {
-    return {
-      short_answer: `${patientInfo.first_name} has an active diabetes management plan with recent improvement in A1C from 8.2% to 7.1%.`,
-      detailed_summary: `${patientInfo.first_name} ${patientInfo.last_name} is enrolled in a **Diabetes Management Plan** (Care Plan ID: cp_001) managed by Dr. Sarah Johnson. Recent progress notes from March 15, 2024 indicate significant improvement:\n\n- **A1C levels**: Decreased from 8.2% to 7.1% over the past month\n- **Medication adherence**: Patient reports good compliance with Metformin 500mg twice daily\n- **Patient education**: Regular exercise importance discussed\n- **Status**: Active management with positive outcomes\n\nThe comprehensive plan includes blood sugar monitoring, diet modifications, and medication adherence protocols.`,
-    };
-  }
-
-  // 5. Blood Pressure Questions
-  if (lowerQuery.includes('blood pressure') || lowerQuery.includes('hypertension') || lowerQuery.includes('bp') || lowerQuery.match(/\bbp\b/)) {
-    return {
-      short_answer: `${patientInfo.first_name} has an active hypertension control plan with recent BP reading of 128/82 mmHg.`,
-      detailed_summary: `${patientInfo.first_name} ${patientInfo.last_name} is under a **Hypertension Control Plan** (Care Plan ID: cp_002) with target BP of 120/80 mmHg:\n\n- **Recent BP Reading**: 128/82 mmHg (recorded March 20, 2024)\n- **Medication**: Lisinopril 10mg once daily\n- **Lifestyle modifications**: DASH diet recommended, salt intake reduction discussed\n- **Follow-up**: Scheduled in 2 weeks\n- **Provider**: Dr. Sarah Johnson\n\nNurse Practitioner Mary Williams conducted the most recent follow-up and confirmed patient understanding of dietary recommendations.`,
-    };
-  }
-
-  // 6. Care Plan Questions
-  if (lowerQuery.includes('care plan') || lowerQuery.includes('treatment plan') || lowerQuery.includes('plan of care')) {
-    return {
-      short_answer: `${patientInfo.first_name} has two active care plans: Diabetes Management and Hypertension Control, both managed by Dr. Sarah Johnson.`,
-      detailed_summary: `**Active Care Plans for ${patientInfo.first_name} ${patientInfo.last_name}:**\n\n**1. Diabetes Management Plan** (Active since 01/15/2024)\n- Provider: Dr. Sarah Johnson\n- Description: Comprehensive diabetes management including blood sugar monitoring, diet modifications, and medication adherence\n- Recent A1C: 7.1% (down from 8.2%)\n\n**2. Hypertension Control Plan** (Active since 02/01/2024)\n- Provider: Dr. Sarah Johnson\n- Description: Blood pressure management through lifestyle changes and medication\n- Target BP: 120/80 mmHg\n- Recent BP: 128/82 mmHg`,
-    };
-  }
-
-  // 7. Diagnosis/Condition Questions
-  if (lowerQuery.includes('diagnosis') || lowerQuery.includes('condition') || lowerQuery.includes('disease') || lowerQuery.includes('health issue') || lowerQuery.includes('problem')) {
-    return {
-      short_answer: `${patientInfo.first_name} has been diagnosed with Type 2 Diabetes and Hypertension, both currently under active management.`,
-      detailed_summary: `**Medical Conditions for ${patientInfo.first_name} ${patientInfo.last_name}:**\n\n**Primary Diagnoses:**\n1. **Type 2 Diabetes Mellitus** - Under active management with improving control (A1C: 7.1%)\n2. **Hypertension** - Controlled with medication (Recent BP: 128/82 mmHg)\n\n**Management Status:**\n- Both conditions have active care plans\n- Medication adherence is good\n- Recent progress shows improvement in both conditions\n- Regular follow-ups scheduled`,
-    };
-  }
-
-  // 8. Provider/Doctor Questions
-  if (lowerQuery.includes('doctor') || lowerQuery.includes('provider') || lowerQuery.includes('physician') || lowerQuery.includes('treating')) {
-    return {
-      short_answer: `${patientInfo.first_name}'s primary care provider is Dr. Sarah Johnson.`,
-      detailed_summary: `**Healthcare Providers for ${patientInfo.first_name} ${patientInfo.last_name}:**\n\n**Primary Care Physician:**\n- Dr. Sarah Johnson\n- Managing both Diabetes Management Plan and Hypertension Control Plan\n- Prescribed all current medications\n\n**Other Healthcare Team Members:**\n- Nurse Practitioner Mary Williams (conducts follow-up visits and blood pressure monitoring)`,
-    };
-  }
-
-  // 9. Recent Visit/Progress Questions
-  if (lowerQuery.includes('recent') || lowerQuery.includes('latest') || lowerQuery.includes('last visit') || lowerQuery.includes('progress')) {
-    return {
-      short_answer: `${patientInfo.first_name}'s most recent visit was on March 20, 2024, showing good progress with improved A1C and stable blood pressure.`,
-      detailed_summary: `**Recent Visit Summary for ${patientInfo.first_name} ${patientInfo.last_name}:**\n\n**March 20, 2024 - Follow-up Visit (NP Mary Williams):**\n- Blood pressure: 128/82 mmHg\n- Discussed salt intake reduction and DASH diet\n- Patient verbalized understanding\n- Next follow-up in 2 weeks\n\n**March 15, 2024 - Progress Note (Dr. Sarah Johnson):**\n- A1C improved from 8.2% to 7.1%\n- Good medication adherence reported\n- Blood sugar levels significantly improved\n- Patient educated on exercise importance`,
-    };
-  }
-
-  // Default response - provide overview and helpful suggestions
-  return {
-    short_answer: `I found information about ${patientInfo.name}, but I need more specific details about what you're looking for.`,
-    detailed_summary: `I have access to comprehensive medical records for **${patientInfo.name}** (${patientInfo.age}-year-old ${patientInfo.gender}), but your question "${query}" needs clarification.\n\n**Available Information:**\n- Patient demographics (name, age, DOB)\n- Active diagnoses (Diabetes, Hypertension)\n- Current medications (3 active prescriptions)\n- Care plans (2 active plans)\n- Recent visit notes and progress\n- Blood pressure and A1C readings\n\n**Try asking:**\n- "What is the patient's name?"\n- "What medications is the patient taking?"\n- "What is the patient's A1C level?"\n- "What are the active care plans?"\n- "Who is the patient's doctor?"\n- "What was the patient's last visit about?"`,
-  };
+  return generateComprehensiveResponse(query, DEMO_PATIENT_DATA);
 }
 
 /**
