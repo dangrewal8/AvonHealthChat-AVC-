@@ -26,6 +26,16 @@ export function initializeServices(ollama: OllamaService, avonHealth: AvonHealth
 
 // Demo mode mock data
 const DEMO_PATIENT_DATA = {
+  patient_info: {
+    id: 'patient-123',
+    name: 'John Michael Smith',
+    first_name: 'John',
+    last_name: 'Smith',
+    date_of_birth: '1965-04-22',
+    age: 59,
+    gender: 'Male',
+    mrn: 'MRN-789456123',
+  },
   care_plans: [
     {
       id: 'cp_001',
@@ -88,35 +98,101 @@ const DEMO_PATIENT_DATA = {
   ],
 };
 
-// Simple demo mode response generator
+// Intelligent demo mode response generator with query understanding
 function generateDemoResponse(query: string): { short_answer: string; detailed_summary: string } {
   const lowerQuery = query.toLowerCase();
+  const patientInfo = DEMO_PATIENT_DATA.patient_info;
 
-  if (lowerQuery.includes('medication') || lowerQuery.includes('medicine') || lowerQuery.includes('drug')) {
+  // Query Intent Detection
+
+  // 1. Patient Identity/Name Questions
+  // Must check for doctor/provider questions first to avoid false matches
+  const isDoctorQuestion = lowerQuery.includes('doctor') || lowerQuery.includes('provider') || lowerQuery.includes('physician');
+
+  if (
+    !isDoctorQuestion && (
+      lowerQuery.includes('name') ||
+      lowerQuery.includes('who is the patient') ||
+      lowerQuery.includes('who is this patient') ||
+      lowerQuery.includes('identify the patient') ||
+      lowerQuery.includes('patient is') ||
+      (lowerQuery.match(/\bwho\b/) && lowerQuery.includes('patient'))
+    )
+  ) {
     return {
-      short_answer: 'The patient is currently taking Metformin 500mg twice daily, Lisinopril 10mg once daily, and Atorvastatin 20mg at bedtime.',
-      detailed_summary: 'Based on the patient records, the patient is currently on three medications:\n\n1. **Metformin 500mg** - Prescribed for diabetes management, taken twice daily with meals (prescribed by Dr. Sarah Johnson on 01/15/2024)\n\n2. **Lisinopril 10mg** - Prescribed for blood pressure control, taken once daily in the morning (prescribed by Dr. Sarah Johnson on 02/01/2024)\n\n3. **Atorvastatin 20mg** - Prescribed for cholesterol management, taken once daily at bedtime (prescribed by Dr. Sarah Johnson on 01/20/2024)\n\nAll medications are part of the active care plans for diabetes and hypertension management.',
+      short_answer: `The patient's name is ${patientInfo.name}.`,
+      detailed_summary: `**Patient Information:**\n\n- **Full Name**: ${patientInfo.name}\n- **First Name**: ${patientInfo.first_name}\n- **Last Name**: ${patientInfo.last_name}\n- **Medical Record Number (MRN)**: ${patientInfo.mrn}\n- **Date of Birth**: ${patientInfo.date_of_birth}\n- **Age**: ${patientInfo.age} years old\n- **Gender**: ${patientInfo.gender}`,
     };
   }
 
-  if (lowerQuery.includes('diabetes') || lowerQuery.includes('blood sugar') || lowerQuery.includes('a1c')) {
+  // 2. Age Questions
+  if (lowerQuery.includes('age') || lowerQuery.includes('old') || lowerQuery.includes('born')) {
     return {
-      short_answer: 'The patient has an active diabetes management plan with recent improvement in A1C from 8.2% to 7.1%.',
-      detailed_summary: 'The patient is enrolled in a **Diabetes Management Plan** (Care Plan ID: cp_001) managed by Dr. Sarah Johnson. Recent progress notes from March 15, 2024 indicate significant improvement:\n\n- **A1C levels**: Decreased from 8.2% to 7.1% over the past month\n- **Medication adherence**: Patient reports good compliance with Metformin 500mg twice daily\n- **Patient education**: Regular exercise importance discussed\n- **Status**: Active management with positive outcomes\n\nThe comprehensive plan includes blood sugar monitoring, diet modifications, and medication adherence protocols.',
+      short_answer: `${patientInfo.first_name} ${patientInfo.last_name} is ${patientInfo.age} years old, born on ${patientInfo.date_of_birth}.`,
+      detailed_summary: `**Patient Age Information:**\n\n- **Age**: ${patientInfo.age} years old\n- **Date of Birth**: ${patientInfo.date_of_birth}\n- **Gender**: ${patientInfo.gender}\n- **Full Name**: ${patientInfo.name}`,
     };
   }
 
-  if (lowerQuery.includes('blood pressure') || lowerQuery.includes('hypertension') || lowerQuery.includes('bp')) {
+  // 3. Medication Questions
+  if (lowerQuery.includes('medication') || lowerQuery.includes('medicine') || lowerQuery.includes('drug') || lowerQuery.includes('prescription') || lowerQuery.includes('pill')) {
     return {
-      short_answer: 'The patient has an active hypertension control plan with recent BP reading of 128/82 mmHg.',
-      detailed_summary: 'The patient is under a **Hypertension Control Plan** (Care Plan ID: cp_002) with target BP of 120/80 mmHg:\n\n- **Recent BP Reading**: 128/82 mmHg (recorded March 20, 2024)\n- **Medication**: Lisinopril 10mg once daily\n- **Lifestyle modifications**: DASH diet recommended, salt intake reduction discussed\n- **Follow-up**: Scheduled in 2 weeks\n- **Provider**: Dr. Sarah Johnson\n\nNurse Practitioner Mary Williams conducted the most recent follow-up and confirmed patient understanding of dietary recommendations.',
+      short_answer: `${patientInfo.first_name} is currently taking Metformin 500mg twice daily, Lisinopril 10mg once daily, and Atorvastatin 20mg at bedtime.`,
+      detailed_summary: `Based on ${patientInfo.first_name} ${patientInfo.last_name}'s medical records, the patient is currently on three medications:\n\n1. **Metformin 500mg** - Prescribed for diabetes management, taken twice daily with meals (prescribed by Dr. Sarah Johnson on 01/15/2024)\n\n2. **Lisinopril 10mg** - Prescribed for blood pressure control, taken once daily in the morning (prescribed by Dr. Sarah Johnson on 02/01/2024)\n\n3. **Atorvastatin 20mg** - Prescribed for cholesterol management, taken once daily at bedtime (prescribed by Dr. Sarah Johnson on 01/20/2024)\n\nAll medications are part of the active care plans for diabetes and hypertension management.`,
     };
   }
 
-  // Default response for general queries
+  // 4. Diabetes Questions
+  if (lowerQuery.includes('diabetes') || lowerQuery.includes('blood sugar') || lowerQuery.includes('a1c') || lowerQuery.includes('glucose')) {
+    return {
+      short_answer: `${patientInfo.first_name} has an active diabetes management plan with recent improvement in A1C from 8.2% to 7.1%.`,
+      detailed_summary: `${patientInfo.first_name} ${patientInfo.last_name} is enrolled in a **Diabetes Management Plan** (Care Plan ID: cp_001) managed by Dr. Sarah Johnson. Recent progress notes from March 15, 2024 indicate significant improvement:\n\n- **A1C levels**: Decreased from 8.2% to 7.1% over the past month\n- **Medication adherence**: Patient reports good compliance with Metformin 500mg twice daily\n- **Patient education**: Regular exercise importance discussed\n- **Status**: Active management with positive outcomes\n\nThe comprehensive plan includes blood sugar monitoring, diet modifications, and medication adherence protocols.`,
+    };
+  }
+
+  // 5. Blood Pressure Questions
+  if (lowerQuery.includes('blood pressure') || lowerQuery.includes('hypertension') || lowerQuery.includes('bp') || lowerQuery.match(/\bbp\b/)) {
+    return {
+      short_answer: `${patientInfo.first_name} has an active hypertension control plan with recent BP reading of 128/82 mmHg.`,
+      detailed_summary: `${patientInfo.first_name} ${patientInfo.last_name} is under a **Hypertension Control Plan** (Care Plan ID: cp_002) with target BP of 120/80 mmHg:\n\n- **Recent BP Reading**: 128/82 mmHg (recorded March 20, 2024)\n- **Medication**: Lisinopril 10mg once daily\n- **Lifestyle modifications**: DASH diet recommended, salt intake reduction discussed\n- **Follow-up**: Scheduled in 2 weeks\n- **Provider**: Dr. Sarah Johnson\n\nNurse Practitioner Mary Williams conducted the most recent follow-up and confirmed patient understanding of dietary recommendations.`,
+    };
+  }
+
+  // 6. Care Plan Questions
+  if (lowerQuery.includes('care plan') || lowerQuery.includes('treatment plan') || lowerQuery.includes('plan of care')) {
+    return {
+      short_answer: `${patientInfo.first_name} has two active care plans: Diabetes Management and Hypertension Control, both managed by Dr. Sarah Johnson.`,
+      detailed_summary: `**Active Care Plans for ${patientInfo.first_name} ${patientInfo.last_name}:**\n\n**1. Diabetes Management Plan** (Active since 01/15/2024)\n- Provider: Dr. Sarah Johnson\n- Description: Comprehensive diabetes management including blood sugar monitoring, diet modifications, and medication adherence\n- Recent A1C: 7.1% (down from 8.2%)\n\n**2. Hypertension Control Plan** (Active since 02/01/2024)\n- Provider: Dr. Sarah Johnson\n- Description: Blood pressure management through lifestyle changes and medication\n- Target BP: 120/80 mmHg\n- Recent BP: 128/82 mmHg`,
+    };
+  }
+
+  // 7. Diagnosis/Condition Questions
+  if (lowerQuery.includes('diagnosis') || lowerQuery.includes('condition') || lowerQuery.includes('disease') || lowerQuery.includes('health issue') || lowerQuery.includes('problem')) {
+    return {
+      short_answer: `${patientInfo.first_name} has been diagnosed with Type 2 Diabetes and Hypertension, both currently under active management.`,
+      detailed_summary: `**Medical Conditions for ${patientInfo.first_name} ${patientInfo.last_name}:**\n\n**Primary Diagnoses:**\n1. **Type 2 Diabetes Mellitus** - Under active management with improving control (A1C: 7.1%)\n2. **Hypertension** - Controlled with medication (Recent BP: 128/82 mmHg)\n\n**Management Status:**\n- Both conditions have active care plans\n- Medication adherence is good\n- Recent progress shows improvement in both conditions\n- Regular follow-ups scheduled`,
+    };
+  }
+
+  // 8. Provider/Doctor Questions
+  if (lowerQuery.includes('doctor') || lowerQuery.includes('provider') || lowerQuery.includes('physician') || lowerQuery.includes('treating')) {
+    return {
+      short_answer: `${patientInfo.first_name}'s primary care provider is Dr. Sarah Johnson.`,
+      detailed_summary: `**Healthcare Providers for ${patientInfo.first_name} ${patientInfo.last_name}:**\n\n**Primary Care Physician:**\n- Dr. Sarah Johnson\n- Managing both Diabetes Management Plan and Hypertension Control Plan\n- Prescribed all current medications\n\n**Other Healthcare Team Members:**\n- Nurse Practitioner Mary Williams (conducts follow-up visits and blood pressure monitoring)`,
+    };
+  }
+
+  // 9. Recent Visit/Progress Questions
+  if (lowerQuery.includes('recent') || lowerQuery.includes('latest') || lowerQuery.includes('last visit') || lowerQuery.includes('progress')) {
+    return {
+      short_answer: `${patientInfo.first_name}'s most recent visit was on March 20, 2024, showing good progress with improved A1C and stable blood pressure.`,
+      detailed_summary: `**Recent Visit Summary for ${patientInfo.first_name} ${patientInfo.last_name}:**\n\n**March 20, 2024 - Follow-up Visit (NP Mary Williams):**\n- Blood pressure: 128/82 mmHg\n- Discussed salt intake reduction and DASH diet\n- Patient verbalized understanding\n- Next follow-up in 2 weeks\n\n**March 15, 2024 - Progress Note (Dr. Sarah Johnson):**\n- A1C improved from 8.2% to 7.1%\n- Good medication adherence reported\n- Blood sugar levels significantly improved\n- Patient educated on exercise importance`,
+    };
+  }
+
+  // Default response - provide overview and helpful suggestions
   return {
-    short_answer: 'The patient has active care plans for diabetes and hypertension management, currently taking three medications with recent improvements noted.',
-    detailed_summary: `Based on the available patient records:\n\n**Active Care Plans:**\n- Diabetes Management Plan (Dr. Sarah Johnson)\n- Hypertension Control Plan (Dr. Sarah Johnson)\n\n**Current Medications:**\n- Metformin 500mg (twice daily)\n- Lisinopril 10mg (once daily)\n- Atorvastatin 20mg (once daily)\n\n**Recent Progress:**\n- A1C improved from 8.2% to 7.1%\n- Blood pressure: 128/82 mmHg\n- Good medication adherence reported\n- Regular follow-ups scheduled\n\nFor more specific information about "${query}", please ask about medications, diabetes management, or blood pressure control.`,
+    short_answer: `I found information about ${patientInfo.name}, but I need more specific details about what you're looking for.`,
+    detailed_summary: `I have access to comprehensive medical records for **${patientInfo.name}** (${patientInfo.age}-year-old ${patientInfo.gender}), but your question "${query}" needs clarification.\n\n**Available Information:**\n- Patient demographics (name, age, DOB)\n- Active diagnoses (Diabetes, Hypertension)\n- Current medications (3 active prescriptions)\n- Care plans (2 active plans)\n- Recent visit notes and progress\n- Blood pressure and A1C readings\n\n**Try asking:**\n- "What is the patient's name?"\n- "What medications is the patient taking?"\n- "What is the patient's A1C level?"\n- "What are the active care plans?"\n- "Who is the patient's doctor?"\n- "What was the patient's last visit about?"`,
   };
 }
 
