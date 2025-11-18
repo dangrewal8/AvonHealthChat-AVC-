@@ -67,20 +67,108 @@ function generateFallbackShortAnswer(
   // Suppress TypeScript warnings for conditionally-used variables
   void conditions; void documents; void form_responses;
 
-  // MULTI-PART QUESTION SUPPORT
-  // Handle questions like "what meds is the patient taking and what is their name?"
-  if (queryLower.includes(' and ') || queryLower.includes(' & ')) {
-    const parts = queryLower.split(/ and | & /).map(p => p.trim());
+  // ENHANCED MULTI-PART QUESTION SUPPORT
+  // Handles complex queries with multiple data points:
+  // - "What are the patient's blood pressure and allergies?"
+  // - "Show me current medications, past medications, and allergies"
+  // - "What is the patient's name, age, and email?"
+  // - "What medications is the patient taking and what are their vital signs?"
 
-    // Only process if we have 2 distinct parts (not just a list like "medications and allergies")
-    if (parts.length === 2 && parts[0].split(' ').length > 2 && parts[1].split(' ').length > 2) {
-      const answers = parts.map((part) => {
-        // Recursively call this function for each part
-        return generateFallbackShortAnswer(part, queryIntent, data);
+  /**
+   * Detect if this is a multi-part question
+   * Returns array of question parts if detected, null otherwise
+   */
+  const detectMultiPartQuestion = (q: string): string[] | null => {
+    const lower = q.toLowerCase();
+
+    // Pattern 1: "what are X and Y" or "what is X and Y"
+    const listPattern = /^what (?:is|are) (?:the )?(?:patient'?s? )?(.+)$/i;
+    const listMatch = lower.match(listPattern);
+    if (listMatch) {
+      const itemsList = listMatch[1];
+      // Check if it contains "and" or commas
+      if (itemsList.includes(' and ') || itemsList.includes(',')) {
+        // Split by commas and "and"
+        const parts = itemsList
+          .split(/,| and /)
+          .map(p => p.trim())
+          .filter(p => p.length > 0 && !['the', 'their', 'a'].includes(p));
+
+        if (parts.length >= 2) {
+          // Reconstruct as individual questions
+          return parts.map(part => `what is the patient's ${part}`);
+        }
+      }
+    }
+
+    // Pattern 2: "show me X and Y" or "tell me X and Y"
+    const showPattern = /^(?:show|tell|give) (?:me )?(?:the )?(?:patient'?s? )?(.+)$/i;
+    const showMatch = lower.match(showPattern);
+    if (showMatch) {
+      const itemsList = showMatch[1];
+      if (itemsList.includes(' and ') || itemsList.includes(',')) {
+        const parts = itemsList
+          .split(/,| and /)
+          .map(p => p.trim())
+          .filter(p => p.length > 0);
+
+        if (parts.length >= 2) {
+          return parts.map(part => `what is the patient's ${part}`);
+        }
+      }
+    }
+
+    // Pattern 3: Two distinct questions joined by "and"
+    // "What medications is the patient taking and what are their allergies?"
+    if (lower.includes(' and ')) {
+      const parts = lower.split(/ and /);
+      if (parts.length === 2) {
+        // Check if both parts are questions (contain question words)
+        const questionWords = ['what', 'when', 'who', 'where', 'how', 'is', 'are', 'does'];
+        const bothAreQuestions = parts.every(part =>
+          questionWords.some(qw => part.trim().startsWith(qw))
+        );
+
+        if (bothAreQuestions) {
+          return parts.map(p => p.trim());
+        }
+      }
+    }
+
+    // Pattern 4: "current X and past X" - temporal comparisons
+    const temporalPattern = /(?:current|active|present).+(?:and|,).+(?:past|previous|historical|inactive)/i;
+    if (temporalPattern.test(lower)) {
+      // Handle as multi-part
+      const parts = lower.split(/ and |, /);
+      if (parts.length >= 2) {
+        return parts.map(p => p.trim());
+      }
+    }
+
+    return null;
+  };
+
+  const multiPartQuestions = detectMultiPartQuestion(query);
+  if (multiPartQuestions && multiPartQuestions.length >= 2) {
+    console.log(`   🔀 Detected ${multiPartQuestions.length}-part question`);
+
+    const answers = multiPartQuestions.map((part, idx) => {
+      console.log(`      Part ${idx + 1}: "${part}"`);
+      const partAnswer = generateFallbackShortAnswer(part, queryIntent, data);
+      return partAnswer;
+    });
+
+    // Intelligent answer formatting
+    if (answers.length === 2) {
+      return `${answers[0]} ${answers[1]}`;
+    } else {
+      // For 3+ parts, format as numbered list or bulleted
+      const formattedAnswers = answers.map((ans, idx) => {
+        // Remove trailing period for cleaner formatting
+        const cleaned = ans.trim().replace(/\.$/, '');
+        return `${idx + 1}. ${cleaned}`;
       });
-
-      // Combine answers intelligently
-      return answers.join(' ') + '';
+      return formattedAnswers.join('\n');
     }
   }
 
@@ -176,6 +264,34 @@ function generateFallbackShortAnswer(
       return `The patient is currently taking ${activeMeds.length} medication${activeMeds.length !== 1 ? 's' : ''}.`;
     }
     return 'No medications found in the patient records.';
+  }
+
+  // TEMPORAL COMPARISON: "current medications and past medications" or "active and inactive"
+  if (queryLower.match(/(?:current|active|present).+(?:medication|med).+(?:and|,).+(?:past|previous|historical|inactive).+(?:medication|med)/i) ||
+      queryLower.match(/(?:past|previous|historical|inactive).+(?:medication|med).+(?:and|,).+(?:current|active|present).+(?:medication|med)/i)) {
+    if (medications && medications.length > 0) {
+      const activeMeds = medications.filter((m: any) => m.active === true);
+      const inactiveMeds = medications.filter((m: any) => m.active === false);
+
+      const parts = [];
+
+      if (activeMeds.length > 0) {
+        const activeNames = activeMeds.slice(0, 5).map((m: any) => formatMedicationName(m)).join(', ');
+        parts.push(`Currently taking ${activeMeds.length} medication${activeMeds.length !== 1 ? 's' : ''}: ${activeNames}${activeMeds.length > 5 ? ', and others' : ''}.`);
+      } else {
+        parts.push('Not currently taking any active medications.');
+      }
+
+      if (inactiveMeds.length > 0) {
+        const inactiveNames = inactiveMeds.slice(0, 5).map((m: any) => formatMedicationName(m)).join(', ');
+        parts.push(`Previously took ${inactiveMeds.length} medication${inactiveMeds.length !== 1 ? 's' : ''}: ${inactiveNames}${inactiveMeds.length > 5 ? ', and others' : ''}.`);
+      } else {
+        parts.push('No past medications on record.');
+      }
+
+      return parts.join(' ');
+    }
+    return 'No medication records available for this patient.';
   }
 
   // General medication queries - filter to ACTIVE medications only
@@ -556,6 +672,35 @@ function generateFallbackShortAnswer(
   }
 
   // ALLERGY QUERIES
+
+  // TEMPORAL COMPARISON: "active allergies and inactive allergies"
+  if (queryLower.match(/(?:active|current|present).+(?:allerg).+(?:and|,).+(?:inactive|past|previous|historical).+(?:allerg)/i) ||
+      queryLower.match(/(?:inactive|past|previous|historical).+(?:allerg).+(?:and|,).+(?:active|current|present).+(?:allerg)/i)) {
+    if (allergies && allergies.length > 0) {
+      const activeAllergies = allergies.filter((a: any) => a.active);
+      const inactiveAllergies = allergies.filter((a: any) => !a.active);
+
+      const parts = [];
+
+      if (activeAllergies.length > 0) {
+        const activeNames = activeAllergies.slice(0, 5).map((a: any) => a.name).join(', ');
+        parts.push(`Active allergies (${activeAllergies.length}): ${activeNames}${activeAllergies.length > 5 ? ', and others' : ''}.`);
+      } else {
+        parts.push('No active allergies.');
+      }
+
+      if (inactiveAllergies.length > 0) {
+        const inactiveNames = inactiveAllergies.slice(0, 5).map((a: any) => a.name).join(', ');
+        parts.push(`Inactive allergies (${inactiveAllergies.length}): ${inactiveNames}${inactiveAllergies.length > 5 ? ', and others' : ''}.`);
+      } else {
+        parts.push('No inactive allergies on record.');
+      }
+
+      return parts.join(' ');
+    }
+    return 'No allergy information available for this patient.';
+  }
+
   // "What allergies does the patient have?" or "Is the patient allergic to penicillin?"
   if ((queryLower.includes('allerg') || queryLower.includes('allergic')) &&
       !queryLower.includes('family')) {
