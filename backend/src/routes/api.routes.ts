@@ -26,6 +26,158 @@ export function initializeServices(ollama: OllamaService, avonHealth: AvonHealth
 }
 
 /**
+ * Generate short answer from structured data (fallback when Ollama unavailable)
+ */
+function generateFallbackShortAnswer(
+  query: string,
+  queryIntent: any,
+  data: { care_plans: any[]; medications: any[]; notes: any[] }
+): string {
+  const { care_plans, medications, notes } = data;
+  const queryLower = query.toLowerCase();
+
+  // Medication queries
+  if (queryIntent.primary === 'medications' || queryLower.includes('medication') || queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
+    if (medications && medications.length > 0) {
+      const medCount = medications.length;
+      const medNames = medications.slice(0, 3).map((m: any) => m.name || 'Unknown').join(', ');
+      return `The patient is currently taking ${medCount} medication${medCount > 1 ? 's' : ''}, including ${medNames}${medCount > 3 ? ', and others' : ''}.`;
+    }
+    return 'No medications found in the patient records.';
+  }
+
+  // Care plan / diagnosis queries
+  if (queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' || queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
+    if (care_plans && care_plans.length > 0) {
+      const planCount = care_plans.length;
+      const activePlans = care_plans.filter((cp: any) => cp.status === 'active');
+      return `The patient has ${planCount} care plan${planCount > 1 ? 's' : ''} on file${activePlans.length > 0 ? `, with ${activePlans.length} currently active` : ''}.`;
+    }
+    return 'No care plans found in the patient records.';
+  }
+
+  // Clinical notes queries
+  if (queryIntent.primary === 'history' || queryLower.includes('note') || queryLower.includes('visit') || queryLower.includes('history')) {
+    if (notes && notes.length > 0) {
+      const noteCount = notes.length;
+      const recentNote = notes[0];
+      return `The patient has ${noteCount} clinical note${noteCount > 1 ? 's' : ''} on file. Most recent note was from ${recentNote.created_at || 'unknown date'}.`;
+    }
+    return 'No clinical notes found in the patient records.';
+  }
+
+  // General summary
+  const hasData = (care_plans && care_plans.length > 0) || (medications && medications.length > 0) || (notes && notes.length > 0);
+  if (hasData) {
+    return `Found ${care_plans?.length || 0} care plans, ${medications?.length || 0} medications, and ${notes?.length || 0} clinical notes for this patient.`;
+  }
+
+  return 'No relevant information found in patient records.';
+}
+
+/**
+ * Generate detailed summary from structured data (fallback when Ollama unavailable)
+ */
+function generateFallbackDetailedSummary(
+  query: string,
+  queryIntent: any,
+  data: { care_plans: any[]; medications: any[]; notes: any[] }
+): string {
+  const { care_plans, medications, notes } = data;
+  const queryLower = query.toLowerCase();
+  let summary = '';
+
+  // Medication queries - provide detailed list
+  if (queryIntent.primary === 'medications' || queryLower.includes('medication') || queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
+    if (medications && medications.length > 0) {
+      summary = `**Current Medications (${medications.length} total):**\n\n`;
+      medications.slice(0, 10).forEach((med: any, idx: number) => {
+        summary += `${idx + 1}. **${med.name || 'Unknown medication'}** ${med.dosage || ''}\n`;
+        if (med.frequency) summary += `   - Frequency: ${med.frequency}\n`;
+        if (med.prescribed_date) summary += `   - Prescribed: ${med.prescribed_date}\n`;
+        if (med.prescriber) summary += `   - Prescriber: ${med.prescriber}\n`;
+        summary += '\n';
+      });
+      if (medications.length > 10) {
+        summary += `\n*...and ${medications.length - 10} more medications*\n`;
+      }
+      return summary;
+    }
+    return '**Medications:** No medications found in patient records.';
+  }
+
+  // Care plan queries
+  if (queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' || queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
+    if (care_plans && care_plans.length > 0) {
+      summary = `**Care Plans (${care_plans.length} total):**\n\n`;
+      care_plans.slice(0, 5).forEach((cp: any, idx: number) => {
+        summary += `${idx + 1}. **${cp.title || 'Untitled Plan'}**\n`;
+        if (cp.description) summary += `   ${cp.description.substring(0, 200)}${cp.description.length > 200 ? '...' : ''}\n`;
+        if (cp.status) summary += `   - Status: ${cp.status}\n`;
+        if (cp.provider) summary += `   - Provider: ${cp.provider}\n`;
+        summary += '\n';
+      });
+      if (care_plans.length > 5) {
+        summary += `\n*...and ${care_plans.length - 5} more care plans*\n`;
+      }
+      return summary;
+    }
+    return '**Care Plans:** No care plans found in patient records.';
+  }
+
+  // Clinical notes queries
+  if (queryIntent.primary === 'history' || queryLower.includes('note') || queryLower.includes('visit') || queryLower.includes('history')) {
+    if (notes && notes.length > 0) {
+      summary = `**Clinical Notes (${notes.length} total):**\n\n`;
+      notes.slice(0, 5).forEach((note: any, idx: number) => {
+        summary += `${idx + 1}. **${note.note_type || 'Clinical Note'}** - ${note.created_at || 'No date'}\n`;
+        if (note.author) summary += `   Author: ${note.author}\n`;
+        if (note.content) summary += `   ${note.content.substring(0, 200)}${note.content.length > 200 ? '...' : ''}\n`;
+        summary += '\n';
+      });
+      if (notes.length > 5) {
+        summary += `\n*...and ${notes.length - 5} more notes*\n`;
+      }
+      return summary;
+    }
+    return '**Clinical Notes:** No clinical notes found in patient records.';
+  }
+
+  // General summary - show everything
+  summary = '**Patient Record Summary:**\n\n';
+
+  if (care_plans && care_plans.length > 0) {
+    summary += `**Care Plans:** ${care_plans.length} on file\n`;
+    care_plans.slice(0, 3).forEach((cp: any) => {
+      summary += `  - ${cp.title || 'Untitled'} (${cp.status || 'unknown status'})\n`;
+    });
+    summary += '\n';
+  }
+
+  if (medications && medications.length > 0) {
+    summary += `**Medications:** ${medications.length} current\n`;
+    medications.slice(0, 5).forEach((med: any) => {
+      summary += `  - ${med.name || 'Unknown'} ${med.dosage || ''}\n`;
+    });
+    summary += '\n';
+  }
+
+  if (notes && notes.length > 0) {
+    summary += `**Clinical Notes:** ${notes.length} on file\n`;
+    const recentNotes = notes.slice(0, 3);
+    recentNotes.forEach((note: any) => {
+      summary += `  - ${note.note_type || 'Note'} from ${note.created_at || 'unknown date'}\n`;
+    });
+  }
+
+  if (!care_plans?.length && !medications?.length && !notes?.length) {
+    summary += 'No records found for this patient.';
+  }
+
+  return summary;
+}
+
+/**
  * Main RAG Query Endpoint - Uses REAL Avon Health API Data
  * POST /api/query
  */
@@ -117,54 +269,70 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
     contextPriority.forEach((sourceType) => {
       if (sourceType === 'care_plans' && care_plans) {
         care_plans.forEach((cp: any) => {
-          const text = `Care Plan: ${cp.title}\n${cp.description}\nStatus: ${cp.status}\nProvider: ${cp.provider}`;
-          context += `\n\n[CARE_PLAN_${cp.id}] ${text}`;
+          const title = cp.title || 'Untitled Care Plan';
+          const description = cp.description || '';
+          const status = cp.status || 'unknown';
+          const provider = cp.provider || 'unknown';
+
+          const text = `Care Plan: ${title}\n${description}\nStatus: ${status}\nProvider: ${provider}`;
+          context += `\n\n[CARE_PLAN_${cp.id || 'unknown'}] ${text}`;
           artifacts_searched++;
 
           provenance.push({
-            artifact_id: cp.id,
+            artifact_id: cp.id || 'unknown',
             artifact_type: 'care_plan',
-            snippet: cp.description.substring(0, 200),
-            occurred_at: cp.created_at,
+            snippet: description ? description.substring(0, 200) : title,
+            occurred_at: cp.created_at || new Date().toISOString(),
             relevance_score: 0.8,
             char_offsets: [0, text.length],
-            source_url: `/api/emr/care_plans/${cp.id}`,
+            source_url: `/api/emr/care_plans/${cp.id || 'unknown'}`,
           });
         });
       }
 
       if (sourceType === 'medications' && medications) {
         medications.forEach((med: any) => {
-          const text = `Medication: ${med.name} ${med.dosage}\nFrequency: ${med.frequency}\nPrescribed: ${med.prescribed_date}\nPrescriber: ${med.prescriber}`;
-          context += `\n\n[MEDICATION_${med.id}] ${text}`;
+          const name = med.name || 'Unknown medication';
+          const dosage = med.dosage || '';
+          const frequency = med.frequency || 'unknown';
+          const prescribed_date = med.prescribed_date || 'unknown';
+          const prescriber = med.prescriber || 'unknown';
+
+          const text = `Medication: ${name} ${dosage}\nFrequency: ${frequency}\nPrescribed: ${prescribed_date}\nPrescriber: ${prescriber}`;
+          context += `\n\n[MEDICATION_${med.id || 'unknown'}] ${text}`;
           artifacts_searched++;
 
           provenance.push({
-            artifact_id: med.id,
+            artifact_id: med.id || 'unknown',
             artifact_type: 'medication',
-            snippet: `${med.name} ${med.dosage}`,
-            occurred_at: med.prescribed_date,
+            snippet: `${name} ${dosage}`.trim(),
+            occurred_at: prescribed_date !== 'unknown' ? prescribed_date : new Date().toISOString(),
             relevance_score: 0.85,
             char_offsets: [0, text.length],
-            source_url: `/api/emr/medications/${med.id}`,
+            source_url: `/api/emr/medications/${med.id || 'unknown'}`,
           });
         });
       }
 
       if (sourceType === 'notes' && notes) {
         notes.forEach((note: any) => {
-          const text = `Clinical Note (${note.note_type})\nAuthor: ${note.author}\nDate: ${note.created_at}\n${note.content}`;
-          context += `\n\n[NOTE_${note.id}] ${text}`;
+          const note_type = note.note_type || 'Clinical Note';
+          const author = note.author || 'unknown';
+          const created_at = note.created_at || 'unknown';
+          const content = note.content || '';
+
+          const text = `Clinical Note (${note_type})\nAuthor: ${author}\nDate: ${created_at}\n${content}`;
+          context += `\n\n[NOTE_${note.id || 'unknown'}] ${text}`;
           artifacts_searched++;
 
           provenance.push({
-            artifact_id: note.id,
+            artifact_id: note.id || 'unknown',
             artifact_type: 'note',
-            snippet: note.content.substring(0, 200),
-            occurred_at: note.created_at,
+            snippet: content ? content.substring(0, 200) : note_type,
+            occurred_at: created_at !== 'unknown' ? created_at : new Date().toISOString(),
             relevance_score: 0.9,
             char_offsets: [0, text.length],
-            source_url: `/api/emr/notes/${note.id}`,
+            source_url: `/api/emr/notes/${note.id || 'unknown'}`,
           });
         });
       }
@@ -184,44 +352,44 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
       detailed_summary = ollamaResponse.detailed_summary;
       console.log('✅ Generated answer using Ollama with real patient data');
     } catch (error: any) {
-      console.error('Ollama generation failed:', error.message);
-      res.status(500).json({
-        error: 'AI generation failed',
-        message: 'Ollama service unavailable. Please ensure Ollama is running.',
-      });
-      return;
+      console.warn('⚠️  Ollama unavailable, using structured fallback response');
+
+      // Graceful fallback: Generate intelligent response from structured data
+      short_answer = generateFallbackShortAnswer(query, queryIntent, { care_plans, medications, notes });
+      detailed_summary = generateFallbackDetailedSummary(query, queryIntent, { care_plans, medications, notes });
+      console.log('✅ Generated fallback answer using structured patient data');
     }
 
     // 4. Extract structured information from REAL data
     const structured_extractions: StructuredExtraction[] = [];
 
     // Extract medications mentioned in the answer
-    if (medications) {
+    if (medications && detailed_summary) {
       medications.forEach((med: any) => {
-        if (detailed_summary.toLowerCase().includes(med.name.toLowerCase())) {
+        if (med.name && detailed_summary.toLowerCase().includes(med.name.toLowerCase())) {
           structured_extractions.push({
             type: 'medication',
-            value: `${med.name} ${med.dosage}`,
+            value: `${med.name} ${med.dosage || ''}`.trim(),
             relevance: 0.9,
             confidence: 0.95,
-            source_artifact_id: med.id,
-            supporting_text: `Prescribed ${med.prescribed_date} by ${med.prescriber}`,
+            source_artifact_id: med.id || 'unknown',
+            supporting_text: `Prescribed ${med.prescribed_date || 'unknown'} by ${med.prescriber || 'unknown'}`,
           });
         }
       });
     }
 
     // Extract care plans mentioned
-    if (care_plans) {
+    if (care_plans && detailed_summary) {
       care_plans.forEach((cp: any) => {
-        if (detailed_summary.toLowerCase().includes(cp.title.toLowerCase())) {
+        if (cp.title && detailed_summary.toLowerCase().includes(cp.title.toLowerCase())) {
           structured_extractions.push({
             type: 'condition',
             value: cp.title,
             relevance: 0.85,
             confidence: 0.9,
-            source_artifact_id: cp.id,
-            supporting_text: cp.description.substring(0, 100),
+            source_artifact_id: cp.id || 'unknown',
+            supporting_text: cp.description ? cp.description.substring(0, 100) : '',
           });
         }
       });
