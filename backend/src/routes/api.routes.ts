@@ -85,7 +85,9 @@ function generateFallbackShortAnswer(
     const conditionMatch = queryLower.match(/(?:taking|prescribed) for (\w+)/);
     if (conditionMatch && conditionMatch[1]) {
       const condition = conditionMatch[1];
-      const relatedMeds = medications.filter((m: any) =>
+      // CRITICAL: Only show ACTIVE medications
+      const activeMeds = medications.filter((m: any) => m.active === true);
+      const relatedMeds = activeMeds.filter((m: any) =>
         m.name?.toLowerCase().includes(condition) ||
         care_plans?.some(cp => cp.name?.toLowerCase().includes(condition))  // API uses 'name', not 'title'
       );
@@ -93,7 +95,7 @@ function generateFallbackShortAnswer(
         const medNames = relatedMeds.map((m: any) => m.name).join(', ');
         return `For ${condition}, the patient is taking: ${medNames}.`;
       }
-      return `No medications found specifically for ${condition}. The patient has ${medications.length} total medications.`;
+      return `No active medications found specifically for ${condition}. The patient has ${activeMeds.length} total active medications.`;
     }
   }
 
@@ -122,18 +124,26 @@ function generateFallbackShortAnswer(
   // "How many medications?" or "How many meds?"
   if ((queryLower.includes('how many') && (queryLower.includes('med') || queryLower.includes('drug')))) {
     if (medications) {
-      return `The patient is currently taking ${medications.length} medication${medications.length !== 1 ? 's' : ''}.`;
+      // Filter to active medications only for "currently taking" questions
+      const activeMeds = medications.filter((m: any) => m.active === true);
+      return `The patient is currently taking ${activeMeds.length} medication${activeMeds.length !== 1 ? 's' : ''}.`;
     }
     return 'No medications found in the patient records.';
   }
 
-  // General medication queries
+  // General medication queries - filter to ACTIVE medications only
   if (queryIntent.primary === 'medications' || queryLower.includes('medication') ||
       queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
     if (medications && medications.length > 0) {
-      const medCount = medications.length;
-      const medNames = medications.slice(0, 3).map((m: any) => formatMedicationName(m)).join(', ');
-      return `The patient is currently taking ${medCount} medication${medCount > 1 ? 's' : ''}, including ${medNames}${medCount > 3 ? ', and others' : ''}.`;
+      // CRITICAL: Only show ACTIVE medications when asking "what is the patient taking"
+      const activeMeds = medications.filter((m: any) => m.active === true);
+
+      if (activeMeds.length > 0) {
+        const medCount = activeMeds.length;
+        const medNames = activeMeds.slice(0, 3).map((m: any) => formatMedicationName(m)).join(', ');
+        return `The patient is currently taking ${medCount} medication${medCount > 1 ? 's' : ''}, including ${medNames}${medCount > 3 ? ', and others' : ''}.`;
+      }
+      return 'The patient is not currently taking any active medications.';
     }
     return 'No medications found in the patient records.';
   }
@@ -413,14 +423,20 @@ function generateFallbackDetailedSummary(
   if (queryIntent.primary === 'medications' || queryLower.includes('medication') ||
       queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
     if (medications && medications.length > 0) {
-      summary = `CURRENT MEDICATIONS (${medications.length} total)\n\n`;
+      // CRITICAL: Only show ACTIVE medications for "current medications" questions
+      const activeMeds = medications.filter((m: any) => m.active === true);
 
-      // Show all medications with details
-      medications.forEach((med: any, idx: number) => {
-        summary += formatMedication(med, idx) + '\n';
-      });
+      if (activeMeds.length > 0) {
+        summary = `CURRENT MEDICATIONS (${activeMeds.length} active)\n\n`;
 
-      return summary.trim();
+        // Show all active medications with details
+        activeMeds.forEach((med: any, idx: number) => {
+          summary += formatMedication(med, idx) + '\n';
+        });
+
+        return summary.trim();
+      }
+      return 'No active medications found. Patient is not currently taking any medications.';
     }
     return 'No medications found in patient records.';
   }
@@ -474,15 +490,30 @@ function generateFallbackDetailedSummary(
     summary += '\n';
   }
 
-  // Medications
+  // Medications - separate active and inactive for clarity
   if (medications && medications.length > 0) {
-    summary += `MEDICATIONS (${medications.length} total)\n`;
-    medications.slice(0, 8).forEach((med: any, idx: number) => {
-      summary += formatMedication(med, idx) + '\n';
-    });
-    if (medications.length > 8) {
-      summary += `...and ${medications.length - 8} more medications\n`;
+    const activeMeds = medications.filter((m: any) => m.active === true);
+    const inactiveMeds = medications.filter((m: any) => m.active === false);
+
+    summary += `MEDICATIONS (${activeMeds.length} active, ${inactiveMeds.length} inactive)\n\n`;
+
+    if (activeMeds.length > 0) {
+      summary += `Active Medications:\n`;
+      activeMeds.slice(0, 8).forEach((med: any, idx: number) => {
+        summary += formatMedication(med, idx) + '\n';
+      });
+      if (activeMeds.length > 8) {
+        summary += `...and ${activeMeds.length - 8} more active medications\n`;
+      }
     }
+
+    if (inactiveMeds.length > 0 && medications.length <= 10) {
+      summary += `\nInactive Medications (no longer taking):\n`;
+      inactiveMeds.slice(0, 3).forEach((med: any, idx: number) => {
+        summary += formatMedication(med, activeMeds.length + idx) + '\n';
+      });
+    }
+
     summary += '\n';
   }
 
@@ -645,20 +676,36 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
       if (sourceType === 'medications' && medications) {
         medications.forEach((med: any) => {
           const name = med.name || 'Unknown medication';
-          const dosage = med.dosage || '';
-          const frequency = med.frequency || 'unknown';
-          const prescribed_date = med.prescribed_date || 'unknown';
-          const prescriber = med.prescriber || 'unknown';
+          const strength = med.strength || '';
+          const sig = med.sig || '';
+          const start_date = med.start_date || '';
+          const created_by = med.created_by || 'unknown';
+          const active = med.active ? 'Active' : 'Inactive';
 
-          const text = `Medication: ${name} ${dosage}\nFrequency: ${frequency}\nPrescribed: ${prescribed_date}\nPrescriber: ${prescriber}`;
+          // Format strength for readability
+          let displayStrength = strength;
+          const unitMatch = strength.match(/^(\d+)\s*UNIT$/i);
+          if (unitMatch) {
+            const units = parseInt(unitMatch[1]);
+            if (units >= 1000000) displayStrength = `${(units / 1000000).toFixed(1).replace(/\.0$/, '')}m units`;
+            else if (units >= 1000) displayStrength = `${(units / 1000).toFixed(1).replace(/\.0$/, '')}K units`;
+          }
+
+          const text = `Medication: ${name} ${displayStrength}\nInstructions: ${sig}\nStatus: ${active}\nStarted: ${start_date}\nAdded by: ${created_by}`;
           context += `\n\n[MEDICATION_${med.id || 'unknown'}] ${text}`;
           artifacts_searched++;
+
+          // Enhanced snippet with more details
+          const snippetParts = [name];
+          if (displayStrength) snippetParts.push(displayStrength);
+          if (sig) snippetParts.push(sig.substring(0, 60));
+          snippetParts.push(active);
 
           provenance.push({
             artifact_id: med.id || 'unknown',
             artifact_type: 'medication',
-            snippet: `${name} ${dosage}`.trim(),
-            occurred_at: prescribed_date !== 'unknown' ? prescribed_date : new Date().toISOString(),
+            snippet: snippetParts.join(' | '),
+            occurred_at: start_date || med.created_at || new Date().toISOString(),
             relevance_score: 0.85,
             char_offsets: [0, text.length],
             source_url: `/api/emr/medications/${med.id || 'unknown'}`,
@@ -727,36 +774,66 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
       console.log('✅ Generated fallback answer using structured patient data');
     }
 
-    // 4. Extract structured information from REAL data
+    // 4. Extract structured information from REAL data with CORRECT API fields
     const structured_extractions: StructuredExtraction[] = [];
 
-    // Extract medications mentioned in the answer
+    // Helper: Format strength for display
+    const formatStrengthShort = (strength: string): string => {
+      if (!strength) return '';
+      const unitMatch = strength.match(/^(\d+)\s*UNIT$/i);
+      if (unitMatch) {
+        const units = parseInt(unitMatch[1]);
+        if (units >= 1000000) return `${(units / 1000000).toFixed(1).replace(/\.0$/, '')}m units`;
+        if (units >= 1000) return `${(units / 1000).toFixed(1).replace(/\.0$/, '')}K units`;
+      }
+      return strength;
+    };
+
+    // Extract medications mentioned in the answer - with DETAILED information
     if (medications && detailed_summary) {
       medications.forEach((med: any) => {
         if (med.name && detailed_summary.toLowerCase().includes(med.name.toLowerCase())) {
+          // Build comprehensive supporting text with CORRECT API fields
+          const strength = formatStrengthShort(med.strength || '');
+          const parts = [];
+
+          if (strength) parts.push(strength);
+          if (med.sig) parts.push(`Take: ${med.sig.substring(0, 80)}${med.sig.length > 80 ? '...' : ''}`);
+          if (med.start_date) parts.push(`Started: ${med.start_date}`);
+          parts.push(med.active ? 'Active' : 'Inactive');
+          if (med.created_by) parts.push(`Added by: ${med.created_by}`);
+
           structured_extractions.push({
             type: 'medication',
-            value: `${med.name} ${med.dosage || ''}`.trim(),
+            value: `${med.name}${strength ? ` (${strength})` : ''}`,
             relevance: 0.9,
             confidence: 0.95,
             source_artifact_id: med.id || 'unknown',
-            supporting_text: `Prescribed ${med.prescribed_date || 'unknown'} by ${med.prescriber || 'unknown'}`,
+            supporting_text: parts.join(' | '),
           });
         }
       });
     }
 
-    // Extract care plans mentioned
+    // Extract care plans mentioned - with MORE details
     if (care_plans && detailed_summary) {
       care_plans.forEach((cp: any) => {
         if (cp.name && detailed_summary.toLowerCase().includes(cp.name.toLowerCase())) {
+          // Build comprehensive supporting text with CORRECT API fields
+          const parts = [];
+
+          if (cp.description) parts.push(cp.description.substring(0, 100) + (cp.description.length > 100 ? '...' : ''));
+          parts.push(cp.share_with_patient ? 'Shared with patient' : 'Not shared');
+          if (cp.created_at) parts.push(`Created: ${cp.created_at.split('T')[0]}`);
+          if (cp.created_by) parts.push(`By: ${cp.created_by}`);
+
           structured_extractions.push({
             type: 'condition',
             value: cp.name,
             relevance: 0.85,
             confidence: 0.9,
             source_artifact_id: cp.id || 'unknown',
-            supporting_text: cp.description ? cp.description.substring(0, 100) : '',
+            supporting_text: parts.join(' | '),
           });
         }
       });
