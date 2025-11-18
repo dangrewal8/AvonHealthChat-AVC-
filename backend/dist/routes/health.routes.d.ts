@@ -1,12 +1,6 @@
 /**
  * Health Check Routes
- *
- * Provides health check and monitoring endpoints for production.
- *
  */
-import { Router } from 'express';
-/**
- * Create health check router
- */
-export declare const createHealthRouter: () => Router;
+declare const router: import("express-serve-static-core").Router;
+export default router;
 //# sourceMappingURL=health.routes.d.ts.map

@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import { OllamaService } from '../services/ollama.service';
 import { AvonHealthService } from '../services/avonhealth.service';
+import { generateComprehensiveResponse } from './comprehensive-query-handler';
 
 const router = Router();
 
@@ -24,8 +25,197 @@ export function initializeServices(ollama: OllamaService, avonHealth: AvonHealth
   avonHealthService = avonHealth;
 }
 
-// Demo mode mock data
+// Comprehensive Demo Mode Patient Data
 const DEMO_PATIENT_DATA = {
+  patient_info: {
+    id: 'patient-123',
+    name: 'John Michael Smith',
+    first_name: 'John',
+    last_name: 'Smith',
+    date_of_birth: '1965-04-22',
+    age: 59,
+    gender: 'Male',
+    mrn: 'MRN-789456123',
+    phone: '(555) 123-4567',
+    email: 'john.smith@email.com',
+    address: '123 Main Street, Anytown, ST 12345',
+    emergency_contact: {
+      name: 'Mary Smith',
+      relationship: 'Spouse',
+      phone: '(555) 123-4568',
+    },
+    primary_language: 'English',
+    marital_status: 'Married',
+  },
+  allergies: [
+    {
+      allergen: 'Penicillin',
+      reaction: 'Severe rash and hives',
+      severity: 'High',
+      onset_date: '1998-06-15',
+    },
+    {
+      allergen: 'Shellfish',
+      reaction: 'Anaphylaxis',
+      severity: 'Critical',
+      onset_date: '2005-08-20',
+    },
+    {
+      allergen: 'Latex',
+      reaction: 'Contact dermatitis',
+      severity: 'Moderate',
+      onset_date: '2010-03-10',
+    },
+  ],
+  vital_signs: {
+    latest: {
+      date: '2024-03-20',
+      blood_pressure: '128/82 mmHg',
+      heart_rate: '72 bpm',
+      temperature: '98.6°F (37.0°C)',
+      respiratory_rate: '16 breaths/min',
+      oxygen_saturation: '98%',
+      weight: '185 lbs (84 kg)',
+      height: '5\'10" (178 cm)',
+      bmi: '26.5',
+    },
+    trends: {
+      blood_pressure_trend: 'Improving - was 142/90 mmHg in January',
+      weight_trend: 'Stable - lost 8 lbs since starting diabetes plan',
+    },
+  },
+  lab_results: {
+    latest_date: '2024-03-10',
+    hemoglobin_a1c: {
+      value: '7.1%',
+      previous: '8.2%',
+      date: '2024-03-10',
+      status: 'Improved',
+      target: '<7.0%',
+    },
+    lipid_panel: {
+      total_cholesterol: '195 mg/dL',
+      ldl: '115 mg/dL',
+      hdl: '48 mg/dL',
+      triglycerides: '160 mg/dL',
+      date: '2024-03-10',
+      status: 'Within target range',
+    },
+    kidney_function: {
+      creatinine: '1.0 mg/dL',
+      egfr: '85 mL/min/1.73m2',
+      bun: '18 mg/dL',
+      date: '2024-03-10',
+      status: 'Normal',
+    },
+    liver_function: {
+      alt: '28 U/L',
+      ast: '24 U/L',
+      date: '2024-03-10',
+      status: 'Normal',
+    },
+  },
+  immunizations: [
+    {
+      vaccine: 'Influenza',
+      date: '2023-10-15',
+      status: 'Current',
+      next_due: '2024-10-15',
+    },
+    {
+      vaccine: 'COVID-19 Booster',
+      date: '2023-09-20',
+      status: 'Current',
+    },
+    {
+      vaccine: 'Pneumococcal (PPSV23)',
+      date: '2020-05-10',
+      status: 'Current',
+    },
+    {
+      vaccine: 'Tdap',
+      date: '2021-03-15',
+      status: 'Current',
+      next_due: '2031-03-15',
+    },
+  ],
+  medical_history: {
+    chronic_conditions: [
+      {
+        condition: 'Type 2 Diabetes Mellitus',
+        diagnosed_date: '2022-06-15',
+        status: 'Active',
+        icd10: 'E11.9',
+      },
+      {
+        condition: 'Essential Hypertension',
+        diagnosed_date: '2020-11-20',
+        status: 'Active',
+        icd10: 'I10',
+      },
+      {
+        condition: 'Hyperlipidemia',
+        diagnosed_date: '2021-02-10',
+        status: 'Active',
+        icd10: 'E78.5',
+      },
+    ],
+    past_surgeries: [
+      {
+        procedure: 'Appendectomy',
+        date: '1985-07-12',
+        hospital: 'General Hospital',
+      },
+      {
+        procedure: 'Knee Arthroscopy (Right)',
+        date: '2018-04-20',
+        hospital: 'Orthopedic Center',
+      },
+    ],
+  },
+  family_history: {
+    father: 'Type 2 Diabetes, Coronary Artery Disease (deceased at 72)',
+    mother: 'Hypertension, Osteoporosis (living, age 84)',
+    siblings: '1 brother with Type 2 Diabetes, 1 sister healthy',
+    notes: 'Strong family history of cardiovascular disease and diabetes',
+  },
+  social_history: {
+    smoking: 'Former smoker - quit 10 years ago (20 pack-year history)',
+    alcohol: 'Occasional - 1-2 drinks per week',
+    exercise: 'Walks 30 minutes, 3-4 times per week',
+    occupation: 'Retired teacher',
+    lives_with: 'Spouse',
+  },
+  appointments: {
+    upcoming: [
+      {
+        date: '2024-04-05',
+        time: '10:00 AM',
+        provider: 'Dr. Sarah Johnson',
+        type: 'Follow-up - Diabetes Management',
+        location: 'Primary Care Clinic',
+      },
+      {
+        date: '2024-05-15',
+        time: '2:00 PM',
+        provider: 'Dr. Robert Chen',
+        type: 'Annual Eye Exam',
+        location: 'Ophthalmology Department',
+      },
+    ],
+    past: [
+      {
+        date: '2024-03-20',
+        provider: 'Nurse Practitioner Mary Williams',
+        type: 'Blood Pressure Check',
+      },
+      {
+        date: '2024-03-15',
+        provider: 'Dr. Sarah Johnson',
+        type: 'Quarterly Diabetes Check',
+      },
+    ],
+  },
   care_plans: [
     {
       id: 'cp_001',
@@ -88,36 +278,11 @@ const DEMO_PATIENT_DATA = {
   ],
 };
 
-// Simple demo mode response generator
+/**
+ * Demo Mode Response Generator - Wrapper for comprehensive query handler
+ */
 function generateDemoResponse(query: string): { short_answer: string; detailed_summary: string } {
-  const lowerQuery = query.toLowerCase();
-
-  if (lowerQuery.includes('medication') || lowerQuery.includes('medicine') || lowerQuery.includes('drug')) {
-    return {
-      short_answer: 'The patient is currently taking Metformin 500mg twice daily, Lisinopril 10mg once daily, and Atorvastatin 20mg at bedtime.',
-      detailed_summary: 'Based on the patient records, the patient is currently on three medications:\n\n1. **Metformin 500mg** - Prescribed for diabetes management, taken twice daily with meals (prescribed by Dr. Sarah Johnson on 01/15/2024)\n\n2. **Lisinopril 10mg** - Prescribed for blood pressure control, taken once daily in the morning (prescribed by Dr. Sarah Johnson on 02/01/2024)\n\n3. **Atorvastatin 20mg** - Prescribed for cholesterol management, taken once daily at bedtime (prescribed by Dr. Sarah Johnson on 01/20/2024)\n\nAll medications are part of the active care plans for diabetes and hypertension management.',
-    };
-  }
-
-  if (lowerQuery.includes('diabetes') || lowerQuery.includes('blood sugar') || lowerQuery.includes('a1c')) {
-    return {
-      short_answer: 'The patient has an active diabetes management plan with recent improvement in A1C from 8.2% to 7.1%.',
-      detailed_summary: 'The patient is enrolled in a **Diabetes Management Plan** (Care Plan ID: cp_001) managed by Dr. Sarah Johnson. Recent progress notes from March 15, 2024 indicate significant improvement:\n\n- **A1C levels**: Decreased from 8.2% to 7.1% over the past month\n- **Medication adherence**: Patient reports good compliance with Metformin 500mg twice daily\n- **Patient education**: Regular exercise importance discussed\n- **Status**: Active management with positive outcomes\n\nThe comprehensive plan includes blood sugar monitoring, diet modifications, and medication adherence protocols.',
-    };
-  }
-
-  if (lowerQuery.includes('blood pressure') || lowerQuery.includes('hypertension') || lowerQuery.includes('bp')) {
-    return {
-      short_answer: 'The patient has an active hypertension control plan with recent BP reading of 128/82 mmHg.',
-      detailed_summary: 'The patient is under a **Hypertension Control Plan** (Care Plan ID: cp_002) with target BP of 120/80 mmHg:\n\n- **Recent BP Reading**: 128/82 mmHg (recorded March 20, 2024)\n- **Medication**: Lisinopril 10mg once daily\n- **Lifestyle modifications**: DASH diet recommended, salt intake reduction discussed\n- **Follow-up**: Scheduled in 2 weeks\n- **Provider**: Dr. Sarah Johnson\n\nNurse Practitioner Mary Williams conducted the most recent follow-up and confirmed patient understanding of dietary recommendations.',
-    };
-  }
-
-  // Default response for general queries
-  return {
-    short_answer: 'The patient has active care plans for diabetes and hypertension management, currently taking three medications with recent improvements noted.',
-    detailed_summary: `Based on the available patient records:\n\n**Active Care Plans:**\n- Diabetes Management Plan (Dr. Sarah Johnson)\n- Hypertension Control Plan (Dr. Sarah Johnson)\n\n**Current Medications:**\n- Metformin 500mg (twice daily)\n- Lisinopril 10mg (once daily)\n- Atorvastatin 20mg (once daily)\n\n**Recent Progress:**\n- A1C improved from 8.2% to 7.1%\n- Blood pressure: 128/82 mmHg\n- Good medication adherence reported\n- Regular follow-ups scheduled\n\nFor more specific information about "${query}", please ask about medications, diabetes management, or blood pressure control.`,
-  };
+  return generateComprehensiveResponse(query, DEMO_PATIENT_DATA);
 }
 
 /**
