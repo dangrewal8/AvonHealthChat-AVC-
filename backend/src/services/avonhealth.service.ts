@@ -7,6 +7,7 @@ import axios, { AxiosInstance } from 'axios';
 import type {
   AvonHealthCredentials,
   AvonHealthTokenResponse,
+  AvonHealthJWTResponse,
   CarePlan,
   Medication,
   ClinicalNote,
@@ -17,6 +18,8 @@ export class AvonHealthService {
   private credentials: AvonHealthCredentials;
   private accessToken: string | null = null;
   private tokenExpiry: number = 0;
+  private jwtToken: string | null = null;
+  private jwtExpiry: number = 0;
 
   constructor(credentials: AvonHealthCredentials) {
     this.credentials = credentials;
@@ -40,7 +43,7 @@ export class AvonHealthService {
 
     try {
       const response = await this.client.post<AvonHealthTokenResponse>(
-        '/oauth2/token',
+        '/v2/auth/token',
         {
           grant_type: 'client_credentials',
           client_id: this.credentials.client_id,
@@ -60,21 +63,59 @@ export class AvonHealthService {
   }
 
   /**
-   * Make authenticated request to Avon Health API
+   * Get JWT token for user-specific requests (with caching)
+   */
+  private async getJWTToken(): Promise<string> {
+    // Return cached JWT if still valid
+    if (this.jwtToken && Date.now() < this.jwtExpiry) {
+      return this.jwtToken;
+    }
+
+    try {
+      // First get the bearer token
+      const bearerToken = await this.getAccessToken();
+
+      // Then use it to get the JWT token
+      const response = await this.client.post<AvonHealthJWTResponse>(
+        '/v2/auth/get-jwt',
+        {
+          id: this.credentials.user_id,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+          },
+        }
+      );
+
+      this.jwtToken = response.data.jwt;
+      // JWT tokens typically last 24 hours, set expiry to 90% of that
+      this.jwtExpiry = Date.now() + (86400 * 1000 * 0.9);
+
+      console.log('✅ JWT token obtained successfully');
+      return this.jwtToken;
+    } catch (error: any) {
+      console.error('JWT token error:', error.message);
+      throw new Error(`Failed to get JWT token: ${error.message}`);
+    }
+  }
+
+  /**
+   * Make authenticated request to Avon Health API using JWT token
    */
   private async authenticatedRequest<T>(
     method: 'get' | 'post',
     endpoint: string,
     data?: any
   ): Promise<T> {
-    const token = await this.getAccessToken();
+    const jwtToken = await this.getJWTToken();
 
     try {
       const response = await this.client.request<T>({
         method,
         url: endpoint,
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${jwtToken}`,
         },
         data,
       });

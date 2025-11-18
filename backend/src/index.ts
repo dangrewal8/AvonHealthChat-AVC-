@@ -30,6 +30,7 @@ const config: AppConfig = {
     client_id: process.env.AVON_CLIENT_ID || '',
     client_secret: process.env.AVON_CLIENT_SECRET || '',
     base_url: process.env.AVON_BASE_URL || 'https://demo-api.avonhealth.com',
+    user_id: process.env.AVON_USER_ID || '',
   },
   ollama: {
     baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
@@ -146,9 +147,9 @@ async function initializeApp() {
   console.log('🏥 Connecting to Avon Health API...');
   avonHealthService = new AvonHealthService(config.avonHealth);
 
-  if (!config.avonHealth.client_id || !config.avonHealth.client_secret) {
+  if (!config.avonHealth.client_id || !config.avonHealth.client_secret || !config.avonHealth.user_id) {
     console.warn('⚠️  WARNING: Avon Health API credentials not configured');
-    console.warn('   Set AVON_CLIENT_ID and AVON_CLIENT_SECRET in .env');
+    console.warn('   Set AVON_CLIENT_ID, AVON_CLIENT_SECRET, and AVON_USER_ID in .env');
   } else {
     const avonHealthy = await avonHealthService.healthCheck();
     if (avonHealthy) {
