@@ -7,8 +7,6 @@ import axios, { AxiosInstance } from 'axios';
 import type {
   AvonHealthCredentials,
   AvonHealthTokenResponse,
-  AvonHealthJWTRequest,
-  AvonHealthJWTResponse,
   CarePlan,
   Medication,
   ClinicalNote,
@@ -19,8 +17,6 @@ export class AvonHealthService {
   private credentials: AvonHealthCredentials;
   private accessToken: string | null = null;
   private tokenExpiry: number = 0;
-  private jwtToken: string | null = null;
-  private jwtExpiry: number = 0;
 
   constructor(credentials: AvonHealthCredentials) {
     this.credentials = credentials;
@@ -34,7 +30,8 @@ export class AvonHealthService {
   }
 
   /**
-   * Step 1: Get OAuth2 Bearer Token (with caching)
+   * Get OAuth2 Bearer Token (with caching)
+   * Uses client credentials flow to obtain access token
    */
   private async getAccessToken(): Promise<string> {
     // Return cached token if still valid
@@ -43,9 +40,9 @@ export class AvonHealthService {
     }
 
     try {
-      console.log('🔐 Step 1: Obtaining OAuth2 bearer token...');
+      console.log('🔐 Obtaining OAuth2 access token...');
       const response = await this.client.post<AvonHealthTokenResponse>(
-        '/oauth2/token',
+        '/v2/auth/token',
         {
           grant_type: 'client_credentials',
           client_id: this.credentials.client_id,
@@ -57,7 +54,8 @@ export class AvonHealthService {
       // Set expiry to 90% of actual expiry to allow for refresh time
       this.tokenExpiry = Date.now() + (response.data.expires_in * 1000 * 0.9);
 
-      console.log('✅ Bearer token obtained successfully');
+      console.log('✅ Access token obtained successfully');
+      console.log(`   Expires in: ${response.data.expires_in} seconds (~${Math.round(response.data.expires_in / 3600)} hours)`);
       return this.accessToken;
     } catch (error: any) {
       console.error('❌ OAuth2 token error:', error.response?.data || error.message);
@@ -66,60 +64,15 @@ export class AvonHealthService {
   }
 
   /**
-   * Step 2: Exchange Bearer Token for JWT Token (with caching)
-   */
-  private async getJWTToken(): Promise<string> {
-    // Return cached JWT if still valid
-    if (this.jwtToken && Date.now() < this.jwtExpiry) {
-      return this.jwtToken;
-    }
-
-    try {
-      // First ensure we have a valid bearer token
-      const bearerToken = await this.getAccessToken();
-
-      console.log('🔐 Step 2: Exchanging bearer token for JWT token...');
-      console.log(`   Account: ${this.credentials.account}`);
-      console.log(`   User ID: ${this.credentials.user_id}`);
-
-      const jwtRequest: AvonHealthJWTRequest = {
-        account: this.credentials.account,
-        user_id: this.credentials.user_id,
-      };
-
-      const response = await this.client.post<AvonHealthJWTResponse>(
-        '/v2/auth/jwt',
-        jwtRequest,
-        {
-          headers: {
-            Authorization: `Bearer ${bearerToken}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      this.jwtToken = response.data.jwt_token;
-      // Set expiry to 90% of actual expiry to allow for refresh time
-      this.jwtExpiry = Date.now() + (response.data.expires_in * 1000 * 0.9);
-
-      console.log('✅ JWT token obtained successfully');
-      return this.jwtToken;
-    } catch (error: any) {
-      console.error('❌ JWT token error:', error.response?.data || error.message);
-      throw new Error(`Failed to obtain JWT token: ${error.message}`);
-    }
-  }
-
-  /**
-   * Make authenticated request to Avon Health API using JWT token
+   * Make authenticated request to Avon Health API using bearer token
    */
   private async authenticatedRequest<T>(
     method: 'get' | 'post',
     endpoint: string,
     data?: any
   ): Promise<T> {
-    // Use JWT token for EMR endpoints (requires two-step auth)
-    const jwtToken = await this.getJWTToken();
+    // Get bearer token from /v2/auth/token
+    const token = await this.getAccessToken();
 
     try {
       console.log(`📡 Making ${method.toUpperCase()} request to ${endpoint}`);
@@ -127,7 +80,7 @@ export class AvonHealthService {
         method,
         url: endpoint,
         headers: {
-          Authorization: `Bearer ${jwtToken}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         data,
@@ -220,22 +173,19 @@ export class AvonHealthService {
   }
 
   /**
-   * Health check - tests full authentication flow
+   * Health check - tests authentication
    */
   async healthCheck(): Promise<boolean> {
     try {
       console.log('🏥 Testing Avon Health API authentication...');
 
-      // Test Step 1: Get bearer token
+      // Test: Get bearer token from /v2/auth/token
       await this.getAccessToken();
 
-      // Test Step 2: Get JWT token
-      await this.getJWTToken();
-
-      console.log('✅ Full authentication flow successful');
+      console.log('✅ Authentication successful');
       return true;
     } catch (error: any) {
-      console.error('❌ Authentication flow failed:', error.message);
+      console.error('❌ Authentication failed:', error.message);
       return false;
     }
   }

@@ -151,16 +151,13 @@ async function initializeApp() {
   if (!config.avonHealth.client_id || !config.avonHealth.client_secret) {
     console.warn('⚠️  WARNING: Avon Health API credentials not configured');
     console.warn('   Set AVON_CLIENT_ID and AVON_CLIENT_SECRET in .env');
-  } else if (!config.avonHealth.account || !config.avonHealth.user_id) {
-    console.warn('⚠️  WARNING: Avon Health API account details not configured');
-    console.warn('   Set AVON_ACCOUNT and AVON_USER_ID in .env');
   } else {
     const avonHealthy = await avonHealthService.healthCheck();
     if (avonHealthy) {
-      console.log('✅ Avon Health API connected successfully (OAuth2 + JWT)');
+      console.log('✅ Avon Health API connected successfully (OAuth2 client credentials)');
     } else {
       console.warn('⚠️  WARNING: Avon Health API authentication failed');
-      console.warn('   Check AVON_ACCOUNT and AVON_USER_ID are correct');
+      console.warn('   Check AVON_CLIENT_ID and AVON_CLIENT_SECRET are correct');
     }
   }
 
