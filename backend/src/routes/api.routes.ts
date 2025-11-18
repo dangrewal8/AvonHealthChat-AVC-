@@ -152,8 +152,8 @@ function generateFallbackShortAnswer(
     if (medications && medications.length > 0) {
       // Try to find specific medication mentioned
       const recentMed = medications[0];
-      if (recentMed.prescribed_date) {
-        return `Most recent prescription: ${recentMed.name} was prescribed on ${formatDate(recentMed.prescribed_date)}.`;
+      if (recentMed.start_date) {
+        return `Most recent prescription: ${recentMed.name} was started on ${formatDate(recentMed.start_date)}.`;
       }
     }
   }
@@ -161,9 +161,9 @@ function generateFallbackShortAnswer(
   // "Who prescribed [medication]?" or "Which doctor prescribed?"
   if ((queryLower.includes('who prescribed') || queryLower.includes('which doctor') ||
        queryLower.includes('what doctor')) && medications) {
-    const prescribers = [...new Set(medications.map((m: any) => m.prescriber).filter(Boolean))];
+    const prescribers = [...new Set(medications.map((m: any) => m.created_by).filter(Boolean))];
     if (prescribers.length > 0) {
-      return `Prescribers for this patient's medications: ${prescribers.join(', ')}.`;
+      return `Providers who prescribed this patient's medications: ${prescribers.join(', ')}.`;
     }
     return 'Prescriber information not available in records.';
   }
@@ -213,7 +213,7 @@ function generateFallbackShortAnswer(
           cp.name?.toLowerCase().includes(potentialCondition.toLowerCase())
         );
         if (matchingPlan) {
-          return `Yes, there is ${matchingPlan.status === 'active' ? 'an active' : 'a'} care plan for ${matchingPlan.title}.`;
+          return `Yes, there is a care plan for ${matchingPlan.name}.`;
         }
         return `No care plan found specifically for "${potentialCondition}". The patient has ${care_plans.length} total care plan${care_plans.length !== 1 ? 's' : ''}.`;
       }
@@ -248,8 +248,25 @@ function generateFallbackShortAnswer(
     if (notes && notes.length > 0) {
       const recentNote = notes[0];
       const noteDate = recentNote.created_at ? formatDate(recentNote.created_at) : 'unknown date';
-      const noteContent = recentNote.content ? recentNote.content.substring(0, 150) : 'No content available';
-      return `Most recent note (${noteDate}): "${noteContent}${recentNote.content?.length > 150 ? '...' : ''}"`;
+
+      // Extract content from note sections (API doesn't have simple 'content' field)
+      let noteContent = 'No content available';
+      if (recentNote.sections && Array.isArray(recentNote.sections)) {
+        const parts: string[] = [];
+        recentNote.sections.forEach((section: any) => {
+          if (section.answers && Array.isArray(section.answers)) {
+            section.answers.forEach((answer: any) => {
+              if (answer.value) parts.push(String(answer.value));
+              else if (answer.text) parts.push(answer.text);
+            });
+          }
+        });
+        if (parts.length > 0) {
+          noteContent = parts.join(' ').substring(0, 150);
+        }
+      }
+
+      return `Most recent note (${noteDate}): "${noteContent}${noteContent.length >= 150 ? '...' : ''}"`;
     }
     return 'No clinical notes found.';
   }
@@ -260,7 +277,7 @@ function generateFallbackShortAnswer(
     if (notes && notes.length > 0) {
       const recentNote = notes[0];
       const noteDate = recentNote.created_at ? formatDate(recentNote.created_at) : 'unknown date';
-      return `Most recent visit note is from ${noteDate} by ${recentNote.author || 'unknown provider'}.`;
+      return `Most recent visit note is from ${noteDate} by ${recentNote.created_by || 'unknown provider'}.`;
     }
     return 'No visit notes found in patient records.';
   }
