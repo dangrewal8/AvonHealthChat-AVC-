@@ -77,11 +77,12 @@ function generateFallbackShortAnswer(
   /**
    * Detect if this is a multi-part question
    * Returns array of question parts if detected, null otherwise
+   * ENHANCED: Now detects ANY combination of questions
    */
   const detectMultiPartQuestion = (q: string): string[] | null => {
     const lower = q.toLowerCase();
 
-    // Pattern 1: "what are X and Y" or "what is X and Y"
+    // Pattern 1: "what are X and Y" or "what is X and Y" - List style
     const listPattern = /^what (?:is|are) (?:the )?(?:patient'?s? )?(.+)$/i;
     const listMatch = lower.match(listPattern);
     if (listMatch) {
@@ -92,7 +93,7 @@ function generateFallbackShortAnswer(
         const parts = itemsList
           .split(/,| and /)
           .map(p => p.trim())
-          .filter(p => p.length > 0 && !['the', 'their', 'a'].includes(p));
+          .filter(p => p.length > 0 && !['the', 'their', 'a', ''].includes(p));
 
         if (parts.length >= 2) {
           // Reconstruct as individual questions
@@ -101,8 +102,8 @@ function generateFallbackShortAnswer(
       }
     }
 
-    // Pattern 2: "show me X and Y" or "tell me X and Y"
-    const showPattern = /^(?:show|tell|give) (?:me )?(?:the )?(?:patient'?s? )?(.+)$/i;
+    // Pattern 2: "show me X and Y" or "tell me X and Y" - Command style
+    const showPattern = /^(?:show|tell|give|provide) (?:me )?(?:the )?(?:patient'?s? )?(.+)$/i;
     const showMatch = lower.match(showPattern);
     if (showMatch) {
       const itemsList = showMatch[1];
@@ -118,30 +119,79 @@ function generateFallbackShortAnswer(
       }
     }
 
-    // Pattern 3: Two distinct questions joined by "and"
+    // Pattern 3: Multiple questions joined by "and" - Generic detection
     // "What medications is the patient taking and what are their allergies?"
+    // Enhanced to handle 2+ questions
     if (lower.includes(' and ')) {
+      // Split by " and " but be smart about it
       const parts = lower.split(/ and /);
-      if (parts.length === 2) {
-        // Check if both parts are questions (contain question words)
-        const questionWords = ['what', 'when', 'who', 'where', 'how', 'is', 'are', 'does'];
-        const bothAreQuestions = parts.every(part =>
-          questionWords.some(qw => part.trim().startsWith(qw))
-        );
 
-        if (bothAreQuestions) {
-          return parts.map(p => p.trim());
+      // Check if we have multiple question-like parts
+      const questionWords = ['what', 'when', 'who', 'where', 'how', 'why', 'is', 'are', 'does', 'do', 'did', 'can', 'could', 'would', 'should'];
+
+      // Count how many parts start with question words
+      const questionParts = parts.filter(part =>
+        questionWords.some(qw => part.trim().startsWith(qw))
+      );
+
+      // If we have 2+ question parts, treat as multi-part
+      if (questionParts.length >= 2) {
+        return questionParts.map(p => p.trim());
+      }
+
+      // Alternative: Check if parts contain multiple question marks or question indicators
+      const hasMultipleQuestions = parts.filter(part => {
+        const trimmed = part.trim();
+        // A part is a question if it starts with question word OR contains question indicators
+        return questionWords.some(qw => trimmed.startsWith(qw)) ||
+               trimmed.includes('?') ||
+               /(?:patient|medication|allerg|vital|blood|temperature|condition)/i.test(trimmed);
+      });
+
+      if (hasMultipleQuestions.length >= 2) {
+        return hasMultipleQuestions.map(p => p.trim());
+      }
+    }
+
+    // Pattern 4: Comma-separated questions (handles "X, Y, and Z")
+    if (lower.includes(',')) {
+      // Check for pattern like "what is X, Y, and Z"
+      const commaListPattern = /^(?:what|show|tell|give|provide).+,/i;
+      if (commaListPattern.test(lower)) {
+        // Extract items after the question word
+        const match = lower.match(/^(?:what (?:is|are)|show me|tell me|give me|provide) (?:the )?(?:patient'?s? )?(.+)$/i);
+        if (match) {
+          const itemsList = match[1];
+          const parts = itemsList
+            .split(/,\s*(?:and\s+)?|\s+and\s+/)
+            .map(p => p.trim())
+            .filter(p => p.length > 0);
+
+          if (parts.length >= 2) {
+            return parts.map(part => `what is the patient's ${part}`);
+          }
         }
       }
     }
 
-    // Pattern 4: "current X and past X" - temporal comparisons
+    // Pattern 5: "current X and past X" - temporal comparisons
     const temporalPattern = /(?:current|active|present).+(?:and|,).+(?:past|previous|historical|inactive)/i;
     if (temporalPattern.test(lower)) {
       // Handle as multi-part
       const parts = lower.split(/ and |, /);
       if (parts.length >= 2) {
         return parts.map(p => p.trim());
+      }
+    }
+
+    // Pattern 6: Semicolon-separated questions
+    if (lower.includes(';')) {
+      const parts = lower.split(/;/)
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+
+      if (parts.length >= 2) {
+        return parts;
       }
     }
 
@@ -518,6 +568,94 @@ function generateFallbackShortAnswer(
       }
     }
     return 'Patient gender information is not available.';
+  }
+
+  // SECURITY: SSN REQUEST DENIAL
+  // "What is the patient's SSN?" or "What is the social security number?"
+  if (queryLower.includes('ssn') || queryLower.includes('social security') ||
+      queryLower.match(/\bsocial\s+security\s+number/i)) {
+    return '🔒 For security and privacy reasons, Social Security Numbers cannot be displayed through this system. Please access the patient record directly through the secure EMR system for sensitive information.';
+  }
+
+  // "What is the patient's address?" or "Where does the patient live?"
+  if ((queryLower.includes('address') || queryLower.includes('where') && (queryLower.includes('live') || queryLower.includes('from'))) &&
+      queryLower.includes('patient')) {
+
+    if (patient && patient.addresses && patient.addresses.length > 0) {
+      const primaryAddress = patient.addresses[0];
+      const parts = [];
+      if (primaryAddress.street) parts.push(primaryAddress.street);
+      if (primaryAddress.street_line_2) parts.push(primaryAddress.street_line_2);
+      if (primaryAddress.city) parts.push(primaryAddress.city);
+      if (primaryAddress.state) parts.push(primaryAddress.state);
+      if (primaryAddress.postal_code) parts.push(primaryAddress.postal_code);
+
+      if (parts.length > 0) {
+        return `Patient address: ${parts.join(', ')}.`;
+      }
+    }
+    return 'Patient address information is not available.';
+  }
+
+  // "What is the patient's MRN?" or "What is the medical record number?"
+  if ((queryLower.includes('mrn') || queryLower.includes('medical record number') ||
+       queryLower.includes('record number')) && queryLower.includes('patient')) {
+
+    if (patient && patient.mrn) {
+      return `Patient MRN (Medical Record Number): ${patient.mrn}.`;
+    }
+    return 'Patient MRN is not available.';
+  }
+
+  // "What is the patient's race?" or "What is the patient's ethnicity?"
+  if ((queryLower.includes('race') || queryLower.includes('ethnicity')) && queryLower.includes('patient')) {
+
+    if (patient) {
+      const demographicInfo = [];
+      if (patient.race) demographicInfo.push(`Race: ${patient.race}`);
+      if (patient.ethnicity) demographicInfo.push(`Ethnicity: ${patient.ethnicity}`);
+
+      if (demographicInfo.length > 0) {
+        return demographicInfo.join(', ') + '.';
+      }
+    }
+    return 'Patient race/ethnicity information is not available.';
+  }
+
+  // "What language does the patient speak?" or "What is the patient's preferred language?"
+  if ((queryLower.includes('language') || queryLower.includes('speak')) && queryLower.includes('patient')) {
+
+    if (patient && patient.preferred_language) {
+      return `Patient's preferred language: ${patient.preferred_language}.`;
+    }
+    return 'Patient preferred language information is not available.';
+  }
+
+  // "Who is the patient's emergency contact?" or "What is the emergency contact?"
+  if (queryLower.includes('emergency contact') ||
+      (queryLower.includes('emergency') && queryLower.includes('contact'))) {
+
+    if (patient && patient.emergency_contacts && patient.emergency_contacts.length > 0) {
+      const contact = patient.emergency_contacts[0];
+      const parts = [];
+      if (contact.name) parts.push(`Name: ${contact.name}`);
+      if (contact.relationship) parts.push(`Relationship: ${contact.relationship}`);
+      if (contact.phone) parts.push(`Phone: ${contact.phone}`);
+
+      if (parts.length > 0) {
+        return `Emergency contact: ${parts.join(', ')}.`;
+      }
+    }
+    return 'Emergency contact information is not available.';
+  }
+
+  // "What is the patient's timezone?"
+  if (queryLower.includes('timezone') || queryLower.includes('time zone')) {
+
+    if (patient && patient.timezone) {
+      return `Patient timezone: ${patient.timezone}.`;
+    }
+    return 'Patient timezone information is not available.';
   }
 
   // INFERENCE & MEDICAL KNOWLEDGE QUESTIONS
@@ -899,6 +1037,7 @@ function generateFallbackShortAnswer(
 /**
  * Generate detailed summary from structured data (fallback when Ollama unavailable)
  * Enhanced with comprehensive formatting and organization
+ * NOW SUPPORTS: Multi-part questions with combined detailed summaries
  */
 function generateFallbackDetailedSummary(
   query: string,
@@ -908,6 +1047,102 @@ function generateFallbackDetailedSummary(
   const { care_plans, medications, notes } = data;
   const queryLower = query.toLowerCase();
   let summary = '';
+
+  // MULTI-PART QUESTION SUPPORT FOR DETAILED SUMMARIES
+  // Detect if this is a multi-part question and generate combined detailed summary
+  const detectMultiPartForSummary = (q: string): boolean => {
+    return q.includes(' and ') || q.includes(',') || q.includes(';');
+  };
+
+  if (detectMultiPartForSummary(query)) {
+    // For multi-part questions, provide detailed summary for each part
+    console.log(`   📋 Generating detailed summary for multi-part question`);
+
+    // Use a more comprehensive approach for detailed summaries
+    const summaryParts: string[] = [];
+
+    // Check what types of data are requested
+    const includesMeds = queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription');
+    const includesCarePlans = queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis');
+    const includesNotes = queryLower.includes('note') || queryLower.includes('visit') || queryLower.includes('history');
+
+    // Add relevant sections based on what's in the query
+    if (includesMeds && medications && medications.length > 0) {
+      summaryParts.push('=== MEDICATIONS ===\n' + formatMedicationsSummary(medications));
+    }
+    if (includesCarePlans && care_plans && care_plans.length > 0) {
+      summaryParts.push('=== CARE PLANS ===\n' + formatCarePlansSummary(care_plans));
+    }
+    if (includesNotes && notes && notes.length > 0) {
+      summaryParts.push('=== CLINICAL NOTES ===\n' + formatNotesSummary(notes));
+    }
+
+    // If no specific types detected, provide comprehensive overview
+    if (summaryParts.length === 0) {
+      summaryParts.push('=== COMPREHENSIVE PATIENT SUMMARY ===');
+      if (medications && medications.length > 0) {
+        summaryParts.push('\nMEDICATIONS:\n' + formatMedicationsSummary(medications));
+      }
+      if (care_plans && care_plans.length > 0) {
+        summaryParts.push('\nCARE PLANS:\n' + formatCarePlansSummary(care_plans));
+      }
+      if (notes && notes.length > 0) {
+        summaryParts.push('\nCLINICAL NOTES:\n' + formatNotesSummary(notes));
+      }
+    }
+
+    return summaryParts.join('\n\n');
+  }
+
+  // Helper functions for formatting different data types
+  function formatMedicationsSummary(meds: any[]): string {
+    const activeMeds = meds.filter((m: any) => m.active === true);
+    const inactiveMeds = meds.filter((m: any) => m.active === false);
+
+    let output = '';
+    if (activeMeds.length > 0) {
+      output += `Active Medications (${activeMeds.length}):\n`;
+      activeMeds.slice(0, 10).forEach((med: any, idx: number) => {
+        output += `${idx + 1}. ${med.name}`;
+        if (med.strength) output += ` - ${med.strength}`;
+        if (med.sig) output += `\n   Instructions: ${med.sig}`;
+        if (med.start_date) output += `\n   Started: ${new Date(med.start_date).toLocaleDateString()}`;
+        output += '\n';
+      });
+    }
+    if (inactiveMeds.length > 0 && activeMeds.length < 5) {
+      output += `\nInactive Medications (${inactiveMeds.length}):\n`;
+      inactiveMeds.slice(0, 5).forEach((med: any, idx: number) => {
+        output += `${idx + 1}. ${med.name}`;
+        if (med.end_date) output += ` (discontinued ${new Date(med.end_date).toLocaleDateString()})`;
+        output += '\n';
+      });
+    }
+    return output;
+  }
+
+  function formatCarePlansSummary(plans: any[]): string {
+    let output = `Total Care Plans: ${plans.length}\n\n`;
+    plans.slice(0, 5).forEach((cp: any, idx: number) => {
+      output += `${idx + 1}. ${cp.name}\n`;
+      if (cp.description) output += `   ${cp.description.substring(0, 150)}...\n`;
+      if (cp.created_at) output += `   Created: ${new Date(cp.created_at).toLocaleDateString()}\n`;
+      output += '\n';
+    });
+    return output;
+  }
+
+  function formatNotesSummary(notesList: any[]): string {
+    let output = `Total Clinical Notes: ${notesList.length}\n\n`;
+    notesList.slice(0, 5).forEach((note: any, idx: number) => {
+      output += `${idx + 1}. ${note.name || 'Clinical Note'}`;
+      if (note.created_at) output += ` - ${new Date(note.created_at).toLocaleDateString()}`;
+      output += '\n';
+      if (note.created_by) output += `   Provider: ${note.created_by}\n`;
+      output += '\n';
+    });
+    return output;
+  }
 
   // Helper: Format date nicely
   const formatDate = (dateStr: string): string => {
