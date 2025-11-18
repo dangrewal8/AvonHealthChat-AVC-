@@ -12,7 +12,7 @@ import type {
 } from '../types';
 import { OllamaService } from '../services/ollama.service';
 import { AvonHealthService } from '../services/avonhealth.service';
-import { detectIntent } from './enhanced-query-understanding';
+import { analyzeQuery } from './enhanced-query-understanding';
 
 const router = Router();
 
@@ -48,13 +48,39 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    console.log(`Processing query for patient ${patient_id}: "${query}"`);
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`📝 Processing query for patient ${patient_id}:`);
+    console.log(`   Query: "${query}"`);
 
-    // Use enhanced NLP to understand query intent (for better context building)
-    const queryIntent = detectIntent(query);
-    console.log(`Query intent detected: ${queryIntent.primary} (confidence: ${queryIntent.confidence.toFixed(0)}%)`);
+    // Use enhanced NLP for comprehensive query analysis
+    const queryAnalysis = analyzeQuery(query);
+    const queryIntent = queryAnalysis.intent;
+
+    console.log(`\n🧠 Query Analysis:`);
+    console.log(`   Intent: ${queryIntent.primary} (${queryIntent.confidence.toFixed(0)}% confidence)`);
+    console.log(`   Question Type: ${queryIntent.questionType}`);
+    console.log(`   Complexity: ${queryAnalysis.complexity.level} (score: ${queryAnalysis.complexity.score})`);
+    if (queryAnalysis.complexity.reasons.length > 0) {
+      console.log(`   Reasons: ${queryAnalysis.complexity.reasons.join(', ')}`);
+    }
+    if (queryAnalysis.entities.medications.length > 0) {
+      console.log(`   Mentioned Medications: ${queryAnalysis.entities.medications.join(', ')}`);
+    }
+    if (queryAnalysis.entities.conditions.length > 0) {
+      console.log(`   Mentioned Conditions: ${queryAnalysis.entities.conditions.join(', ')}`);
+    }
+    if (queryAnalysis.isMultiPart) {
+      console.log(`   ⚠️  Multi-part question detected`);
+    }
+    if (queryAnalysis.isFollowUp) {
+      console.log(`   ℹ️  Follow-up question detected`);
+    }
+    if (queryAnalysis.suggestions.length > 0) {
+      console.log(`   Suggestions: ${queryAnalysis.suggestions.join('; ')}`);
+    }
 
     // 1. Fetch REAL patient data from Avon Health API
+    console.log(`\n📡 Fetching patient data from Avon Health API...`);
     let patientData;
     try {
       patientData = await avonHealthService.getAllPatientData(patient_id);

@@ -459,3 +459,190 @@ export function isMultiPartQuestion(query: string): boolean {
 export function splitMultiPartQuestion(query: string): string[] {
   return query.split(/\s+(?:and|&|\+)\s+/i).map((q) => q.trim());
 }
+
+/**
+ * Extract specific entities from the query (medication names, dates, numbers)
+ */
+export function extractEntities(query: string): {
+  medications: string[];
+  dates: string[];
+  numbers: number[];
+  conditions: string[];
+} {
+  const entities = {
+    medications: [] as string[],
+    dates: [] as string[],
+    numbers: [] as number[],
+    conditions: [] as string[],
+  };
+
+  // Common medication patterns (this is a basic implementation)
+  const medicationPatterns = [
+    /\b(metformin|lisinopril|atorvastatin|aspirin|insulin|levothyroxine|amlodipine|omeprazole|losartan|gabapentin)\b/gi,
+  ];
+
+  for (const pattern of medicationPatterns) {
+    const matches = query.match(pattern);
+    if (matches) {
+      entities.medications.push(...matches.map((m) => m.toLowerCase()));
+    }
+  }
+
+  // Extract dates (basic patterns)
+  const datePatterns = [
+    /\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g, // MM/DD/YYYY or MM/DD/YY
+    /\b\d{4}-\d{2}-\d{2}\b/g, // YYYY-MM-DD
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4}\b/gi,
+  ];
+
+  for (const pattern of datePatterns) {
+    const matches = query.match(pattern);
+    if (matches) {
+      entities.dates.push(...matches);
+    }
+  }
+
+  // Extract numbers
+  const numberPattern = /\b\d+(\.\d+)?\b/g;
+  const numberMatches = query.match(numberPattern);
+  if (numberMatches) {
+    entities.numbers = numberMatches.map(parseFloat);
+  }
+
+  // Extract common conditions
+  const conditionPatterns = [
+    /\b(diabetes|hypertension|asthma|copd|depression|anxiety|heart disease|kidney disease|cancer)\b/gi,
+  ];
+
+  for (const pattern of conditionPatterns) {
+    const matches = query.match(pattern);
+    if (matches) {
+      entities.conditions.push(...matches.map((m) => m.toLowerCase()));
+    }
+  }
+
+  return entities;
+}
+
+/**
+ * Determine question complexity
+ */
+export function getQueryComplexity(query: string): {
+  level: 'simple' | 'moderate' | 'complex';
+  score: number;
+  reasons: string[];
+} {
+  let score = 0;
+  const reasons: string[] = [];
+
+  // Check query length
+  const wordCount = query.split(/\s+/).length;
+  if (wordCount > 15) {
+    score += 2;
+    reasons.push('Long query');
+  } else if (wordCount > 8) {
+    score += 1;
+    reasons.push('Moderate length query');
+  }
+
+  // Check for multi-part questions
+  if (isMultiPartQuestion(query)) {
+    score += 2;
+    reasons.push('Multi-part question');
+  }
+
+  // Check for temporal context
+  if (hasTimeContext(query)) {
+    score += 1;
+    reasons.push('Temporal context');
+  }
+
+  // Check for trend analysis
+  if (isTrendQuestion(query)) {
+    score += 2;
+    reasons.push('Trend analysis requested');
+  }
+
+  // Check for comparison keywords
+  if (query.match(/\b(compare|versus|vs|difference|better|worse)\b/i)) {
+    score += 2;
+    reasons.push('Comparison requested');
+  }
+
+  // Check for why/how questions (require explanation)
+  if (query.match(/^(why|how)\b/i)) {
+    score += 1;
+    reasons.push('Explanation required');
+  }
+
+  // Determine level based on score
+  let level: 'simple' | 'moderate' | 'complex';
+  if (score >= 4) {
+    level = 'complex';
+  } else if (score >= 2) {
+    level = 'moderate';
+  } else {
+    level = 'simple';
+  }
+
+  return { level, score, reasons };
+}
+
+/**
+ * Detect if this is a follow-up question
+ */
+export function isFollowUpQuestion(query: string): boolean {
+  const followUpIndicators = [
+    /^(what about|how about|and)\b/i,
+    /\b(also|too|as well|additionally)\b/i,
+    /^(that|those|it|them)\b/i, // Pronoun reference
+  ];
+
+  return followUpIndicators.some((pattern) => pattern.test(query));
+}
+
+/**
+ * Enhanced intent detection with more context
+ */
+export function analyzeQuery(query: string): {
+  intent: ReturnType<typeof detectIntent>;
+  entities: ReturnType<typeof extractEntities>;
+  complexity: ReturnType<typeof getQueryComplexity>;
+  isFollowUp: boolean;
+  isMultiPart: boolean;
+  suggestions: string[];
+} {
+  const intent = detectIntent(query);
+  const entities = extractEntities(query);
+  const complexity = getQueryComplexity(query);
+  const isFollowUp = isFollowUpQuestion(query);
+  const isMultiPart = isMultiPartQuestion(query);
+
+  // Generate suggestions for improving the query or providing better context
+  const suggestions: string[] = [];
+
+  if (complexity.level === 'complex' && !entities.dates.length && hasTimeContext(query)) {
+    suggestions.push('Consider specifying a date range for more precise results');
+  }
+
+  if (intent.confidence < 50) {
+    suggestions.push('Query intent unclear - results may be broad');
+  }
+
+  if (isMultiPart) {
+    suggestions.push('Multi-part question detected - will address all parts');
+  }
+
+  if (isFollowUp && !isMultiPart) {
+    suggestions.push('Follow-up question detected - using previous context may help');
+  }
+
+  return {
+    intent,
+    entities,
+    complexity,
+    isFollowUp,
+    isMultiPart,
+    suggestions,
+  };
+}

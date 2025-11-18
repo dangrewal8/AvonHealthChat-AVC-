@@ -63,6 +63,8 @@ const config = {
         client_id: process.env.AVON_CLIENT_ID || '',
         client_secret: process.env.AVON_CLIENT_SECRET || '',
         base_url: process.env.AVON_BASE_URL || 'https://demo-api.avonhealth.com',
+        account: process.env.AVON_ACCOUNT || '',
+        user_id: process.env.AVON_USER_ID || '',
     },
     ollama: {
         baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
@@ -159,13 +161,18 @@ async function initializeApp() {
         console.warn('⚠️  WARNING: Avon Health API credentials not configured');
         console.warn('   Set AVON_CLIENT_ID and AVON_CLIENT_SECRET in .env');
     }
+    else if (!config.avonHealth.account || !config.avonHealth.user_id) {
+        console.warn('⚠️  WARNING: Avon Health API account details not configured');
+        console.warn('   Set AVON_ACCOUNT and AVON_USER_ID in .env');
+    }
     else {
         const avonHealthy = await avonHealthService.healthCheck();
         if (avonHealthy) {
-            console.log('✅ Avon Health API connected successfully');
+            console.log('✅ Avon Health API connected successfully (OAuth2 + JWT)');
         }
         else {
             console.warn('⚠️  WARNING: Avon Health API authentication failed');
+            console.warn('   Check AVON_ACCOUNT and AVON_USER_ID are correct');
         }
     }
     // Initialize route services
