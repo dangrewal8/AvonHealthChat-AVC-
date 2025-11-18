@@ -10,6 +10,15 @@ import type {
   CarePlan,
   Medication,
   ClinicalNote,
+  Patient,
+  Allergy,
+  Condition,
+  Vitals,
+  FamilyHistory,
+  Appointment,
+  Document,
+  FormResponse,
+  InsurancePolicy,
 } from '../types';
 
 export class AvonHealthService {
@@ -247,24 +256,281 @@ export class AvonHealthService {
   }
 
   /**
-   * Fetch all EMR data for a patient
+   * Fetch patient demographics
+   * CRITICAL: Returns patient name, age, gender, contact info
+   */
+  async getPatients(patientId?: string): Promise<Patient[]> {
+    console.log(`🔍 Fetching patient demographics${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
+      'get',
+      `/v2/patients`
+    );
+
+    let patients = response.data || [];
+    const totalCount = patients.length;
+
+    if (patientId) {
+      patients = patients.filter((p: any) => p.id === patientId);
+      console.log(`   ✅ Filtered to ${patients.length} patient(s) for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${patients.length} total patient(s) (NO PATIENT FILTER - returning all records)`);
+    }
+
+    return patients;
+  }
+
+  /**
+   * Fetch allergies for a patient
+   */
+  async getAllergies(patientId?: string): Promise<Allergy[]> {
+    console.log(`🔍 Fetching allergies${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
+      'get',
+      `/v2/allergies`
+    );
+
+    let allergies = response.data || [];
+    const totalCount = allergies.length;
+
+    if (patientId) {
+      allergies = allergies.filter((a: any) => a.patient === patientId);
+      console.log(`   ✅ Filtered to ${allergies.length} allergy/allergies for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${allergies.length} total allergy/allergies (NO PATIENT FILTER - returning all records)`);
+    }
+
+    return allergies;
+  }
+
+  /**
+   * Fetch conditions for a patient
+   */
+  async getConditions(patientId?: string): Promise<Condition[]> {
+    console.log(`🔍 Fetching conditions${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
+      'get',
+      `/v2/conditions`
+    );
+
+    let conditions = response.data || [];
+    const totalCount = conditions.length;
+
+    if (patientId) {
+      conditions = conditions.filter((c: any) => c.patient === patientId);
+      console.log(`   ✅ Filtered to ${conditions.length} condition(s) for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${conditions.length} total condition(s) (NO PATIENT FILTER - returning all records)`);
+    }
+
+    return conditions;
+  }
+
+  /**
+   * Fetch vitals for a patient
+   */
+  async getVitals(patientId?: string): Promise<Vitals[]> {
+    console.log(`🔍 Fetching vitals${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
+      'get',
+      `/v2/vitals`
+    );
+
+    let vitals = response.data || [];
+    const totalCount = vitals.length;
+
+    if (patientId) {
+      vitals = vitals.filter((v: any) => v.patient === patientId);
+      console.log(`   ✅ Filtered to ${vitals.length} vital(s) record(s) for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${vitals.length} total vital(s) record(s) (NO PATIENT FILTER - returning all records)`);
+    }
+
+    return vitals;
+  }
+
+  /**
+   * Fetch family history for a patient
+   */
+  async getFamilyHistory(patientId?: string): Promise<FamilyHistory[]> {
+    console.log(`🔍 Fetching family history${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
+      'get',
+      `/v2/family_histories`
+    );
+
+    let familyHistory = response.data || [];
+    const totalCount = familyHistory.length;
+
+    if (patientId) {
+      familyHistory = familyHistory.filter((fh: any) => fh.patient === patientId);
+      console.log(`   ✅ Filtered to ${familyHistory.length} family history record(s) for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${familyHistory.length} total family history record(s) (NO PATIENT FILTER - returning all records)`);
+    }
+
+    return familyHistory;
+  }
+
+  /**
+   * Fetch appointments for a patient
+   */
+  async getAppointments(patientId?: string): Promise<Appointment[]> {
+    console.log(`🔍 Fetching appointments${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
+      'get',
+      `/v2/appointments`
+    );
+
+    let appointments = response.data || [];
+    const totalCount = appointments.length;
+
+    if (patientId) {
+      appointments = appointments.filter((a: any) => a.patient === patientId || a.reference_patients?.includes(patientId));
+      console.log(`   ✅ Filtered to ${appointments.length} appointment(s) for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${appointments.length} total appointment(s) (NO PATIENT FILTER - returning all records)`);
+    }
+
+    return appointments;
+  }
+
+  /**
+   * Fetch documents for a patient
+   */
+  async getDocuments(patientId?: string): Promise<Document[]> {
+    console.log(`🔍 Fetching documents${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
+      'get',
+      `/v2/documents`
+    );
+
+    let documents = response.data || [];
+    const totalCount = documents.length;
+
+    if (patientId) {
+      documents = documents.filter((d: any) => d.patient === patientId);
+      console.log(`   ✅ Filtered to ${documents.length} document(s) for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${documents.length} total document(s) (NO PATIENT FILTER - returning all records)`);
+    }
+
+    return documents;
+  }
+
+  /**
+   * Fetch form responses for a patient
+   */
+  async getFormResponses(patientId?: string): Promise<FormResponse[]> {
+    console.log(`🔍 Fetching form responses${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
+      'get',
+      `/v2/form_responses`
+    );
+
+    let formResponses = response.data || [];
+    const totalCount = formResponses.length;
+
+    if (patientId) {
+      formResponses = formResponses.filter((fr: any) => fr.patient === patientId);
+      console.log(`   ✅ Filtered to ${formResponses.length} form response(s) for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${formResponses.length} total form response(s) (NO PATIENT FILTER - returning all records)`);
+    }
+
+    return formResponses;
+  }
+
+  /**
+   * Fetch insurance policies for a patient
+   */
+  async getInsurancePolicies(patientId?: string): Promise<InsurancePolicy[]> {
+    console.log(`🔍 Fetching insurance policies${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
+      'get',
+      `/v2/insurance_policies`
+    );
+
+    let insurancePolicies = response.data || [];
+    const totalCount = insurancePolicies.length;
+
+    if (patientId) {
+      insurancePolicies = insurancePolicies.filter((ip: any) => ip.patient === patientId);
+      console.log(`   ✅ Filtered to ${insurancePolicies.length} insurance policy/policies for patient ${patientId} (from ${totalCount} total)`);
+    } else {
+      console.log(`   ⚠️  Found ${insurancePolicies.length} total insurance policy/policies (NO PATIENT FILTER - returning all records)`);
+    }
+
+    return insurancePolicies;
+  }
+
+  /**
+   * Fetch all EMR data for a patient - COMPREHENSIVE
    */
   async getAllPatientData(patientId: string): Promise<{
+    patient: Patient | null;
     care_plans: CarePlan[];
     medications: Medication[];
     notes: ClinicalNote[];
+    allergies: Allergy[];
+    conditions: Condition[];
+    vitals: Vitals[];
+    family_history: FamilyHistory[];
+    appointments: Appointment[];
+    documents: Document[];
+    form_responses: FormResponse[];
+    insurance_policies: InsurancePolicy[];
   }> {
     try {
-      const [carePlans, medications, notes] = await Promise.all([
+      const [
+        patients,
+        carePlans,
+        medications,
+        notes,
+        allergies,
+        conditions,
+        vitals,
+        familyHistory,
+        appointments,
+        documents,
+        formResponses,
+        insurancePolicies,
+      ] = await Promise.all([
+        this.getPatients(patientId),
         this.getCarePlans(patientId),
         this.getMedications(patientId),
         this.getNotes(patientId),
+        this.getAllergies(patientId),
+        this.getConditions(patientId),
+        this.getVitals(patientId),
+        this.getFamilyHistory(patientId),
+        this.getAppointments(patientId),
+        this.getDocuments(patientId),
+        this.getFormResponses(patientId),
+        this.getInsurancePolicies(patientId),
       ]);
 
       return {
+        patient: patients.length > 0 ? patients[0] : null,
         care_plans: carePlans,
         medications: medications,
         notes: notes,
+        allergies: allergies,
+        conditions: conditions,
+        vitals: vitals,
+        family_history: familyHistory,
+        appointments: appointments,
+        documents: documents,
+        form_responses: formResponses,
+        insurance_policies: insurancePolicies,
       };
     } catch (error: any) {
       console.error('Failed to fetch patient data:', error.message);
