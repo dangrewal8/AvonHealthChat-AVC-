@@ -7,7 +7,6 @@ import axios, { AxiosInstance } from 'axios';
 import type {
   AvonHealthCredentials,
   AvonHealthTokenResponse,
-  AvonHealthJWTResponse,
   CarePlan,
   Medication,
   ClinicalNote,
@@ -33,7 +32,8 @@ export class AvonHealthService {
   }
 
   /**
-   * Get OAuth2 access token (with caching)
+   * Get OAuth2 Bearer Token (with caching)
+   * Uses client credentials flow to obtain access token
    */
   private async getAccessToken(): Promise<string> {
     // Return cached token if still valid
@@ -42,6 +42,7 @@ export class AvonHealthService {
     }
 
     try {
+      console.log('🔐 Obtaining OAuth2 access token...');
       const response = await this.client.post<AvonHealthTokenResponse>(
         '/v2/auth/token',
         {
@@ -55,15 +56,18 @@ export class AvonHealthService {
       // Set expiry to 90% of actual expiry to allow for refresh time
       this.tokenExpiry = Date.now() + (response.data.expires_in * 1000 * 0.9);
 
+      console.log('✅ Access token obtained successfully');
+      console.log(`   Expires in: ${response.data.expires_in} seconds (~${Math.round(response.data.expires_in / 3600)} hours)`);
       return this.accessToken;
     } catch (error: any) {
-      console.error('OAuth2 token error:', error.message);
+      console.error('❌ OAuth2 token error:', error.response?.data || error.message);
       throw new Error(`Failed to authenticate with Avon Health API: ${error.message}`);
     }
   }
 
   /**
-   * Get JWT token for user-specific requests (with caching)
+   * Get JWT Token for user-level authentication (with caching)
+   * Requires bearer token first
    */
   private async getJWTToken(): Promise<string> {
     // Return cached JWT if still valid
@@ -75,86 +79,143 @@ export class AvonHealthService {
       // First get the bearer token
       const bearerToken = await this.getAccessToken();
 
-      // Then use it to get the JWT token
-      const response = await this.client.post<AvonHealthJWTResponse>(
+      console.log('🔐 Step 2: Generating JWT token for user...');
+      console.log(`   User ID: ${this.credentials.user_id}`);
+
+      const response = await this.client.post(
         '/v2/auth/get-jwt',
-        {
-          id: this.credentials.user_id,
-        },
+        { id: this.credentials.user_id },
         {
           headers: {
             Authorization: `Bearer ${bearerToken}`,
+            'Content-Type': 'application/json',
           },
         }
       );
 
-      this.jwtToken = response.data.jwt;
-      // JWT tokens typically last 24 hours, set expiry to 90% of that
+      if (!response.data || !response.data.jwt) {
+        throw new Error('JWT token not returned in response');
+      }
+
+      const jwt = response.data.jwt;
+      this.jwtToken = jwt;
+      // JWT tokens typically have 24hr expiry like bearer tokens
       this.jwtExpiry = Date.now() + (86400 * 1000 * 0.9);
 
-      console.log('✅ JWT token obtained successfully');
-      return this.jwtToken;
+      console.log('✅ JWT token generated successfully');
+      return jwt;
     } catch (error: any) {
-      console.error('JWT token error:', error.message);
-      throw new Error(`Failed to get JWT token: ${error.message}`);
+      console.error('❌ JWT generation error:', error.response?.data || error.message);
+      throw new Error(`Failed to generate JWT: ${error.message}`);
     }
   }
 
   /**
-   * Make authenticated request to Avon Health API using JWT token
+   * Make authenticated request to Avon Health API using TWO-KEY authentication
+   * Key 1: Bearer token (organization-level)
+   * Key 2: JWT token (user-level) in x-jwt header
    */
   private async authenticatedRequest<T>(
     method: 'get' | 'post',
     endpoint: string,
     data?: any
   ): Promise<T> {
+    // Get both tokens
+    const bearerToken = await this.getAccessToken();
     const jwtToken = await this.getJWTToken();
 
     try {
+      console.log(`📡 Making ${method.toUpperCase()} request to ${endpoint}`);
+      console.log(`   Using TWO-KEY authentication (Bearer + JWT)`);
+
+      const headers: any = {
+        Authorization: `Bearer ${bearerToken}`,
+        'x-jwt': jwtToken,
+        'Content-Type': 'application/json',
+      };
+
+      // Add account header for sandbox environment
+      if (this.credentials.account) {
+        headers['account'] = this.credentials.account;
+        console.log(`   Sandbox account: ${this.credentials.account}`);
+      }
+
       const response = await this.client.request<T>({
         method,
         url: endpoint,
-        headers: {
-          Authorization: `Bearer ${jwtToken}`,
-        },
+        headers,
         data,
       });
 
+      console.log(`✅ Request successful: ${endpoint}`);
       return response.data;
     } catch (error: any) {
-      console.error(`Avon Health API error (${endpoint}):`, error.message);
+      console.error(`❌ Avon Health API error (${endpoint}):`);
+      console.error(`   Status: ${error.response?.status}`);
+      console.error(`   Message: ${error.response?.data?.message || error.message}`);
+      console.error(`   Details:`, error.response?.data);
+
+      if (error.response?.status === 401) {
+        console.error('   ⚠️  Authentication failed');
+        console.error('   ⚠️  Check: Bearer token, JWT token, account header');
+      }
+
       throw new Error(`API request failed: ${error.message}`);
     }
   }
 
   /**
    * Fetch care plans for a patient
+   * API returns data in format: { object: "list", data: [...] }
    */
-  async getCarePlans(patientId: string): Promise<CarePlan[]> {
-    return this.authenticatedRequest<CarePlan[]>(
+  async getCarePlans(patientId?: string): Promise<CarePlan[]> {
+    console.log(`🔍 Fetching care plans${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    // API returns all data for the authenticated user (via JWT token)
+    // patient_id filtering happens server-side based on JWT
+    const response = await this.authenticatedRequest<any>(
       'get',
-      `/v2/care_plans?patient_id=${patientId}`
+      `/v2/care_plans`
     );
+
+    // Extract data array from response
+    const carePlans = response.data || [];
+    console.log(`   Found ${carePlans.length} care plan(s)`);
+    return carePlans;
   }
 
   /**
    * Fetch medications for a patient
+   * API returns data in format: { object: "list", data: [...] }
    */
-  async getMedications(patientId: string): Promise<Medication[]> {
-    return this.authenticatedRequest<Medication[]>(
+  async getMedications(patientId?: string): Promise<Medication[]> {
+    console.log(`🔍 Fetching medications${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
       'get',
-      `/v2/medications?patient_id=${patientId}`
+      `/v2/medications`
     );
+
+    const medications = response.data || [];
+    console.log(`   Found ${medications.length} medication(s)`);
+    return medications;
   }
 
   /**
    * Fetch clinical notes for a patient
+   * API returns data in format: { object: "list", data: [...] }
    */
-  async getNotes(patientId: string): Promise<ClinicalNote[]> {
-    return this.authenticatedRequest<ClinicalNote[]>(
+  async getNotes(patientId?: string): Promise<ClinicalNote[]> {
+    console.log(`🔍 Fetching notes${patientId ? ` for patient_id: ${patientId}` : ''}`);
+
+    const response = await this.authenticatedRequest<any>(
       'get',
-      `/v2/notes?patient_id=${patientId}`
+      `/v2/notes`
     );
+
+    const notes = response.data || [];
+    console.log(`   Found ${notes.length} note(s)`);
+    return notes;
   }
 
   /**
@@ -184,14 +245,55 @@ export class AvonHealthService {
   }
 
   /**
-   * Health check
+   * Health check - tests TWO-KEY authentication
    */
   async healthCheck(): Promise<boolean> {
     try {
+      console.log('🏥 Testing Avon Health API TWO-KEY authentication...');
+
+      // Test Step 1: Get bearer token (organization-level)
       await this.getAccessToken();
+
+      // Test Step 2: Get JWT token (user-level)
+      await this.getJWTToken();
+
+      console.log('✅ TWO-KEY authentication successful (Bearer + JWT)');
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Authentication failed:', error.message);
       return false;
     }
+  }
+
+  /**
+   * Test patient data retrieval with different patient_id patterns
+   * Helps debug 401 errors by trying common patient_id formats
+   */
+  async testPatientIdFormats(baseId?: string): Promise<void> {
+    const testId = baseId || this.credentials.user_id;
+
+    console.log('\n🧪 Testing different patient_id formats...');
+    console.log(`   Base ID: ${testId}`);
+
+    const testPatterns = [
+      { name: 'user_id as-is', id: testId },
+      { name: 'patient_ prefix', id: `patient_${testId}` },
+      { name: 'user_ prefix', id: `user_${testId}` },
+      { name: 'numeric only', id: testId.replace(/\D/g, '') },
+    ];
+
+    for (const pattern of testPatterns) {
+      try {
+        console.log(`\n   Testing: ${pattern.name} (${pattern.id})`);
+        await this.getCarePlans(pattern.id);
+        console.log(`   ✅ SUCCESS with ${pattern.name}`);
+        console.log(`   → Use patient_id: ${pattern.id}`);
+        return; // Stop on first success
+      } catch (error: any) {
+        console.log(`   ❌ Failed with ${pattern.name}: ${error.message}`);
+      }
+    }
+
+    console.log('\n   ⚠️  All patterns failed. Check Avon Health API documentation for correct patient_id format');
   }
 }

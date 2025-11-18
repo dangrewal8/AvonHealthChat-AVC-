@@ -81,6 +81,7 @@ export interface AvonHealthCredentials {
   client_id: string;
   client_secret: string;
   base_url: string;
+  account: string;
   user_id: string;
 }
 
@@ -90,8 +91,14 @@ export interface AvonHealthTokenResponse {
   expires_in: number;
 }
 
+export interface AvonHealthJWTRequest {
+  account: string;
+  user_id: string;
+}
+
 export interface AvonHealthJWTResponse {
-  jwt: string;
+  jwt_token: string;
+  expires_in: number;
 }
 
 export interface CarePlan {
