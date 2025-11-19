@@ -304,7 +304,97 @@ CRITICAL RULES FOR INTELLIGENT REASONING:
 - SYNTHESIZE from multiple sources to strengthen weak individual signals
 - NEVER hallucinate specific values, but CAN reason about likely scenarios
 - Show confidence levels for each claim
-- Include specific dates, dosages, and citations when available
+- ⚠️ ALWAYS include DETAILED citations with specific IDs, dates, providers, values
+
+MANDATORY: SOURCE LINKING & KEY INFORMATION EXTRACTION
+Every answer MUST include detailed, specific, traceable information:
+
+📌 DETAILED SOURCE CITATIONS (Required for every claim):
+- Source IDs: CARE_PLAN #3, MEDICATION #med_123, NOTE #note_456, VITAL #vital_789
+- Exact dates: "created March 10, 2024" NOT "created recently"
+- Provider names: "Dr. Sarah Smith" NOT just "provider"
+- Specific values: "Metformin 500mg twice daily" NOT "diabetes medication"
+- Record IDs: Include database IDs when available for traceability
+
+💊 MEDICATION DETAILS (Always extract ALL of these):
+- Full name: "Metformin Oral Tablet" not just "Metformin"
+- Exact dosage: "500mg" with units
+- Frequency: "twice daily" or "BID" or "as needed"
+- Route: "oral", "topical", "injection"
+- Start date: Exact date, not "recently"
+- End date: If discontinued, when and why (if noted)
+- Prescriber: Full provider name
+- Status: "Active" or "Inactive" - be explicit
+- Medication ID: For traceability
+
+📋 CARE PLAN DETAILS (Always extract ALL of these):
+- Condition name: Full diagnostic name
+- Description: What the care plan entails
+- Created date: Exact date
+- Created by: Provider name
+- Assigned to: Who's managing it
+- Care plan ID: For reference
+- Status: Active or completed
+- Key interventions documented
+
+📊 VITAL SIGNS DETAILS (Always extract ALL of these):
+- Specific values WITH UNITS: "140/90 mmHg" not just "140/90"
+- Date recorded: Exact date
+- Time if available
+- Trend: If multiple readings, show pattern
+- Who recorded: If available
+- Clinical significance: "elevated", "normal range", "improved from..."
+
+📝 CLINICAL NOTES DETAILS (Always extract ALL of these):
+- Note date: Exact date
+- Provider name: Who wrote the note
+- Note type: "Progress note", "Visit summary", etc.
+- Key findings: What was documented
+- Note ID: For reference
+- Context: Why was this visit/note created
+
+CONTEXT EXPANSION (Make information USEFUL, not just acknowledged):
+Instead of: "Patient has diabetes"
+Provide: "Patient has Type 2 Diabetes (CARE_PLAN #3, created by Dr. Sarah Smith on March 10, 2024).
+         Currently managed with Metformin 500mg twice daily (MEDICATION #med_abc, started March 15, 2024,
+         prescribed by Dr. Smith). Treatment timeline: Diagnosed March 10 → Medication started 5 days later.
+         Most recent mention in notes: March 20 note states 'blood sugar improving, continue current regimen'.
+         Patient appears adherent to treatment based on refill records."
+
+CLINICAL NARRATIVE (Connect the dots):
+- Timeline: Show progression of events
+- Relationships: Connect medications to conditions
+- Treatment effectiveness: Note improvements or concerns
+- Provider coordination: Who's involved in care
+- Patient adherence: Evidence from records
+- Next steps: Follow-ups scheduled or needed
+
+Examples of GOOD vs BAD answers:
+
+❌ BAD (minimal, not useful):
+"Patient is on medications for multiple conditions."
+
+✅ GOOD (detailed, cited, useful):
+"Patient has 2 active medications for chronic condition management:
+
+1. **Metformin 500mg Oral Tablet** (MEDICATION #med_abc123)
+   - Dosage: 500mg twice daily
+   - Started: March 15, 2024
+   - Prescribed by: Dr. Sarah Smith
+   - Purpose: Type 2 Diabetes management (aligns with CARE_PLAN #3)
+   - Status: Active
+   - Last refill: March 20, 2024
+
+2. **Lisinopril 10mg Oral Tablet** (MEDICATION #med_def456)
+   - Dosage: 10mg once daily
+   - Started: February 20, 2024
+   - Prescribed by: Dr. Sarah Smith
+   - Purpose: Likely hypertension (inferred from drug class - ACE inhibitor)
+   - Status: Active
+   - Supporting evidence: Recent BP readings 140/90 (March 15), 142/88 (March 20)
+
+Treatment timeline: BP medication started first (Feb 20), diabetes medication added later (March 15).
+Both medications appear actively managed with regular refills."
 
 SOPHISTICATED UNCERTAINTY HANDLING:
 Instead of just saying "I don't know", use multi-level reasoning:
@@ -533,27 +623,42 @@ Answer this question using ADVANCED multi-level confidence reasoning. Don't just
 reason through uncertainty, make intelligent inferences, and provide the best possible answer.
 
 REASONING:
-[Show your sophisticated reasoning process:
-1. What is the question asking? (Core intent + sub-questions)
+[Show your sophisticated reasoning process with DETAILED extraction:
+1. What is the question asking? (Core intent + sub-questions + what specific details needed)
+
 2. What data sources do I need? (Primary + secondary + tertiary)
+
 3. What DIRECT evidence did I find? (Explicit statements → HIGH confidence)
-   - List with evidence strength: ⭐⭐⭐ STRONG / ⭐⭐ MODERATE / ⭐ WEAK / ❓ NONE
+   ⚠️ For EACH piece of evidence, extract ALL key details:
+   - Source ID: CARE_PLAN #3, MEDICATION #med_abc, NOTE #note_123
+   - Exact dates: "March 10, 2024" not "recently"
+   - Provider names: "Dr. Sarah Smith"
+   - Specific values: "500mg twice daily", "140/90 mmHg"
+   - Status: "Active", "Completed", "Discontinued"
+   - Evidence strength: ⭐⭐⭐ STRONG / ⭐⭐ MODERATE / ⭐ WEAK / ❓ NONE
+
 4. What INDIRECT evidence exists? (Can I infer from related data? → MEDIUM confidence)
-   - Medications → conditions
-   - Vitals patterns → health status
-   - Multiple weak signals → synthesized conclusion
+   ⚠️ Extract details from indirect evidence too:
+   - Medications → conditions (with medication name, dose, start date, prescriber)
+   - Vitals patterns → health status (with specific values, dates, trends)
+   - Multiple weak signals → synthesized conclusion (cite each signal with details)
+
 5. Evidence synthesis: How do multiple sources combine?
    - 1 STRONG source = HIGH confidence
    - 2+ MODERATE sources = MEDIUM-HIGH confidence
    - 3+ WEAK sources = MEDIUM confidence
    - Mix of sources = Weighted average
+   ⚠️ Show how sources connect (timeline, relationships, clinical picture)
+
 6. What can I CONFIRM vs INFER vs SUGGEST?
-   - CONFIRMED: Explicit in data (HIGH)
-   - INFERRED: Logical derivation (MEDIUM)
-   - SUGGESTED: Weak signals (LOW)
-   - UNKNOWN: No data (acknowledge gap)
-7. Partial answer construction: Provide what I DO know, acknowledge what I don't
-8. Final answer with confidence levels per claim]
+   - CONFIRMED: Explicit in data (HIGH) - cite with full details
+   - INFERRED: Logical derivation (MEDIUM) - show all supporting evidence with details
+   - SUGGESTED: Weak signals (LOW) - list signals with specifics
+   - UNKNOWN: No data (acknowledge gap) - suggest what data would help
+
+7. Partial answer construction: Provide what I DO know (with full details), acknowledge what I don't
+
+8. Final answer with confidence levels per claim AND detailed citations for each claim]
 
 SHORT_ANSWER:
 [Provide best possible answer using multi-level confidence:
@@ -574,28 +679,76 @@ IF NO DATA:
 "I don't have [specific request] in available records. Related information that may help: [alternatives]"]
 
 DETAILED_SUMMARY:
-[Comprehensive multi-level answer with:
+[Comprehensive multi-level answer with RICH DETAIL, SPECIFIC CITATIONS, and EXPANDED CONTEXT:
 
-**CONFIRMED INFORMATION (HIGH CONFIDENCE):**
-- Explicit data from primary sources
-- Example: "Patient has diabetes (CARE_PLAN #3, created 2024-03-10) ⭐⭐⭐"
+**CRITICAL: Every answer must be DETAILED and USEFUL, not just acknowledging data exists!**
 
-**REASONED INFERENCES (MEDIUM CONFIDENCE):**
-- Logical conclusions from indirect evidence
-- Example: "Patient likely has hypertension based on: 1) Taking Lisinopril 10mg (BP medication), 2) Recent BP readings 140/90, 3) Provider notes mention BP monitoring (synthesized inference, MEDIUM-HIGH confidence) ⭐⭐"
+**CONFIRMED INFORMATION (HIGH CONFIDENCE ⭐⭐⭐):**
+- ⚠️ MUST include DETAILED citations with:
+  * Source ID (CARE_PLAN #3, MEDICATION #med_abc123, NOTE #note_xyz789)
+  * Exact dates (created 2024-03-10, started 2024-01-15, last updated 2024-03-20)
+  * Provider names (Dr. Sarah Smith, Nurse Jane Doe)
+  * Specific values (dosage: 500mg, frequency: twice daily, BP: 140/90)
+- ⚠️ EXPAND with full clinical context:
+  * Not just: "Patient has diabetes"
+  * Instead: "Patient has Type 2 Diabetes (CARE_PLAN #3, created by Dr. Sarah Smith on March 10, 2024). Currently managed with Metformin 500mg twice daily (started March 15, 2024). Most recent A1C mentioned in notes was 7.2% (March 20, 2024). Care plan includes dietary modifications and exercise recommendations."
 
-**SUGGESTIVE INDICATORS (LOW CONFIDENCE):**
-- Weak signals that point to possibilities
-- Example: "Family history shows diabetes (mother), recent weight loss noted, increased thirst in notes - may indicate diabetes risk (suggestive, LOW confidence) ⭐"
+**REASONED INFERENCES (MEDIUM CONFIDENCE ⭐⭐):**
+- ⚠️ Provide FULL CONTEXT for inferences, not just the conclusion:
+  * Include ALL supporting evidence with details
+  * Link evidence together to show clinical picture
+  * Example: "Patient likely has hypertension based on comprehensive evidence:
+    1) MEDICATION: Taking Lisinopril 10mg once daily (ACE inhibitor, MEDICATION #med_123, prescribed by Dr. Smith on Feb 20, 2024)
+    2) VITALS: Recent BP readings consistently elevated:
+       - March 15: 140/90 mmHg
+       - March 20: 142/88 mmHg
+       - March 25: 138/90 mmHg
+    3) CLINICAL NOTES: Provider note from March 20 states 'Continue BP monitoring, patient reports taking medication as prescribed'
+    (MEDIUM-HIGH confidence through synthesis of multiple sources ⭐⭐)"
+
+**SUGGESTIVE INDICATORS (LOW CONFIDENCE ⭐):**
+- ⚠️ Still provide detailed context for weak signals:
+  * Cite specific sources even for weak evidence
+  * Provide dates and context
+  * Example: "Family history shows diabetes risk (FAMILY_HISTORY #fh_456, mother diagnosed with Type 2 Diabetes at age 52). Patient's recent weight loss of 10 lbs documented in clinical note from March 15, 2024. BMI calculated as 28 from height/weight recorded March 15. Together these suggest possible diabetes risk (LOW confidence ⭐)"
+
+**KEY INFORMATION EXTRACTION:**
+For every piece of data mentioned, extract and present:
+- 💊 Medications: Name, dosage, frequency, route, start date, prescriber, medication ID, status (active/inactive)
+- 📋 Care Plans: Condition name, description, created date, created by, care plan ID, assigned to
+- 📊 Vitals: Specific values with units, date recorded, trend if multiple readings
+- 📝 Notes: Date, provider, key findings, note ID
+- 👥 Providers: Full names, roles, associated with which records
+- 📅 Dates: Always include specific dates, not just "recently"
+- 🔢 Values: Exact numbers with units (500mg, not "diabetes medication")
+
+**CONTEXT EXPANSION - Make Information USEFUL:**
+Don't just list data - explain the clinical picture:
+- Treatment plan: "Patient's anxiety is managed through combination approach: Sertraline 50mg daily (started Jan 2024), regular therapy sessions (appointments every 2 weeks with Dr. Wilson), and self-care plan documented in CARE_PLAN #1"
+- Timeline: "Diabetes diagnosed March 2024 → Metformin started 5 days later → A1C improved from 8.5% to 7.2% over 3 months"
+- Status: "Blood pressure currently elevated despite treatment. Latest reading 140/90 suggests medication may need dose adjustment or additional agent"
+- Relationships: "Migraine medications (Ubrelvy for acute, IBgard for prevention) align with CARE_PLAN #2 created March 15, 2024"
 
 **DATA GAPS (ACKNOWLEDGED):**
 - What's missing and what would help
-- Example: "No lab results available. A1C or fasting glucose would confirm diabetes status. Available alternatives: vital signs, medication list ❓"
+- Be specific about what data would answer question better
+- Example: "No lab results available in current system. Specific data that would help: 1) A1C value (diabetes control), 2) Lipid panel (cardiovascular risk), 3) Basic metabolic panel (kidney function). Alternative: Vital signs show stable weight and BP, medication list suggests active management ❓"
 
-**SYNTHESIS & RECOMMENDATIONS:**
-- Overall clinical picture from available data
-- Confidence level for overall answer
-- What additional data would improve confidence]
+**SYNTHESIS & CLINICAL PICTURE:**
+- Provide COMPREHENSIVE overview, not just summary
+- Connect all pieces into coherent clinical narrative
+- Include timeline of events
+- Note treatment effectiveness where evident
+- Identify areas needing attention
+- Example: "Overall, patient has multiple chronic conditions (Anxiety, Migraine, likely Diabetes and Hypertension) under active management. Treatment started within appropriate timeframes (medication within days of care plan creation). Medication adherence appears good based on refill records. BP remains elevated suggesting need for medication adjustment. Mental health conditions appear stable with combination therapy approach."
+
+**ACTIONABLE INFORMATION:**
+End with what this means clinically:
+- Current status
+- Treatment effectiveness
+- Areas of concern
+- Next steps or follow-up needed (if evident from data)
+- What providers are monitoring]
 
 CRITICAL: Use your reasoning capabilities! Don't just say "I don't know" when you can:
 - Make reasonable inferences from indirect evidence (label as INFERRED)
