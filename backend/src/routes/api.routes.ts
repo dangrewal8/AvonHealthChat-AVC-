@@ -409,7 +409,8 @@ function generateFallbackShortAnswer(
     // PRIORITY 1: Check actual conditions/diagnoses
     if (conditions && conditions.length > 0) {
       const conditionCount = conditions.length;
-      const conditionNames = conditions.slice(0, 3).map((c: any) => c.name || 'Unnamed condition').join(', ');
+      // Use description (human-readable) if available, fallback to name (ICD-10 code)
+      const conditionNames = conditions.slice(0, 3).map((c: any) => c.description || c.name || 'Unnamed condition').join(', ');
       return `The patient has ${conditionCount} diagnosed condition${conditionCount > 1 ? 's' : ''}: ${conditionNames}${conditionCount > 3 ? ', and others' : ''}.`;
     }
     // FALLBACK: If no conditions data, check care plans (less specific)
@@ -1268,12 +1269,17 @@ function generateFallbackDetailedSummary(
   function formatConditionsSummary(conditionsList: any[]): string {
     let output = `Total Conditions/Diagnoses: ${conditionsList.length}\n\n`;
     conditionsList.slice(0, 5).forEach((condition: any, idx: number) => {
-      output += `${idx + 1}. ${condition.name || 'Unnamed condition'}`;
-      if (condition.status) output += ` (${condition.status})`;
+      // Use description (human-readable like "Diabetes") as primary, name (ICD-10 code) as secondary
+      const displayName = condition.description || condition.name || 'Unnamed condition';
+      const code = condition.name; // ICD-10 code
+
+      output += `${idx + 1}. ${displayName}`;
+      if (code && displayName !== code) output += ` (ICD-10: ${code})`;
+      if (condition.active !== undefined) output += condition.active ? ' [Active]' : ' [Inactive]';
       output += '\n';
       if (condition.onset_date) output += `   Onset: ${new Date(condition.onset_date).toLocaleDateString()}\n`;
-      if (condition.severity) output += `   Severity: ${condition.severity}\n`;
-      if (condition.note) output += `   Note: ${condition.note.substring(0, 100)}${condition.note.length > 100 ? '...' : ''}\n`;
+      if (condition.end_date) output += `   Ended: ${new Date(condition.end_date).toLocaleDateString()}\n`;
+      if (condition.comment) output += `   Note: ${condition.comment.substring(0, 150)}${condition.comment.length > 150 ? '...' : ''}\n`;
       output += '\n';
     });
     return output;
@@ -1469,13 +1475,18 @@ function generateFallbackDetailedSummary(
       summary = `CONDITIONS/DIAGNOSES (${conditions.length} total)\n\n`;
 
       conditions.forEach((condition: any, idx: number) => {
-        summary += `${idx + 1}. ${condition.name || 'Unnamed condition'}\n`;
-        if (condition.code) summary += `   Code: ${condition.code}\n`;
-        if (condition.status) summary += `   Status: ${condition.status}\n`;
+        // Use description (human-readable like "Diabetes") as primary, name (ICD-10 code) as secondary
+        const displayName = condition.description || condition.name || 'Unnamed condition';
+        const code = condition.name; // ICD-10 code
+
+        summary += `${idx + 1}. ${displayName}`;
+        if (code && displayName !== code) summary += ` (ICD-10: ${code})`;
+        summary += '\n';
+        if (condition.active !== undefined) summary += `   Status: ${condition.active ? 'Active' : 'Inactive'}\n`;
         if (condition.onset_date) summary += `   Onset: ${formatDate(condition.onset_date)}\n`;
-        if (condition.recorded_date) summary += `   Recorded: ${formatDate(condition.recorded_date)}\n`;
-        if (condition.severity) summary += `   Severity: ${condition.severity}\n`;
-        if (condition.note) summary += `   Note: ${condition.note}\n`;
+        if (condition.end_date) summary += `   End Date: ${formatDate(condition.end_date)}\n`;
+        if (condition.comment) summary += `   Note: ${condition.comment}\n`;
+        if (condition.created_by) summary += `   Documented by: ${condition.created_by}\n`;
         summary += '\n';
       });
 
@@ -1746,19 +1757,22 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
     contextPriority.forEach((sourceType) => {
       if (sourceType === 'conditions' && conditions) {
         conditions.forEach((condition: any) => {
-          const name = condition.name || 'Unnamed condition';
-          const code = condition.code || '';
-          const status = condition.status || 'unknown';
+          // Use description (human-readable like "Diabetes") as primary, name (ICD-10 code) as secondary
+          const displayName = condition.description || condition.name || 'Unnamed condition';
+          const code = condition.name; // ICD-10 code
+          const status = condition.active !== undefined ? (condition.active ? 'Active' : 'Inactive') : 'unknown';
           const onset_date = condition.onset_date || '';
-          const severity = condition.severity || '';
-          const note = condition.note || '';
+          const end_date = condition.end_date || '';
+          const comment = condition.comment || '';
+          const created_by = condition.created_by || '';
 
-          let text = `Condition/Diagnosis: ${name}`;
-          if (code) text += `\nCode: ${code}`;
+          let text = `Condition/Diagnosis: ${displayName}`;
+          if (code && displayName !== code) text += `\nICD-10 Code: ${code}`;
           text += `\nStatus: ${status}`;
           if (onset_date) text += `\nOnset: ${onset_date}`;
-          if (severity) text += `\nSeverity: ${severity}`;
-          if (note) text += `\nNote: ${note}`;
+          if (end_date) text += `\nEnd Date: ${end_date}`;
+          if (comment) text += `\nNote: ${comment}`;
+          if (created_by) text += `\nDocumented by: ${created_by}`;
 
           context += `\n\n[CONDITION_${condition.id || 'unknown'}] ${text}`;
           artifacts_searched++;
@@ -1766,8 +1780,8 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
           provenance.push({
             artifact_id: condition.id || 'unknown',
             artifact_type: 'condition',
-            snippet: note || name,
-            occurred_at: condition.recorded_date || condition.onset_date || new Date().toISOString(),
+            snippet: displayName,
+            occurred_at: condition.onset_date || condition.created_at || new Date().toISOString(),
             relevance_score: 0.95,
             char_offsets: [0, text.length],
             source_url: `/api/emr/conditions/${condition.id || 'unknown'}`,
