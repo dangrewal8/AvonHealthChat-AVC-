@@ -460,19 +460,23 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
         if (patientData.conditions && patientData.conditions.length > 0) {
             fullContext += `[CONDITIONS/DIAGNOSES] (${patientData.conditions.length} total) - PRIMARY source for medical conditions\n`;
             patientData.conditions.forEach((condition, idx) => {
-                fullContext += `${idx + 1}. ${condition.name || 'Unnamed condition'}\n`;
-                if (condition.code)
-                    fullContext += `   Code: ${condition.code}\n`;
-                if (condition.status)
-                    fullContext += `   Status: ${condition.status}\n`;
+                // Use description (human-readable name like "Diabetes") as primary, name (ICD-10 code) as secondary
+                const displayName = condition.description || condition.name || 'Unnamed condition';
+                const code = condition.name; // ICD-10 code like "E13.3299"
+                fullContext += `${idx + 1}. ${displayName}`;
+                if (code && displayName !== code)
+                    fullContext += ` (ICD-10: ${code})`;
+                fullContext += `\n`;
+                if (condition.active !== undefined)
+                    fullContext += `   Status: ${condition.active ? 'Active' : 'Inactive'}\n`;
                 if (condition.onset_date)
                     fullContext += `   Onset: ${condition.onset_date}\n`;
-                if (condition.recorded_date)
-                    fullContext += `   Recorded: ${condition.recorded_date}\n`;
-                if (condition.severity)
-                    fullContext += `   Severity: ${condition.severity}\n`;
-                if (condition.note)
-                    fullContext += `   Note: ${condition.note}\n`;
+                if (condition.end_date)
+                    fullContext += `   End Date: ${condition.end_date}\n`;
+                if (condition.comment)
+                    fullContext += `   Note: ${condition.comment}\n`;
+                if (condition.created_by)
+                    fullContext += `   Documented by: ${condition.created_by}\n`;
                 fullContext += `   ID: ${condition.id}\n`;
             });
             fullContext += `\n`;
