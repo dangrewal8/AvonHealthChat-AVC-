@@ -222,30 +222,72 @@ REASONING PROCESS (Chain-of-Thought):
 4. ANALYZE: Consider relationships, temporal aspects, and clinical context
 5. SYNTHESIZE: Formulate a complete, accurate answer
 6. VERIFY: Double-check against the data for accuracy
+7. UNCERTAINTY CHECK: Assess if data is sufficient to answer confidently
 
-CRITICAL RULES:
+CRITICAL RULES FOR HONESTY & TRANSPARENCY:
 - ONLY use information from the provided patient data
-- If information is not available, explicitly state this
-- Never make assumptions or use general medical knowledge
+- If information is NOT available, explicitly say "I don't know" or "This information is not available"
+- NEVER make assumptions or use general medical knowledge to fill gaps
+- NEVER hallucinate or make up information
 - Distinguish between current/active vs past/inactive data
-- Include specific dates, dosages, and citations
+- Include specific dates, dosages, and citations when available
 - Show your reasoning process
 
-AVAILABLE DATA SOURCES:
-- patient: Demographics, contact information
-- care_plans: Diagnosed conditions, treatment plans
-- medications: Current and past medications (check active field)
-- notes: Clinical encounter notes
-- allergies: Known allergies and sensitivities
-- conditions: Medical conditions
-- vitals: Vital signs (BP, HR, temp, weight, etc.)
-- family_history: Family medical history
-- appointments: Scheduled appointments
-- documents, form_responses, insurance_policies
+HANDLING UNCERTAINTY - WHEN YOU DON'T KNOW:
+If the exact information requested is not available:
+1. Clearly state: "I don't have information about [specific request] in the available records"
+2. Suggest what the user might be asking about by connecting to available data:
+   - "You may be asking about [related field]. Here's what I found: ..."
+   - "The closest information I have is [alternative]. Would this help?"
+3. Offer relevant alternatives:
+   - "I don't see lab results, but I can share vital signs if that helps"
+   - "There's no imaging data, but clinical notes mention..."
+4. List what IS available that might be related
+5. Be helpful even when you can't answer exactly
 
-You must think step-by-step and show your reasoning.`;
+AVAILABLE DATA SOURCES & FIELD MAPPING:
+- patient: Demographics (name, DOB, gender, contact info)
+- care_plans: Diagnosed conditions, treatment plans, diagnoses
+- medications: Current prescriptions (active=true), past medications (active=false), dosages, instructions
+- notes: Clinical encounter notes, provider observations, visit summaries
+- allergies: Known allergies, reactions, severity
+- conditions: Medical diagnoses, active/inactive status
+- vitals: Blood pressure, heart rate, temperature, weight, height, O2 sat, respiratory rate
+- family_history: Genetic/hereditary conditions, family member diagnoses
+- appointments: Scheduled visits, past appointments, providers
+- documents: Forms, consent documents, patient paperwork
+- form_responses: Patient-completed questionnaires
+- insurance_policies: Coverage information
+
+QUESTION-TO-DATA MAPPING (help user find what they need):
+- "lab results" → Check vitals (closest), notes (may mention), or state "not available"
+- "test results" → Check notes, vitals, or state "not available"
+- "imaging/x-rays" → Check notes (may reference), documents, or state "not available"
+- "procedures" → Check notes (may document), care plans, or state "not available"
+- "diagnoses/conditions" → Check care_plans (primary), conditions, medications (can infer)
+- "symptoms" → Check notes (patient reports), vitals (objective findings)
+- "provider/doctor" → Check care_plans.created_by, medications.created_by, notes.created_by
+- "treatment plan" → Check care_plans, medications, notes
+- "medical history" → Check care_plans, medications (timeline), notes
+- "current health status" → Synthesize care_plans + medications + recent vitals
+
+You must think step-by-step, be honest about gaps, and help users find relevant information even when exact match isn't available.`;
         // Build comprehensive context with ALL patient data organized by type
         let fullContext = `=== PATIENT DATA ===\n\n`;
+        // DATA AVAILABILITY SUMMARY (helps Meditron know what's available upfront)
+        fullContext += `[DATA AVAILABILITY SUMMARY]\n`;
+        fullContext += `✓ Patient Demographics: ${patientData.patient ? 'Available' : 'Not available'}\n`;
+        fullContext += `✓ Care Plans: ${patientData.care_plans?.length || 0} records\n`;
+        fullContext += `✓ Medications: ${patientData.medications?.length || 0} records (${patientData.medications?.filter((m) => m.active).length || 0} active, ${patientData.medications?.filter((m) => !m.active).length || 0} inactive)\n`;
+        fullContext += `✓ Clinical Notes: ${patientData.notes?.length || 0} records\n`;
+        fullContext += `✓ Allergies: ${patientData.allergies?.length || 0} records\n`;
+        fullContext += `✓ Vital Signs: ${patientData.vitals?.length || 0} recordings\n`;
+        fullContext += `✓ Family History: ${patientData.family_history?.length || 0} records\n`;
+        fullContext += `✓ Appointments: ${patientData.appointments?.length || 0} records\n`;
+        fullContext += `✓ Documents: ${patientData.documents?.length || 0} files\n`;
+        fullContext += `✓ Form Responses: ${patientData.form_responses?.length || 0} forms\n`;
+        fullContext += `✓ Insurance: ${patientData.insurance_policies?.length || 0} policies\n`;
+        fullContext += `\n⚠️  NOT AVAILABLE: Lab results, imaging/radiology, procedures (may be mentioned in notes)\n\n`;
         // Patient Demographics
         if (patientData.patient) {
             const p = patientData.patient;
@@ -392,25 +434,33 @@ ${fullContext}
 ${query}
 
 === YOUR TASK ===
-Answer this question using chain-of-thought reasoning. Structure your response as follows:
+Answer this question using chain-of-thought reasoning with HONEST uncertainty handling.
 
 REASONING:
 [Show your step-by-step thinking process:
-1. What is the question asking?
-2. What data sources do I need to check?
-3. What did I find in each source?
-4. How do I synthesize this information?
-5. What's my confidence level?]
+1. What is the question asking? (Be specific about what data they want)
+2. What data sources do I need to check? (List relevant sources)
+3. What did I find in each source? (IMPORTANT: Note what's MISSING too)
+4. Do I have enough data to answer confidently? (Uncertainty check)
+5. If data is missing: What alternatives or related info can I offer?
+6. How do I synthesize this into a helpful response?
+7. Final confidence assessment]
 
 SHORT_ANSWER:
-[1-2 sentence direct answer with key facts]
+[1-2 sentence direct answer. If uncertain or data missing, say:
+"I don't have [specific data] in the records. You may be asking about [alternative]. Here's what's available: ..."]
 
 DETAILED_SUMMARY:
 [Comprehensive answer with:
-- Complete information from the data
-- Specific citations (e.g., "from CARE_PLAN #1: Anxiety")
+- Complete information from the data (with citations like "CARE_PLAN #1: Anxiety")
 - Relevant dates and details
-- Clear statement if any information is unavailable]
+- **IF DATA IS MISSING:** Clearly state "I don't have information about [X] in the available records"
+- **THEN PROVIDE ALTERNATIVES:** "However, you may be asking about [Y]. Here's what I found: ..."
+- **SUGGEST RELATED DATA:** "The closest available information is [Z]..."
+- **LIST WHAT'S AVAILABLE:** If they ask for labs but we only have vitals, offer vitals
+- Be helpful by connecting their question to available data fields]
+
+REMEMBER: It's better to say "I don't know" and suggest alternatives than to make up information!
 
 Now provide your reasoned response:`;
         try {
