@@ -467,15 +467,42 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
         fullContext += `✓ Insurance: ${patientData.insurance_policies?.length || 0} policies\n`;
         fullContext += `\n⚠️  NOT AVAILABLE: Lab results, imaging/radiology, procedures (may be mentioned in notes)\n\n`;
         fullContext += `[CRITICAL INSTRUCTIONS FOR COMPREHENSIVE ANSWERS]\n`;
-        fullContext += `🔗 ALWAYS CONNECT RELATED DATA:\n`;
-        fullContext += `• When mentioning medications → state the condition they treat\n`;
-        fullContext += `• When discussing conditions → mention active treatments\n`;
-        fullContext += `• When showing vitals → relate to relevant diagnoses\n`;
-        fullContext += `• When referencing notes → extract key clinical information\n`;
-        fullContext += `• Provide CONTEXT, not just isolated facts\n`;
-        fullContext += `• Use HUMAN-READABLE names (never just codes/IDs)\n`;
-        fullContext += `• Show TIMELINES and progression when relevant\n`;
-        fullContext += `• Include provider names and documentation dates\n\n`;
+        fullContext += `🔗 ALWAYS CONNECT RELATED DATA - NEVER PROVIDE ISOLATED FACTS:\n\n`;
+        fullContext += `1. **Medications → Conditions** (MOST IMPORTANT):\n`;
+        fullContext += `   ❌ BAD: "Patient is taking Metformin 500mg Tablet"\n`;
+        fullContext += `   ✅ GOOD: "Patient is taking Metformin 500mg Tablet twice daily for Type 2 Diabetes (started March 15, 2024, prescribed by Dr. Smith)"\n`;
+        fullContext += `   \n`;
+        fullContext += `   Common Medication-Condition Mappings:\n`;
+        fullContext += `   • Metformin, Insulin, Glipizide → Diabetes\n`;
+        fullContext += `   • Lisinopril, Amlodipine, Losartan, Atenolol → Hypertension/High Blood Pressure\n`;
+        fullContext += `   • Atorvastatin, Simvastatin, Rosuvastatin → High Cholesterol\n`;
+        fullContext += `   • Levothyroxine → Hypothyroidism\n`;
+        fullContext += `   • Albuterol → Asthma/COPD\n`;
+        fullContext += `   • Omeprazole, Pantoprazole → GERD/Acid Reflux\n`;
+        fullContext += `   • Sertraline, Fluoxetine, Escitalopram → Depression/Anxiety\n`;
+        fullContext += `   • Warfarin, Apixaban → Atrial Fibrillation/Blood Clots\n\n`;
+        fullContext += `2. **Conditions → Active Treatments**:\n`;
+        fullContext += `   ❌ BAD: "Patient has Type 2 Diabetes"\n`;
+        fullContext += `   ✅ GOOD: "Patient has Type 2 Diabetes (onset December 12, 2024), currently managed with Metformin 500mg twice daily since March 15, 2024"\n\n`;
+        fullContext += `3. **Vitals → Related Diagnoses**:\n`;
+        fullContext += `   ❌ BAD: "Blood pressure is 140/90 mmHg"\n`;
+        fullContext += `   ✅ GOOD: "Blood pressure is 140/90 mmHg (elevated, patient has diagnosed hypertension being treated with Lisinopril 10mg daily)"\n\n`;
+        fullContext += `4. **Clinical Notes → Key Information Extraction**:\n`;
+        fullContext += `   • Extract chief complaint, diagnoses mentioned, treatment decisions, follow-up plans\n`;
+        fullContext += `   • Connect note findings to current conditions and medications\n\n`;
+        fullContext += `5. **Appointments → Context**:\n`;
+        fullContext += `   ❌ BAD: "Patient has appointment on March 20"\n`;
+        fullContext += `   ✅ GOOD: "Patient has Follow-up Visit scheduled for March 20, 2024 with Dr. Johnson (likely for diabetes management review)"\n\n`;
+        fullContext += `6. **Allergies → Medication Implications**:\n`;
+        fullContext += `   ✅ GOOD: "Patient is allergic to Penicillin (severe reaction), which affects antibiotic prescribing options"\n\n`;
+        fullContext += `7. **Family History → Patient Risk Factors**:\n`;
+        fullContext += `   ✅ GOOD: "Family history of heart disease (father had MI at age 55), which increases patient's cardiovascular risk"\n\n`;
+        fullContext += `⚠️ GENERAL RULES:\n`;
+        fullContext += `• NEVER show codes/IDs (NDC, drug_id, ICD-10 codes as primary - use human-readable names)\n`;
+        fullContext += `• ALWAYS provide context (dates, providers, relationships)\n`;
+        fullContext += `• ALWAYS show timelines and progression when relevant\n`;
+        fullContext += `• ALWAYS connect related pieces of information\n`;
+        fullContext += `• Medications MUST be linked to their therapeutic purpose\n\n`;
         // Patient Demographics
         if (patientData.patient) {
             const p = patientData.patient;
@@ -530,22 +557,50 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
         if (patientData.medications && patientData.medications.length > 0) {
             const activeMeds = patientData.medications.filter((m) => m.active === true);
             const inactiveMeds = patientData.medications.filter((m) => m.active === false);
-            fullContext += `[MEDICATIONS]\n`;
+            fullContext += `[MEDICATIONS] - Current and past prescriptions\n`;
+            fullContext += `⚠️ CRITICAL: When mentioning medications, ALWAYS state what condition they treat!\n\n`;
             fullContext += `Active (${activeMeds.length}):\n`;
             activeMeds.forEach((med, idx) => {
-                fullContext += `${idx + 1}. ${med.name} - ${med.strength || 'dose not specified'}\n`;
+                // Build human-readable medication description
+                let medDisplay = `${idx + 1}. ${med.name}`;
+                // Add dose form if available (Tablet, Capsule, Injection, etc.)
+                if (med.dose_form)
+                    medDisplay += ` ${med.dose_form}`;
+                // Add strength
+                medDisplay += ` - ${med.strength || 'dose not specified'}`;
+                fullContext += `${medDisplay}\n`;
+                // Instructions (sig) - human-readable directions
                 if (med.sig)
                     fullContext += `   Instructions: ${med.sig}\n`;
+                // Quantity and refills (useful context)
+                if (med.quantity)
+                    fullContext += `   Quantity: ${med.quantity}`;
+                if (med.refills !== null && med.refills !== undefined)
+                    fullContext += ` (${med.refills} refills remaining)`;
+                if (med.quantity || med.refills)
+                    fullContext += `\n`;
+                // Timeline
                 if (med.start_date)
                     fullContext += `   Started: ${med.start_date}\n`;
+                if (med.last_filled_at)
+                    fullContext += `   Last Filled: ${med.last_filled_at}\n`;
+                // Prescriber
                 if (med.created_by)
                     fullContext += `   Prescribed by: ${med.created_by}\n`;
-                fullContext += `   ID: ${med.id}\n`;
+                // Status if available
+                if (med.status)
+                    fullContext += `   Status: ${med.status}\n`;
+                fullContext += `   🔗 IMPORTANT: State what condition this medication treats when discussing it\n`;
+                fullContext += `   Record ID: ${med.id}\n`;
             });
             if (inactiveMeds.length > 0) {
                 fullContext += `\nInactive/Past (${inactiveMeds.length}):\n`;
                 inactiveMeds.forEach((med, idx) => {
-                    fullContext += `${idx + 1}. ${med.name} - ${med.strength || 'dose not specified'}\n`;
+                    let medDisplay = `${idx + 1}. ${med.name}`;
+                    if (med.dose_form)
+                        medDisplay += ` ${med.dose_form}`;
+                    medDisplay += ` - ${med.strength || 'dose not specified'}`;
+                    fullContext += `${medDisplay}\n`;
                     if (med.sig)
                         fullContext += `   Instructions: ${med.sig}\n`;
                     if (med.start_date)
@@ -554,7 +609,7 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
                         fullContext += `   Discontinued: ${med.end_date}\n`;
                     if (med.created_by)
                         fullContext += `   Prescribed by: ${med.created_by}\n`;
-                    fullContext += `   ID: ${med.id}\n`;
+                    fullContext += `   Record ID: ${med.id}\n`;
                 });
             }
             fullContext += `\n`;
@@ -657,15 +712,166 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
         }
         // Appointments
         if (patientData.appointments && patientData.appointments.length > 0) {
-            fullContext += `[APPOINTMENTS] (${patientData.appointments.length} total)\n`;
-            patientData.appointments.forEach((appt, idx) => {
-                fullContext += `${idx + 1}. ${appt.title || 'Appointment'}\n`;
-                if (appt.scheduled_at)
-                    fullContext += `   Scheduled: ${appt.scheduled_at}\n`;
-                if (appt.provider)
-                    fullContext += `   Provider: ${appt.provider}\n`;
-                if (appt.status)
-                    fullContext += `   Status: ${appt.status}\n`;
+            fullContext += `[APPOINTMENTS] (${patientData.appointments.length} total) - Scheduled and past visits\n`;
+            patientData.appointments.slice(0, 10).forEach((appt, idx) => {
+                // Build human-readable appointment description
+                const apptName = appt.name || appt.title || 'Appointment';
+                const apptType = appt.appointment_type || appt.type || '';
+                const interaction = appt.interaction_type || '';
+                fullContext += `${idx + 1}. ${apptName}`;
+                if (apptType)
+                    fullContext += ` (${apptType})`;
+                fullContext += `\n`;
+                // Description provides context
+                if (appt.description)
+                    fullContext += `   Description: ${appt.description}\n`;
+                // Interaction type (in-person, telehealth, etc.)
+                if (interaction)
+                    fullContext += `   Type: ${interaction}\n`;
+                // Timing
+                if (appt.start_time)
+                    fullContext += `   Scheduled: ${appt.start_time}`;
+                if (appt.end_time)
+                    fullContext += ` to ${appt.end_time}`;
+                if (appt.start_time)
+                    fullContext += `\n`;
+                // Actual times if different
+                if (appt.actual_start_time)
+                    fullContext += `   Actual Start: ${appt.actual_start_time}\n`;
+                if (appt.actual_end_time)
+                    fullContext += `   Actual End: ${appt.actual_end_time}\n`;
+                // Provider/host
+                if (appt.host || appt.provider)
+                    fullContext += `   Provider: ${appt.host || appt.provider}\n`;
+                // Location if available
+                if (appt.location && typeof appt.location === 'object' && appt.location.name) {
+                    fullContext += `   Location: ${appt.location.name}\n`;
+                }
+                // Status (completed, scheduled, cancelled, etc.)
+                if (appt.status_history && appt.status_history.length > 0) {
+                    const currentStatus = appt.status_history[appt.status_history.length - 1];
+                    if (currentStatus.status)
+                        fullContext += `   Status: ${currentStatus.status}\n`;
+                }
+                // Visit note reference
+                if (appt.visit_note)
+                    fullContext += `   Visit Note: ${appt.visit_note}\n`;
+                fullContext += `   Record ID: ${appt.id}\n`;
+            });
+            fullContext += `\n`;
+        }
+        // Documents (forms, consent forms, patient paperwork)
+        if (patientData.documents && patientData.documents.length > 0) {
+            fullContext += `[DOCUMENTS] (${patientData.documents.length} total) - Forms, consent documents, patient paperwork\n`;
+            patientData.documents.slice(0, 10).forEach((doc, idx) => {
+                const docName = doc.name || 'Document';
+                const docType = doc.type || 'Unknown type';
+                fullContext += `${idx + 1}. ${docName} (${docType})`;
+                if (doc.filename)
+                    fullContext += ` - ${doc.filename}`;
+                fullContext += `\n`;
+                // Document template info
+                if (doc.document_template)
+                    fullContext += `   Template: ${doc.document_template}\n`;
+                // Created info
+                if (doc.created_at)
+                    fullContext += `   Created: ${doc.created_at}`;
+                if (doc.created_by)
+                    fullContext += ` by ${doc.created_by}`;
+                if (doc.created_at)
+                    fullContext += `\n`;
+                // Sharing status
+                if (doc.share_with_patient !== null) {
+                    fullContext += `   Shared with Patient: ${doc.share_with_patient ? 'Yes' : 'No'}\n`;
+                }
+                // Sections - extract key information
+                if (doc.sections && Array.isArray(doc.sections) && doc.sections.length > 0) {
+                    fullContext += `   Content Sections: ${doc.sections.length} sections\n`;
+                    // Could expand sections similar to notes if needed
+                }
+                fullContext += `   Record ID: ${doc.id}\n`;
+            });
+            fullContext += `\n`;
+        }
+        // Form Responses (patient-completed questionnaires, assessments)
+        if (patientData.form_responses && patientData.form_responses.length > 0) {
+            fullContext += `[FORM RESPONSES] (${patientData.form_responses.length} total) - Patient-completed questionnaires and assessments\n`;
+            patientData.form_responses.slice(0, 10).forEach((form, idx) => {
+                fullContext += `${idx + 1}. Form ID: ${form.form}`;
+                if (form.form_version)
+                    fullContext += ` (v${form.form_version})`;
+                fullContext += `\n`;
+                // Score if available (for assessments)
+                if (form.score !== undefined && form.score !== null) {
+                    fullContext += `   Score: ${form.score}\n`;
+                }
+                // Completion info
+                if (form.created_at)
+                    fullContext += `   Completed: ${form.created_at}`;
+                if (form.created_by)
+                    fullContext += ` by ${form.created_by}`;
+                if (form.created_at)
+                    fullContext += `\n`;
+                // Sections - extract answers similar to clinical notes
+                if (form.sections && Array.isArray(form.sections)) {
+                    fullContext += `   Responses:\n`;
+                    form.sections.forEach((section) => {
+                        if (section.name)
+                            fullContext += `      ${section.name}:\n`;
+                        if (section.answers && Array.isArray(section.answers)) {
+                            section.answers.forEach((answer) => {
+                                if (answer.value || answer.text) {
+                                    const answerText = answer.value || answer.text;
+                                    if (answer.name) {
+                                        fullContext += `         • ${answer.name}: ${answerText}\n`;
+                                    }
+                                    else {
+                                        fullContext += `         • ${answerText}\n`;
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+                fullContext += `   Record ID: ${form.id}\n`;
+            });
+            fullContext += `\n`;
+        }
+        // Insurance Policies (coverage information)
+        if (patientData.insurance_policies && patientData.insurance_policies.length > 0) {
+            fullContext += `[INSURANCE POLICIES] (${patientData.insurance_policies.length} total) - Coverage information\n`;
+            patientData.insurance_policies.forEach((policy, idx) => {
+                fullContext += `${idx + 1}. ${policy.type || 'Insurance Policy'}\n`;
+                // Common insurance fields (fields vary by policy)
+                if (policy.carrier_name)
+                    fullContext += `   Carrier: ${policy.carrier_name}\n`;
+                if (policy.plan_name)
+                    fullContext += `   Plan: ${policy.plan_name}\n`;
+                if (policy.policy_number)
+                    fullContext += `   Policy Number: ${policy.policy_number}\n`;
+                if (policy.group_number)
+                    fullContext += `   Group Number: ${policy.group_number}\n`;
+                // Coverage dates
+                if (policy.effective_date)
+                    fullContext += `   Effective: ${policy.effective_date}`;
+                if (policy.expiration_date)
+                    fullContext += ` to ${policy.expiration_date}`;
+                if (policy.effective_date)
+                    fullContext += `\n`;
+                // Subscriber info
+                if (policy.subscriber_name)
+                    fullContext += `   Subscriber: ${policy.subscriber_name}\n`;
+                if (policy.relationship_to_subscriber) {
+                    fullContext += `   Relationship: ${policy.relationship_to_subscriber}\n`;
+                }
+                // Created info
+                if (policy.created_at)
+                    fullContext += `   Added: ${policy.created_at}`;
+                if (policy.created_by)
+                    fullContext += ` by ${policy.created_by}`;
+                if (policy.created_at)
+                    fullContext += `\n`;
+                fullContext += `   Record ID: ${policy.id}\n`;
             });
             fullContext += `\n`;
         }

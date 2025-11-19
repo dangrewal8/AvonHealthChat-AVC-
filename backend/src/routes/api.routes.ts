@@ -1248,17 +1248,41 @@ function generateFallbackDetailedSummary(
     if (activeMeds.length > 0) {
       output += `Active Medications (${activeMeds.length}):\n`;
       activeMeds.slice(0, 10).forEach((med: any, idx: number) => {
+        // Build human-readable medication description
         output += `${idx + 1}. ${med.name}`;
+
+        // Add dose form if available (Tablet, Capsule, etc.)
+        if (med.dose_form) output += ` ${med.dose_form}`;
+
+        // Add strength
         if (med.strength) output += ` - ${med.strength}`;
-        if (med.sig) output += `\n   Instructions: ${med.sig}`;
-        if (med.start_date) output += `\n   Started: ${new Date(med.start_date).toLocaleDateString()}`;
+
+        output += '\n';
+
+        // Instructions
+        if (med.sig) output += `   Instructions: ${med.sig}\n`;
+
+        // Timeline
+        if (med.start_date) output += `   Started: ${new Date(med.start_date).toLocaleDateString()}`;
+        if (med.created_by) output += ` (prescribed by ${med.created_by})`;
+        if (med.start_date) output += '\n';
+
+        // Quantity and refills
+        if (med.quantity || med.refills !== null) {
+          if (med.quantity) output += `   Quantity: ${med.quantity}`;
+          if (med.refills !== null && med.refills !== undefined) output += ` (${med.refills} refills)`;
+          output += '\n';
+        }
+
         output += '\n';
       });
     }
     if (inactiveMeds.length > 0 && activeMeds.length < 5) {
-      output += `\nInactive Medications (${inactiveMeds.length}):\n`;
+      output += `Inactive/Past Medications (${inactiveMeds.length}):\n`;
       inactiveMeds.slice(0, 5).forEach((med: any, idx: number) => {
         output += `${idx + 1}. ${med.name}`;
+        if (med.dose_form) output += ` ${med.dose_form}`;
+        if (med.strength) output += ` - ${med.strength}`;
         if (med.end_date) output += ` (discontinued ${new Date(med.end_date).toLocaleDateString()})`;
         output += '\n';
       });
