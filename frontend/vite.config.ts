@@ -16,6 +16,7 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true, // Listen on all addresses for Docker
+    allowedHosts: ['chat.missionvalley.dev', 'localhost', '127.0.0.1'],
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
