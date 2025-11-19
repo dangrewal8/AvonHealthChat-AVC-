@@ -46,7 +46,7 @@ export interface StructuredExtraction {
 
 export interface FormattedProvenance {
   artifact_id: string;
-  artifact_type: 'care_plan' | 'medication' | 'note';
+  artifact_type: 'condition' | 'care_plan' | 'medication' | 'note';
   snippet: string;
   occurred_at: string;
   relevance_score: number;
@@ -455,7 +455,7 @@ export interface VectorDocument {
 export interface DocumentMetadata {
   patient_id: string;
   artifact_id: string;
-  artifact_type: 'care_plan' | 'medication' | 'note';
+  artifact_type: 'condition' | 'care_plan' | 'medication' | 'note';
   occurred_at: string;
   source_url: string;
   chunk_index?: number;
