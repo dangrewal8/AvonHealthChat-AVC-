@@ -71,6 +71,8 @@ export interface ResponseMetadata {
   artifacts_searched: number;
   chunks_retrieved: number;
   detail_level: number;
+  reasoning_method?: string; // NEW: Method used to generate answer (chain_of_thought, standard_rag, pattern_fallback)
+  reasoning_chain?: string[]; // NEW: Step-by-step reasoning process from Meditron
 }
 
 // ============================================================================

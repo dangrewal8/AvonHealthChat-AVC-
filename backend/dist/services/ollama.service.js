@@ -1,121 +1,87 @@
+"use strict";
 /**
  * Ollama Service
  * Handles embeddings and LLM generation using local Ollama instance
  * HIPAA-compliant - all processing stays local
  */
-
-import axios, { AxiosInstance } from 'axios';
-import type {
-  OllamaEmbeddingRequest,
-  OllamaEmbeddingResponse,
-  OllamaGenerateRequest,
-  OllamaGenerateResponse,
-} from '../types';
-
-export class OllamaService {
-  private client: AxiosInstance;
-  private embeddingModel: string;
-  private llmModel: string;
-  private maxTokens: number;
-  private temperature: number;
-
-  constructor(
-    baseUrl: string,
-    embeddingModel: string,
-    llmModel: string,
-    maxTokens: number,
-    temperature: number
-  ) {
-    this.client = axios.create({
-      baseURL: baseUrl,
-      timeout: 300000, // 5 minutes for large LLM requests
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    this.embeddingModel = embeddingModel;
-    this.llmModel = llmModel;
-    this.maxTokens = maxTokens;
-    this.temperature = temperature;
-  }
-
-  /**
-   * Check if Ollama service is available
-   */
-  async healthCheck(): Promise<boolean> {
-    try {
-      const response = await this.client.get('/api/tags');
-      return response.status === 200;
-    } catch (error) {
-      console.error('Ollama health check failed:', error);
-      return false;
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.OllamaService = void 0;
+const axios_1 = __importDefault(require("axios"));
+class OllamaService {
+    constructor(baseUrl, embeddingModel, llmModel, maxTokens, temperature) {
+        this.client = axios_1.default.create({
+            baseURL: baseUrl,
+            timeout: 300000, // 5 minutes for large LLM requests
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        this.embeddingModel = embeddingModel;
+        this.llmModel = llmModel;
+        this.maxTokens = maxTokens;
+        this.temperature = temperature;
     }
-  }
-
-  /**
-   * Generate embedding for text using nomic-embed-text
-   * Returns 768-dimensional vector
-   */
-  async generateEmbedding(text: string): Promise<number[]> {
-    try {
-      const request: OllamaEmbeddingRequest = {
-        model: this.embeddingModel,
-        prompt: text,
-      };
-
-      const response = await this.client.post<OllamaEmbeddingResponse>(
-        '/api/embeddings',
-        request
-      );
-
-      return response.data.embedding;
-    } catch (error: any) {
-      console.error('Ollama embedding error:', error.message);
-      throw new Error(`Failed to generate embedding: ${error.message}`);
+    /**
+     * Check if Ollama service is available
+     */
+    async healthCheck() {
+        try {
+            const response = await this.client.get('/api/tags');
+            return response.status === 200;
+        }
+        catch (error) {
+            console.error('Ollama health check failed:', error);
+            return false;
+        }
     }
-  }
-
-  /**
-   * Generate text using Meditron LLM
-   */
-  async generate(
-    prompt: string,
-    systemPrompt?: string,
-    temperature?: number
-  ): Promise<string> {
-    try {
-      const request: OllamaGenerateRequest = {
-        model: this.llmModel,
-        prompt,
-        system: systemPrompt,
-        temperature: temperature ?? this.temperature,
-        max_tokens: this.maxTokens,
-        stream: false,
-      };
-
-      const response = await this.client.post<OllamaGenerateResponse>(
-        '/api/generate',
-        request
-      );
-
-      return response.data.response;
-    } catch (error: any) {
-      console.error('Ollama generation error:', error.message);
-      throw new Error(`Failed to generate text: ${error.message}`);
+    /**
+     * Generate embedding for text using nomic-embed-text
+     * Returns 768-dimensional vector
+     */
+    async generateEmbedding(text) {
+        try {
+            const request = {
+                model: this.embeddingModel,
+                prompt: text,
+            };
+            const response = await this.client.post('/api/embeddings', request);
+            return response.data.embedding;
+        }
+        catch (error) {
+            console.error('Ollama embedding error:', error.message);
+            throw new Error(`Failed to generate embedding: ${error.message}`);
+        }
     }
-  }
-
-  /**
-   * Generate structured answer from retrieved documents
-   * ENHANCED with extensive medical question-answering guidelines
-   */
-  async generateRAGAnswer(
-    query: string,
-    context: string,
-    conversationHistory?: Array<{ role: string; content: string }>
-  ): Promise<{ short_answer: string; detailed_summary: string }> {
-    const systemPrompt = `You are a HIPAA-compliant medical AI assistant analyzing patient Electronic Medical Records (EMR).
+    /**
+     * Generate text using Meditron LLM
+     */
+    async generate(prompt, systemPrompt, temperature) {
+        try {
+            const request = {
+                model: this.llmModel,
+                prompt,
+                system: systemPrompt,
+                temperature: temperature ?? this.temperature,
+                max_tokens: this.maxTokens,
+                stream: false,
+            };
+            const response = await this.client.post('/api/generate', request);
+            return response.data.response;
+        }
+        catch (error) {
+            console.error('Ollama generation error:', error.message);
+            throw new Error(`Failed to generate text: ${error.message}`);
+        }
+    }
+    /**
+     * Generate structured answer from retrieved documents
+     * ENHANCED with extensive medical question-answering guidelines
+     */
+    async generateRAGAnswer(query, context, conversationHistory) {
+        const systemPrompt = `You are a HIPAA-compliant medical AI assistant analyzing patient Electronic Medical Records (EMR).
 
 CRITICAL RULES - NEVER VIOLATE:
 1. ONLY answer based on the provided context - NEVER use external medical knowledge or assumptions
@@ -203,15 +169,13 @@ RESPONSE FORMAT:
 - Use bullet points for lists
 - Include relevant dates
 - Cite sources for verifiability`;
-
-    let historyContext = '';
-    if (conversationHistory && conversationHistory.length > 0) {
-      historyContext = '\n\nPrevious Conversation:\n' +
-        conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join('\n') +
-        '\n';
-    }
-
-    const prompt = `${historyContext}
+        let historyContext = '';
+        if (conversationHistory && conversationHistory.length > 0) {
+            historyContext = '\n\nPrevious Conversation:\n' +
+                conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join('\n') +
+                '\n';
+        }
+        const prompt = `${historyContext}
 Patient EMR Context (Retrieved from Avon Health API):
 ${context}
 
@@ -234,43 +198,21 @@ DETAILED_SUMMARY: [Comprehensive answer with:
 - Specific citations ([SOURCE_TYPE_ID])
 - Relevant dates and details
 - Clear statement if any requested information is unavailable]`;
-
-    const response = await this.generate(prompt, systemPrompt, 0.1); // Low temperature for accuracy
-
-    // Parse response with improved regex
-    const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\n\s*\n\s*DETAILED_SUMMARY:)/s);
-    const detailedMatch = response.match(/DETAILED_SUMMARY:\s*(.+)$/s);
-
-    return {
-      short_answer: shortMatch ? shortMatch[1].trim() : response.substring(0, 200),
-      detailed_summary: detailedMatch ? detailedMatch[1].trim() : response,
-    };
-  }
-
-  /**
-   * Chain-of-Thought Reasoning for Complex Medical Questions
-   * Enables multi-step reasoning and dynamic data analysis
-   */
-  async reasonWithChainOfThought(
-    query: string,
-    patientData: {
-      patient: any;
-      care_plans: any[];
-      medications: any[];
-      notes: any[];
-      allergies: any[];
-      conditions: any[];
-      vitals: any[];
-      family_history: any[];
-      appointments: any[];
-      documents: any[];
-      form_responses: any[];
-      insurance_policies: any[];
-    },
-    conversationHistory?: Array<{ role: string; content: string }>
-  ): Promise<{ short_answer: string; detailed_summary: string; reasoning_chain: string[] }> {
-
-    const systemPrompt = `You are Meditron, a medical AI assistant with advanced reasoning capabilities.
+        const response = await this.generate(prompt, systemPrompt, 0.1); // Low temperature for accuracy
+        // Parse response with improved regex
+        const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\n\s*\n\s*DETAILED_SUMMARY:)/s);
+        const detailedMatch = response.match(/DETAILED_SUMMARY:\s*(.+)$/s);
+        return {
+            short_answer: shortMatch ? shortMatch[1].trim() : response.substring(0, 200),
+            detailed_summary: detailedMatch ? detailedMatch[1].trim() : response,
+        };
+    }
+    /**
+     * Chain-of-Thought Reasoning for Complex Medical Questions
+     * Enables multi-step reasoning and dynamic data analysis
+     */
+    async reasonWithChainOfThought(query, patientData, conversationHistory) {
+        const systemPrompt = `You are Meditron, a medical AI assistant with advanced reasoning capabilities.
 You have access to a patient's complete Electronic Medical Record (EMR) and must answer questions through careful analysis.
 
 ADVANCED REASONING PROCESS (Multi-Level Confidence):
@@ -467,152 +409,162 @@ QUESTION-TO-DATA MAPPING (help user find what they need):
 - "current health status" → Synthesize care_plans + medications + recent vitals
 
 You must think step-by-step, be honest about gaps, and help users find relevant information even when exact match isn't available.`;
-
-    // Build comprehensive context with ALL patient data organized by type
-    let fullContext = `=== PATIENT DATA ===\n\n`;
-
-    // DATA AVAILABILITY SUMMARY (helps Meditron know what's available upfront)
-    fullContext += `[DATA AVAILABILITY SUMMARY]\n`;
-    fullContext += `✓ Patient Demographics: ${patientData.patient ? 'Available' : 'Not available'}\n`;
-    fullContext += `✓ Care Plans: ${patientData.care_plans?.length || 0} records\n`;
-    fullContext += `✓ Medications: ${patientData.medications?.length || 0} records (${patientData.medications?.filter((m: any) => m.active).length || 0} active, ${patientData.medications?.filter((m: any) => !m.active).length || 0} inactive)\n`;
-    fullContext += `✓ Clinical Notes: ${patientData.notes?.length || 0} records\n`;
-    fullContext += `✓ Allergies: ${patientData.allergies?.length || 0} records\n`;
-    fullContext += `✓ Vital Signs: ${patientData.vitals?.length || 0} recordings\n`;
-    fullContext += `✓ Family History: ${patientData.family_history?.length || 0} records\n`;
-    fullContext += `✓ Appointments: ${patientData.appointments?.length || 0} records\n`;
-    fullContext += `✓ Documents: ${patientData.documents?.length || 0} files\n`;
-    fullContext += `✓ Form Responses: ${patientData.form_responses?.length || 0} forms\n`;
-    fullContext += `✓ Insurance: ${patientData.insurance_policies?.length || 0} policies\n`;
-    fullContext += `\n⚠️  NOT AVAILABLE: Lab results, imaging/radiology, procedures (may be mentioned in notes)\n\n`;
-
-    // Patient Demographics
-    if (patientData.patient) {
-      const p = patientData.patient;
-      fullContext += `[PATIENT_INFO]\n`;
-      fullContext += `Name: ${p.first_name || ''} ${p.last_name || ''}\n`;
-      fullContext += `DOB: ${p.date_of_birth || 'Not recorded'}\n`;
-      fullContext += `Gender: ${p.gender || 'Not recorded'}\n`;
-      fullContext += `Email: ${p.email || 'Not recorded'}\n`;
-      fullContext += `Phone: ${p.phone_number || 'Not recorded'}\n\n`;
-    }
-
-    // Care Plans (Conditions/Diagnoses)
-    if (patientData.care_plans && patientData.care_plans.length > 0) {
-      fullContext += `[CARE_PLANS] (${patientData.care_plans.length} total)\n`;
-      patientData.care_plans.forEach((cp, idx) => {
-        fullContext += `${idx + 1}. ${cp.name || 'Untitled'}\n`;
-        if (cp.description) fullContext += `   Description: ${cp.description}\n`;
-        if (cp.created_at) fullContext += `   Created: ${cp.created_at}\n`;
-        if (cp.created_by) fullContext += `   Created by: ${cp.created_by}\n`;
-        fullContext += `   ID: ${cp.id}\n`;
-      });
-      fullContext += `\n`;
-    }
-
-    // Medications
-    if (patientData.medications && patientData.medications.length > 0) {
-      const activeMeds = patientData.medications.filter((m: any) => m.active === true);
-      const inactiveMeds = patientData.medications.filter((m: any) => m.active === false);
-
-      fullContext += `[MEDICATIONS]\n`;
-      fullContext += `Active (${activeMeds.length}):\n`;
-      activeMeds.forEach((med, idx) => {
-        fullContext += `${idx + 1}. ${med.name} - ${med.strength || 'dose not specified'}\n`;
-        if (med.sig) fullContext += `   Instructions: ${med.sig}\n`;
-        if (med.start_date) fullContext += `   Started: ${med.start_date}\n`;
-        if (med.created_by) fullContext += `   Prescribed by: ${med.created_by}\n`;
-        fullContext += `   ID: ${med.id}\n`;
-      });
-
-      if (inactiveMeds.length > 0) {
-        fullContext += `\nInactive/Past (${inactiveMeds.length}):\n`;
-        inactiveMeds.forEach((med, idx) => {
-          fullContext += `${idx + 1}. ${med.name} - ${med.strength || 'dose not specified'}\n`;
-          if (med.sig) fullContext += `   Instructions: ${med.sig}\n`;
-          if (med.start_date) fullContext += `   Started: ${med.start_date}\n`;
-          if (med.end_date) fullContext += `   Discontinued: ${med.end_date}\n`;
-          if (med.created_by) fullContext += `   Prescribed by: ${med.created_by}\n`;
-          fullContext += `   ID: ${med.id}\n`;
-        });
-      }
-      fullContext += `\n`;
-    }
-
-    // Allergies
-    if (patientData.allergies && patientData.allergies.length > 0) {
-      fullContext += `[ALLERGIES] (${patientData.allergies.length} total)\n`;
-      patientData.allergies.forEach((allergy, idx) => {
-        fullContext += `${idx + 1}. ${allergy.allergen || 'Unknown allergen'}\n`;
-        if (allergy.reaction) fullContext += `   Reaction: ${allergy.reaction}\n`;
-        if (allergy.severity) fullContext += `   Severity: ${allergy.severity}\n`;
-        if (allergy.status) fullContext += `   Status: ${allergy.status}\n`;
-      });
-      fullContext += `\n`;
-    }
-
-    // Vitals
-    if (patientData.vitals && patientData.vitals.length > 0) {
-      fullContext += `[VITAL_SIGNS] (${patientData.vitals.length} recordings)\n`;
-      patientData.vitals.slice(0, 10).forEach((vital, idx) => {
-        fullContext += `${idx + 1}. Date: ${vital.recorded_at || vital.created_at || 'Unknown'}\n`;
-        if (vital.blood_pressure) fullContext += `   BP: ${vital.blood_pressure}\n`;
-        if (vital.heart_rate) fullContext += `   HR: ${vital.heart_rate} bpm\n`;
-        if (vital.temperature) fullContext += `   Temp: ${vital.temperature}\n`;
-        if (vital.weight) fullContext += `   Weight: ${vital.weight}\n`;
-        if (vital.height) fullContext += `   Height: ${vital.height}\n`;
-      });
-      fullContext += `\n`;
-    }
-
-    // Family History
-    if (patientData.family_history && patientData.family_history.length > 0) {
-      fullContext += `[FAMILY_HISTORY]\n`;
-      patientData.family_history.forEach((fh, idx) => {
-        fullContext += `${idx + 1}. Relationship: ${fh.relationship || 'Unknown'}\n`;
-        if (fh.diagnoses && fh.diagnoses.length > 0) {
-          fullContext += `   Conditions: ${fh.diagnoses.map((d: any) => d.description || d.diagnosis).join(', ')}\n`;
+        // Build comprehensive context with ALL patient data organized by type
+        let fullContext = `=== PATIENT DATA ===\n\n`;
+        // DATA AVAILABILITY SUMMARY (helps Meditron know what's available upfront)
+        fullContext += `[DATA AVAILABILITY SUMMARY]\n`;
+        fullContext += `✓ Patient Demographics: ${patientData.patient ? 'Available' : 'Not available'}\n`;
+        fullContext += `✓ Care Plans: ${patientData.care_plans?.length || 0} records\n`;
+        fullContext += `✓ Medications: ${patientData.medications?.length || 0} records (${patientData.medications?.filter((m) => m.active).length || 0} active, ${patientData.medications?.filter((m) => !m.active).length || 0} inactive)\n`;
+        fullContext += `✓ Clinical Notes: ${patientData.notes?.length || 0} records\n`;
+        fullContext += `✓ Allergies: ${patientData.allergies?.length || 0} records\n`;
+        fullContext += `✓ Vital Signs: ${patientData.vitals?.length || 0} recordings\n`;
+        fullContext += `✓ Family History: ${patientData.family_history?.length || 0} records\n`;
+        fullContext += `✓ Appointments: ${patientData.appointments?.length || 0} records\n`;
+        fullContext += `✓ Documents: ${patientData.documents?.length || 0} files\n`;
+        fullContext += `✓ Form Responses: ${patientData.form_responses?.length || 0} forms\n`;
+        fullContext += `✓ Insurance: ${patientData.insurance_policies?.length || 0} policies\n`;
+        fullContext += `\n⚠️  NOT AVAILABLE: Lab results, imaging/radiology, procedures (may be mentioned in notes)\n\n`;
+        // Patient Demographics
+        if (patientData.patient) {
+            const p = patientData.patient;
+            fullContext += `[PATIENT_INFO]\n`;
+            fullContext += `Name: ${p.first_name || ''} ${p.last_name || ''}\n`;
+            fullContext += `DOB: ${p.date_of_birth || 'Not recorded'}\n`;
+            fullContext += `Gender: ${p.gender || 'Not recorded'}\n`;
+            fullContext += `Email: ${p.email || 'Not recorded'}\n`;
+            fullContext += `Phone: ${p.phone_number || 'Not recorded'}\n\n`;
         }
-      });
-      fullContext += `\n`;
-    }
-
-    // Clinical Notes
-    if (patientData.notes && patientData.notes.length > 0) {
-      fullContext += `[CLINICAL_NOTES] (${patientData.notes.length} total)\n`;
-      patientData.notes.slice(0, 5).forEach((note, idx) => {
-        fullContext += `${idx + 1}. ${note.name || 'Clinical Note'}\n`;
-        if (note.created_at) fullContext += `   Date: ${note.created_at}\n`;
-        if (note.created_by) fullContext += `   Provider: ${note.created_by}\n`;
-        if (note.sections) {
-          note.sections.forEach((section: any) => {
-            if (section.name) fullContext += `   ${section.name}\n`;
-          });
+        // Care Plans (Conditions/Diagnoses)
+        if (patientData.care_plans && patientData.care_plans.length > 0) {
+            fullContext += `[CARE_PLANS] (${patientData.care_plans.length} total)\n`;
+            patientData.care_plans.forEach((cp, idx) => {
+                fullContext += `${idx + 1}. ${cp.name || 'Untitled'}\n`;
+                if (cp.description)
+                    fullContext += `   Description: ${cp.description}\n`;
+                if (cp.created_at)
+                    fullContext += `   Created: ${cp.created_at}\n`;
+                if (cp.created_by)
+                    fullContext += `   Created by: ${cp.created_by}\n`;
+                fullContext += `   ID: ${cp.id}\n`;
+            });
+            fullContext += `\n`;
         }
-      });
-      fullContext += `\n`;
-    }
-
-    // Appointments
-    if (patientData.appointments && patientData.appointments.length > 0) {
-      fullContext += `[APPOINTMENTS] (${patientData.appointments.length} total)\n`;
-      patientData.appointments.forEach((appt, idx) => {
-        fullContext += `${idx + 1}. ${appt.title || 'Appointment'}\n`;
-        if (appt.scheduled_at) fullContext += `   Scheduled: ${appt.scheduled_at}\n`;
-        if (appt.provider) fullContext += `   Provider: ${appt.provider}\n`;
-        if (appt.status) fullContext += `   Status: ${appt.status}\n`;
-      });
-      fullContext += `\n`;
-    }
-
-    let historyContext = '';
-    if (conversationHistory && conversationHistory.length > 0) {
-      historyContext = '\n=== CONVERSATION HISTORY ===\n' +
-        conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join('\n') +
-        '\n';
-    }
-
-    const prompt = `${historyContext}
+        // Medications
+        if (patientData.medications && patientData.medications.length > 0) {
+            const activeMeds = patientData.medications.filter((m) => m.active === true);
+            const inactiveMeds = patientData.medications.filter((m) => m.active === false);
+            fullContext += `[MEDICATIONS]\n`;
+            fullContext += `Active (${activeMeds.length}):\n`;
+            activeMeds.forEach((med, idx) => {
+                fullContext += `${idx + 1}. ${med.name} - ${med.strength || 'dose not specified'}\n`;
+                if (med.sig)
+                    fullContext += `   Instructions: ${med.sig}\n`;
+                if (med.start_date)
+                    fullContext += `   Started: ${med.start_date}\n`;
+                if (med.created_by)
+                    fullContext += `   Prescribed by: ${med.created_by}\n`;
+                fullContext += `   ID: ${med.id}\n`;
+            });
+            if (inactiveMeds.length > 0) {
+                fullContext += `\nInactive/Past (${inactiveMeds.length}):\n`;
+                inactiveMeds.forEach((med, idx) => {
+                    fullContext += `${idx + 1}. ${med.name} - ${med.strength || 'dose not specified'}\n`;
+                    if (med.sig)
+                        fullContext += `   Instructions: ${med.sig}\n`;
+                    if (med.start_date)
+                        fullContext += `   Started: ${med.start_date}\n`;
+                    if (med.end_date)
+                        fullContext += `   Discontinued: ${med.end_date}\n`;
+                    if (med.created_by)
+                        fullContext += `   Prescribed by: ${med.created_by}\n`;
+                    fullContext += `   ID: ${med.id}\n`;
+                });
+            }
+            fullContext += `\n`;
+        }
+        // Allergies
+        if (patientData.allergies && patientData.allergies.length > 0) {
+            fullContext += `[ALLERGIES] (${patientData.allergies.length} total)\n`;
+            patientData.allergies.forEach((allergy, idx) => {
+                fullContext += `${idx + 1}. ${allergy.allergen || 'Unknown allergen'}\n`;
+                if (allergy.reaction)
+                    fullContext += `   Reaction: ${allergy.reaction}\n`;
+                if (allergy.severity)
+                    fullContext += `   Severity: ${allergy.severity}\n`;
+                if (allergy.status)
+                    fullContext += `   Status: ${allergy.status}\n`;
+            });
+            fullContext += `\n`;
+        }
+        // Vitals
+        if (patientData.vitals && patientData.vitals.length > 0) {
+            fullContext += `[VITAL_SIGNS] (${patientData.vitals.length} recordings)\n`;
+            patientData.vitals.slice(0, 10).forEach((vital, idx) => {
+                fullContext += `${idx + 1}. Date: ${vital.recorded_at || vital.created_at || 'Unknown'}\n`;
+                if (vital.blood_pressure)
+                    fullContext += `   BP: ${vital.blood_pressure}\n`;
+                if (vital.heart_rate)
+                    fullContext += `   HR: ${vital.heart_rate} bpm\n`;
+                if (vital.temperature)
+                    fullContext += `   Temp: ${vital.temperature}\n`;
+                if (vital.weight)
+                    fullContext += `   Weight: ${vital.weight}\n`;
+                if (vital.height)
+                    fullContext += `   Height: ${vital.height}\n`;
+            });
+            fullContext += `\n`;
+        }
+        // Family History
+        if (patientData.family_history && patientData.family_history.length > 0) {
+            fullContext += `[FAMILY_HISTORY]\n`;
+            patientData.family_history.forEach((fh, idx) => {
+                fullContext += `${idx + 1}. Relationship: ${fh.relationship || 'Unknown'}\n`;
+                if (fh.diagnoses && fh.diagnoses.length > 0) {
+                    fullContext += `   Conditions: ${fh.diagnoses.map((d) => d.description || d.diagnosis).join(', ')}\n`;
+                }
+            });
+            fullContext += `\n`;
+        }
+        // Clinical Notes
+        if (patientData.notes && patientData.notes.length > 0) {
+            fullContext += `[CLINICAL_NOTES] (${patientData.notes.length} total)\n`;
+            patientData.notes.slice(0, 5).forEach((note, idx) => {
+                fullContext += `${idx + 1}. ${note.name || 'Clinical Note'}\n`;
+                if (note.created_at)
+                    fullContext += `   Date: ${note.created_at}\n`;
+                if (note.created_by)
+                    fullContext += `   Provider: ${note.created_by}\n`;
+                if (note.sections) {
+                    note.sections.forEach((section) => {
+                        if (section.name)
+                            fullContext += `   ${section.name}\n`;
+                    });
+                }
+            });
+            fullContext += `\n`;
+        }
+        // Appointments
+        if (patientData.appointments && patientData.appointments.length > 0) {
+            fullContext += `[APPOINTMENTS] (${patientData.appointments.length} total)\n`;
+            patientData.appointments.forEach((appt, idx) => {
+                fullContext += `${idx + 1}. ${appt.title || 'Appointment'}\n`;
+                if (appt.scheduled_at)
+                    fullContext += `   Scheduled: ${appt.scheduled_at}\n`;
+                if (appt.provider)
+                    fullContext += `   Provider: ${appt.provider}\n`;
+                if (appt.status)
+                    fullContext += `   Status: ${appt.status}\n`;
+            });
+            fullContext += `\n`;
+        }
+        let historyContext = '';
+        if (conversationHistory && conversationHistory.length > 0) {
+            historyContext = '\n=== CONVERSATION HISTORY ===\n' +
+                conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join('\n') +
+                '\n';
+        }
+        const prompt = `${historyContext}
 ${fullContext}
 
 === QUESTION ===
@@ -757,45 +709,37 @@ CRITICAL: Use your reasoning capabilities! Don't just say "I don't know" when yo
 - Reason probabilistically about likely scenarios
 
 Now provide your multi-level confidence response:`;
-
-    try {
-      const response = await this.generate(prompt, systemPrompt, 0.2); // Slightly higher temp for reasoning
-
-      // Parse response
-      const reasoningMatch = response.match(/REASONING:\s*(.+?)(?=\n\s*SHORT_ANSWER:)/s);
-      const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\n\s*DETAILED_SUMMARY:)/s);
-      const detailedMatch = response.match(/DETAILED_SUMMARY:\s*(.+)$/s);
-
-      // Extract reasoning steps
-      const reasoning_chain: string[] = [];
-      if (reasoningMatch) {
-        const reasoningText = reasoningMatch[1].trim();
-        // Split by numbered items or newlines
-        const steps = reasoningText.split(/\n/).filter(line => line.trim().length > 0);
-        reasoning_chain.push(...steps);
-      }
-
-      return {
-        short_answer: shortMatch ? shortMatch[1].trim() : 'Unable to generate answer',
-        detailed_summary: detailedMatch ? detailedMatch[1].trim() : response,
-        reasoning_chain,
-      };
-    } catch (error: any) {
-      console.error('Chain-of-thought reasoning failed:', error.message);
-      throw error;
+        try {
+            const response = await this.generate(prompt, systemPrompt, 0.2); // Slightly higher temp for reasoning
+            // Parse response
+            const reasoningMatch = response.match(/REASONING:\s*(.+?)(?=\n\s*SHORT_ANSWER:)/s);
+            const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\n\s*DETAILED_SUMMARY:)/s);
+            const detailedMatch = response.match(/DETAILED_SUMMARY:\s*(.+)$/s);
+            // Extract reasoning steps
+            const reasoning_chain = [];
+            if (reasoningMatch) {
+                const reasoningText = reasoningMatch[1].trim();
+                // Split by numbered items or newlines
+                const steps = reasoningText.split(/\n/).filter(line => line.trim().length > 0);
+                reasoning_chain.push(...steps);
+            }
+            return {
+                short_answer: shortMatch ? shortMatch[1].trim() : 'Unable to generate answer',
+                detailed_summary: detailedMatch ? detailedMatch[1].trim() : response,
+                reasoning_chain,
+            };
+        }
+        catch (error) {
+            console.error('Chain-of-thought reasoning failed:', error.message);
+            throw error;
+        }
     }
-  }
-
-  /**
-   * Extract structured information from text
-   */
-  async extractStructuredInfo(
-    text: string,
-    targetTypes: string[]
-  ): Promise<Array<{ type: string; value: string; confidence: number }>> {
-    const systemPrompt = `You are a medical information extraction system. Extract structured information from clinical text.`;
-
-    const prompt = `Extract the following types of information from this clinical text:
+    /**
+     * Extract structured information from text
+     */
+    async extractStructuredInfo(text, targetTypes) {
+        const systemPrompt = `You are a medical information extraction system. Extract structured information from clinical text.`;
+        const prompt = `Extract the following types of information from this clinical text:
 ${targetTypes.join(', ')}
 
 Clinical Text:
@@ -808,17 +752,19 @@ For each piece of information found, provide:
 
 Format as JSON array:
 [{"type": "medication", "value": "Lisinopril 10mg", "confidence": 0.95}, ...]`;
-
-    try {
-      const response = await this.generate(prompt, systemPrompt, 0.0);
-      const jsonMatch = response.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-      return [];
-    } catch (error) {
-      console.error('Structured extraction failed:', error);
-      return [];
+        try {
+            const response = await this.generate(prompt, systemPrompt, 0.0);
+            const jsonMatch = response.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                return JSON.parse(jsonMatch[0]);
+            }
+            return [];
+        }
+        catch (error) {
+            console.error('Structured extraction failed:', error);
+            return [];
+        }
     }
-  }
 }
+exports.OllamaService = OllamaService;
+//# sourceMappingURL=ollama.service.js.map
