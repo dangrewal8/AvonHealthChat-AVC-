@@ -3,7 +3,7 @@ credentials-file: /home/user/AvonHealthChat-AVC-/cloudflared/1363d14d-f8b3-46a1-
 
 ingress:
   - hostname: chat.missionvalley.dev
-    service: http://localhost:8080
+    service: http://localhost:4173
     originRequest:
       noTLSVerify: true
       connectTimeout: 30s
