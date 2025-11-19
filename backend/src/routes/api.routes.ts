@@ -1646,13 +1646,25 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
     const contextPriority: string[] = [];
 
     // Determine what to prioritize based on intent
-    if (queryIntent.primary === 'medications' || query.toLowerCase().includes('med')) {
+    // FIXED: Use word boundary matching to avoid false positives (e.g., "medical" matching "med")
+    const isMedicationQuery = queryIntent.primary === 'medications' ||
+                              /\b(med|meds|medication|medications|medicine|drug|drugs|pill|prescription)\b/i.test(query);
+    const isConditionQuery = queryIntent.primary === 'diagnosis' ||
+                            queryIntent.primary === 'care_plans' ||
+                            queryIntent.primary === 'medical_history' ||
+                            queryIntent.primary === 'has_condition' ||
+                            /\b(condition|conditions|diagnosis|diagnoses|disease|disorder)\b/i.test(query);
+
+    if (isMedicationQuery && !isConditionQuery) {
       contextPriority.push('medications', 'care_plans', 'notes');
-    } else if (queryIntent.primary === 'diagnosis' || queryIntent.primary === 'care_plans') {
+      console.log(`   🔍 Query Type: MEDICATIONS (prioritizing medication data)`);
+    } else if (isConditionQuery) {
       contextPriority.push('care_plans', 'notes', 'medications');
+      console.log(`   🔍 Query Type: CONDITIONS/DIAGNOSIS (prioritizing care plans)`);
     } else {
       // Default order
       contextPriority.push('care_plans', 'medications', 'notes');
+      console.log(`   🔍 Query Type: GENERAL (using default priority)`);
     }
 
     // Build context in priority order
