@@ -47,6 +47,7 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const health_routes_1 = __importDefault(require("./routes/health.routes"));
 const api_routes_1 = __importStar(require("./routes/api.routes"));
 const ollama_service_1 = require("./services/ollama.service");
@@ -113,6 +114,21 @@ app.use((0, cors_1.default)({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+// Rate Limiting - Protect against brute force and DDoS
+const limiter = (0, express_rate_limit_1.default)({
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes default
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10), // Limit each IP to 100 requests per windowMs
+    message: {
+        error: 'Too many requests from this IP, please try again later.',
+        code: 'RATE_LIMIT_EXCEEDED',
+    },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    // Skip rate limiting for health check endpoint
+    skip: (req) => req.path === '/health',
+});
+// Apply rate limiting to all API routes
+app.use('/api', limiter);
 // ============================================================================
 // General Middleware
 // ============================================================================
