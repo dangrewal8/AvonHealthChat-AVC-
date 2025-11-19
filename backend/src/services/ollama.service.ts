@@ -248,6 +248,248 @@ DETAILED_SUMMARY: [Comprehensive answer with:
   }
 
   /**
+   * Chain-of-Thought Reasoning for Complex Medical Questions
+   * Enables multi-step reasoning and dynamic data analysis
+   */
+  async reasonWithChainOfThought(
+    query: string,
+    patientData: {
+      patient: any;
+      care_plans: any[];
+      medications: any[];
+      notes: any[];
+      allergies: any[];
+      conditions: any[];
+      vitals: any[];
+      family_history: any[];
+      appointments: any[];
+      documents: any[];
+      form_responses: any[];
+      insurance_policies: any[];
+    },
+    conversationHistory?: Array<{ role: string; content: string }>
+  ): Promise<{ short_answer: string; detailed_summary: string; reasoning_chain: string[] }> {
+
+    const systemPrompt = `You are Meditron, a medical AI assistant with advanced reasoning capabilities.
+You have access to a patient's complete Electronic Medical Record (EMR) and must answer questions through careful analysis.
+
+REASONING PROCESS (Chain-of-Thought):
+1. UNDERSTAND: Analyze what the question is really asking
+2. IDENTIFY: Determine what data sources are needed (medications, care plans, notes, vitals, etc.)
+3. SEARCH: Look through relevant patient data systematically
+4. ANALYZE: Consider relationships, temporal aspects, and clinical context
+5. SYNTHESIZE: Formulate a complete, accurate answer
+6. VERIFY: Double-check against the data for accuracy
+
+CRITICAL RULES:
+- ONLY use information from the provided patient data
+- If information is not available, explicitly state this
+- Never make assumptions or use general medical knowledge
+- Distinguish between current/active vs past/inactive data
+- Include specific dates, dosages, and citations
+- Show your reasoning process
+
+AVAILABLE DATA SOURCES:
+- patient: Demographics, contact information
+- care_plans: Diagnosed conditions, treatment plans
+- medications: Current and past medications (check active field)
+- notes: Clinical encounter notes
+- allergies: Known allergies and sensitivities
+- conditions: Medical conditions
+- vitals: Vital signs (BP, HR, temp, weight, etc.)
+- family_history: Family medical history
+- appointments: Scheduled appointments
+- documents, form_responses, insurance_policies
+
+You must think step-by-step and show your reasoning.`;
+
+    // Build comprehensive context with ALL patient data organized by type
+    let fullContext = `=== PATIENT DATA ===\n\n`;
+
+    // Patient Demographics
+    if (patientData.patient) {
+      const p = patientData.patient;
+      fullContext += `[PATIENT_INFO]\n`;
+      fullContext += `Name: ${p.first_name || ''} ${p.last_name || ''}\n`;
+      fullContext += `DOB: ${p.date_of_birth || 'Not recorded'}\n`;
+      fullContext += `Gender: ${p.gender || 'Not recorded'}\n`;
+      fullContext += `Email: ${p.email || 'Not recorded'}\n`;
+      fullContext += `Phone: ${p.phone_number || 'Not recorded'}\n\n`;
+    }
+
+    // Care Plans (Conditions/Diagnoses)
+    if (patientData.care_plans && patientData.care_plans.length > 0) {
+      fullContext += `[CARE_PLANS] (${patientData.care_plans.length} total)\n`;
+      patientData.care_plans.forEach((cp, idx) => {
+        fullContext += `${idx + 1}. ${cp.name || 'Untitled'}\n`;
+        if (cp.description) fullContext += `   Description: ${cp.description}\n`;
+        if (cp.created_at) fullContext += `   Created: ${cp.created_at}\n`;
+        if (cp.created_by) fullContext += `   Created by: ${cp.created_by}\n`;
+        fullContext += `   ID: ${cp.id}\n`;
+      });
+      fullContext += `\n`;
+    }
+
+    // Medications
+    if (patientData.medications && patientData.medications.length > 0) {
+      const activeMeds = patientData.medications.filter((m: any) => m.active === true);
+      const inactiveMeds = patientData.medications.filter((m: any) => m.active === false);
+
+      fullContext += `[MEDICATIONS]\n`;
+      fullContext += `Active (${activeMeds.length}):\n`;
+      activeMeds.forEach((med, idx) => {
+        fullContext += `${idx + 1}. ${med.name} - ${med.strength || 'dose not specified'}\n`;
+        if (med.sig) fullContext += `   Instructions: ${med.sig}\n`;
+        if (med.start_date) fullContext += `   Started: ${med.start_date}\n`;
+        if (med.created_by) fullContext += `   Prescribed by: ${med.created_by}\n`;
+        fullContext += `   ID: ${med.id}\n`;
+      });
+
+      if (inactiveMeds.length > 0) {
+        fullContext += `\nInactive/Past (${inactiveMeds.length}):\n`;
+        inactiveMeds.forEach((med, idx) => {
+          fullContext += `${idx + 1}. ${med.name} - ${med.strength || 'dose not specified'}\n`;
+          if (med.sig) fullContext += `   Instructions: ${med.sig}\n`;
+          if (med.start_date) fullContext += `   Started: ${med.start_date}\n`;
+          if (med.end_date) fullContext += `   Discontinued: ${med.end_date}\n`;
+          if (med.created_by) fullContext += `   Prescribed by: ${med.created_by}\n`;
+          fullContext += `   ID: ${med.id}\n`;
+        });
+      }
+      fullContext += `\n`;
+    }
+
+    // Allergies
+    if (patientData.allergies && patientData.allergies.length > 0) {
+      fullContext += `[ALLERGIES] (${patientData.allergies.length} total)\n`;
+      patientData.allergies.forEach((allergy, idx) => {
+        fullContext += `${idx + 1}. ${allergy.allergen || 'Unknown allergen'}\n`;
+        if (allergy.reaction) fullContext += `   Reaction: ${allergy.reaction}\n`;
+        if (allergy.severity) fullContext += `   Severity: ${allergy.severity}\n`;
+        if (allergy.status) fullContext += `   Status: ${allergy.status}\n`;
+      });
+      fullContext += `\n`;
+    }
+
+    // Vitals
+    if (patientData.vitals && patientData.vitals.length > 0) {
+      fullContext += `[VITAL_SIGNS] (${patientData.vitals.length} recordings)\n`;
+      patientData.vitals.slice(0, 10).forEach((vital, idx) => {
+        fullContext += `${idx + 1}. Date: ${vital.recorded_at || vital.created_at || 'Unknown'}\n`;
+        if (vital.blood_pressure) fullContext += `   BP: ${vital.blood_pressure}\n`;
+        if (vital.heart_rate) fullContext += `   HR: ${vital.heart_rate} bpm\n`;
+        if (vital.temperature) fullContext += `   Temp: ${vital.temperature}\n`;
+        if (vital.weight) fullContext += `   Weight: ${vital.weight}\n`;
+        if (vital.height) fullContext += `   Height: ${vital.height}\n`;
+      });
+      fullContext += `\n`;
+    }
+
+    // Family History
+    if (patientData.family_history && patientData.family_history.length > 0) {
+      fullContext += `[FAMILY_HISTORY]\n`;
+      patientData.family_history.forEach((fh, idx) => {
+        fullContext += `${idx + 1}. Relationship: ${fh.relationship || 'Unknown'}\n`;
+        if (fh.diagnoses && fh.diagnoses.length > 0) {
+          fullContext += `   Conditions: ${fh.diagnoses.map((d: any) => d.description || d.diagnosis).join(', ')}\n`;
+        }
+      });
+      fullContext += `\n`;
+    }
+
+    // Clinical Notes
+    if (patientData.notes && patientData.notes.length > 0) {
+      fullContext += `[CLINICAL_NOTES] (${patientData.notes.length} total)\n`;
+      patientData.notes.slice(0, 5).forEach((note, idx) => {
+        fullContext += `${idx + 1}. ${note.name || 'Clinical Note'}\n`;
+        if (note.created_at) fullContext += `   Date: ${note.created_at}\n`;
+        if (note.created_by) fullContext += `   Provider: ${note.created_by}\n`;
+        if (note.sections) {
+          note.sections.forEach((section: any) => {
+            if (section.name) fullContext += `   ${section.name}\n`;
+          });
+        }
+      });
+      fullContext += `\n`;
+    }
+
+    // Appointments
+    if (patientData.appointments && patientData.appointments.length > 0) {
+      fullContext += `[APPOINTMENTS] (${patientData.appointments.length} total)\n`;
+      patientData.appointments.forEach((appt, idx) => {
+        fullContext += `${idx + 1}. ${appt.title || 'Appointment'}\n`;
+        if (appt.scheduled_at) fullContext += `   Scheduled: ${appt.scheduled_at}\n`;
+        if (appt.provider) fullContext += `   Provider: ${appt.provider}\n`;
+        if (appt.status) fullContext += `   Status: ${appt.status}\n`;
+      });
+      fullContext += `\n`;
+    }
+
+    let historyContext = '';
+    if (conversationHistory && conversationHistory.length > 0) {
+      historyContext = '\n=== CONVERSATION HISTORY ===\n' +
+        conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join('\n') +
+        '\n';
+    }
+
+    const prompt = `${historyContext}
+${fullContext}
+
+=== QUESTION ===
+${query}
+
+=== YOUR TASK ===
+Answer this question using chain-of-thought reasoning. Structure your response as follows:
+
+REASONING:
+[Show your step-by-step thinking process:
+1. What is the question asking?
+2. What data sources do I need to check?
+3. What did I find in each source?
+4. How do I synthesize this information?
+5. What's my confidence level?]
+
+SHORT_ANSWER:
+[1-2 sentence direct answer with key facts]
+
+DETAILED_SUMMARY:
+[Comprehensive answer with:
+- Complete information from the data
+- Specific citations (e.g., "from CARE_PLAN #1: Anxiety")
+- Relevant dates and details
+- Clear statement if any information is unavailable]
+
+Now provide your reasoned response:`;
+
+    try {
+      const response = await this.generate(prompt, systemPrompt, 0.2); // Slightly higher temp for reasoning
+
+      // Parse response
+      const reasoningMatch = response.match(/REASONING:\s*(.+?)(?=\n\s*SHORT_ANSWER:)/s);
+      const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\n\s*DETAILED_SUMMARY:)/s);
+      const detailedMatch = response.match(/DETAILED_SUMMARY:\s*(.+)$/s);
+
+      // Extract reasoning steps
+      const reasoning_chain: string[] = [];
+      if (reasoningMatch) {
+        const reasoningText = reasoningMatch[1].trim();
+        // Split by numbered items or newlines
+        const steps = reasoningText.split(/\n/).filter(line => line.trim().length > 0);
+        reasoning_chain.push(...steps);
+      }
+
+      return {
+        short_answer: shortMatch ? shortMatch[1].trim() : 'Unable to generate answer',
+        detailed_summary: detailedMatch ? detailedMatch[1].trim() : response,
+        reasoning_chain,
+      };
+    } catch (error: any) {
+      console.error('Chain-of-thought reasoning failed:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Extract structured information from text
    */
   async extractStructuredInfo(

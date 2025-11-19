@@ -1775,39 +1775,83 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
       }
     });
 
-    // 3. Generate answer using Ollama with REAL retrieved context
+    // 3. Generate answer using Ollama/Meditron with Chain-of-Thought Reasoning
     let short_answer: string;
     let detailed_summary: string;
+    let reasoning_chain: string[] = [];
+    let reasoning_method = 'unknown';
 
     try {
-      const ollamaResponse = await ollamaService.generateRAGAnswer(
+      console.log('🧠 Attempting chain-of-thought reasoning with Meditron...');
+
+      // Try chain-of-thought reasoning FIRST (provides comprehensive context and multi-step thinking)
+      const cotResponse = await ollamaService.reasonWithChainOfThought(
         query,
-        context,
+        {
+          patient,
+          care_plans,
+          medications,
+          notes,
+          allergies,
+          conditions,
+          vitals,
+          family_history,
+          appointments,
+          documents,
+          form_responses,
+          insurance_policies
+        },
         conversation_history
       );
-      short_answer = ollamaResponse.short_answer;
-      detailed_summary = ollamaResponse.detailed_summary;
-      console.log('✅ Generated answer using Ollama with real patient data');
-    } catch (error: any) {
-      console.warn('⚠️  Ollama unavailable, using structured fallback response');
 
-      // Graceful fallback: Generate intelligent response from structured data
-      short_answer = generateFallbackShortAnswer(query, queryIntent, {
-        patient,
-        care_plans,
-        medications,
-        notes,
-        allergies,
-        conditions,
-        vitals,
-        family_history,
-        appointments,
-        documents,
-        form_responses,
-        insurance_policies
-      });
-      detailed_summary = generateFallbackDetailedSummary(query, queryIntent, { care_plans, medications, notes });
-      console.log('✅ Generated fallback answer using comprehensive structured patient data');
+      short_answer = cotResponse.short_answer;
+      detailed_summary = cotResponse.detailed_summary;
+      reasoning_chain = cotResponse.reasoning_chain;
+      reasoning_method = 'chain_of_thought';
+
+      console.log('✅ Generated answer using chain-of-thought reasoning');
+      console.log(`   📊 Reasoning steps: ${reasoning_chain.length}`);
+      if (reasoning_chain.length > 0) {
+        console.log(`   🔍 Thought process preview: ${reasoning_chain[0].substring(0, 100)}...`);
+      }
+
+    } catch (cotError: any) {
+      console.warn(`⚠️  Chain-of-thought failed: ${cotError.message}, trying standard RAG...`);
+
+      try {
+        // Fallback to standard RAG with prioritized context
+        const ollamaResponse = await ollamaService.generateRAGAnswer(
+          query,
+          context,
+          conversation_history
+        );
+        short_answer = ollamaResponse.short_answer;
+        detailed_summary = ollamaResponse.detailed_summary;
+        reasoning_method = 'standard_rag';
+        console.log('✅ Generated answer using standard RAG with Ollama');
+
+      } catch (ragError: any) {
+        console.warn(`⚠️  Standard RAG failed: ${ragError.message}, using pattern-based fallback`);
+
+        // Final fallback: Pattern-based structured response
+        short_answer = generateFallbackShortAnswer(query, queryIntent, {
+          patient,
+          care_plans,
+          medications,
+          notes,
+          allergies,
+          conditions,
+          vitals,
+          family_history,
+          appointments,
+          documents,
+          form_responses,
+          insurance_policies
+        });
+        detailed_summary = generateFallbackDetailedSummary(query, queryIntent, { care_plans, medications, notes });
+        reasoning_method = 'pattern_fallback';
+        console.log('⚠️  Using pattern-based fallback (Ollama unavailable)');
+      }
     }
 
     // 4. Extract structured information from REAL data with CORRECT API fields
@@ -1888,10 +1932,14 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
         overall: Math.min(0.95, queryIntent.confidence / 100 + 0.2),
         breakdown: {
           retrieval: 0.90,
-          reasoning: 0.82,
+          reasoning: reasoning_method === 'chain_of_thought' ? 0.92 : (reasoning_method === 'standard_rag' ? 0.82 : 0.70),
           extraction: 0.83,
         },
-        explanation: `Answer generated from ${artifacts_searched} real patient records via Avon Health API`,
+        explanation: reasoning_method === 'chain_of_thought'
+          ? `Answer generated using chain-of-thought reasoning from ${artifacts_searched} real patient records via Avon Health API`
+          : (reasoning_method === 'standard_rag'
+            ? `Answer generated from ${artifacts_searched} real patient records via Avon Health API`
+            : `Answer generated using pattern-based fallback from ${artifacts_searched} real patient records`),
       },
       metadata: {
         patient_id,
@@ -1900,6 +1948,8 @@ router.post('/query', async (req: Request, res: Response): Promise<void> => {
         artifacts_searched,
         chunks_retrieved: provenance.length,
         detail_level: options.detail_level || 3,
+        reasoning_method, // NEW: Shows which method was used (chain_of_thought, standard_rag, pattern_fallback)
+        reasoning_chain, // NEW: Shows Meditron's step-by-step thought process
       },
     };
 
