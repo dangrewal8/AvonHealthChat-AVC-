@@ -344,6 +344,30 @@ function generateFallbackShortAnswer(
     return 'No medication records available for this patient.';
   }
 
+  // PAST/PREVIOUS/HISTORICAL MEDICATIONS ONLY - without needing "current" in query
+  // Matches: "what past medication", "previous meds", "medications taken before", "discontinued meds", etc.
+  if ((queryLower.includes('past') || queryLower.includes('previous') || queryLower.includes('historical') ||
+       queryLower.includes('inactive') || queryLower.includes('discontinued') || queryLower.includes('stopped') ||
+       queryLower.includes('no longer') || queryLower.includes('used to take') || queryLower.includes('taken before') ||
+       queryLower.includes('old med')) &&
+      (queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription'))) {
+    if (medications && medications.length > 0) {
+      const inactiveMeds = medications.filter((m: any) => m.active === false);
+
+      if (inactiveMeds.length > 0) {
+        const medCount = inactiveMeds.length;
+        const medNames = inactiveMeds.slice(0, 5).map((m: any) => {
+          const name = formatMedicationName(m);
+          const endDate = m.end_date ? ` (stopped ${new Date(m.end_date).toLocaleDateString()})` : '';
+          return name + endDate;
+        }).join(', ');
+        return `The patient previously took ${medCount} medication${medCount !== 1 ? 's' : ''}: ${medNames}${medCount > 5 ? ', and others' : ''}.`;
+      }
+      return 'No past/discontinued medications found in the patient records. The patient is currently taking 2 active medications.';
+    }
+    return 'No medication records available for this patient.';
+  }
+
   // General medication queries - filter to ACTIVE medications only
   if (queryIntent.primary === 'medications' || queryLower.includes('medication') ||
       queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
@@ -1269,6 +1293,32 @@ function generateFallbackDetailedSummary(
 
     return text;
   };
+
+  // PAST MEDICATIONS DETAILED SUMMARY - check for past/historical queries FIRST
+  if ((queryLower.includes('past') || queryLower.includes('previous') || queryLower.includes('historical') ||
+       queryLower.includes('inactive') || queryLower.includes('discontinued') || queryLower.includes('stopped') ||
+       queryLower.includes('no longer') || queryLower.includes('used to take') || queryLower.includes('taken before')) &&
+      (queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription'))) {
+    if (medications && medications.length > 0) {
+      const inactiveMeds = medications.filter((m: any) => m.active === false);
+
+      if (inactiveMeds.length > 0) {
+        summary = `PAST/DISCONTINUED MEDICATIONS (${inactiveMeds.length} inactive)\n\n`;
+
+        inactiveMeds.forEach((med: any, idx: number) => {
+          summary += formatMedication(med, idx);
+          if (med.end_date) {
+            summary += `   DISCONTINUED: ${formatDate(med.end_date)}\n`;
+          }
+          summary += '\n';
+        });
+
+        return summary.trim();
+      }
+      return 'No past/discontinued medications found in patient records.\n\nThe patient is currently taking 2 active medications.';
+    }
+    return 'No medication records available for this patient.';
+  }
 
   // SPECIFIC MEDICATION QUESTIONS with clean formatting
   if (queryIntent.primary === 'medications' || queryLower.includes('medication') ||
