@@ -214,6 +214,231 @@ export interface NoteAnswer {
   [key: string]: any;  // Various fields depending on answer type
 }
 
+/**
+ * EXPANDED AVON HEALTH API TYPES
+ * Additional endpoints for comprehensive query support
+ */
+
+export interface Patient {
+  id: string;
+  object: string;
+  mrn: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  gender: string;
+  email: string;
+  phone: string;
+  date_of_birth: string;
+  ssn: string;
+  caregiver: string;
+  caregiver_only: boolean;
+  timezone: string;
+  created_by: string;
+  created_at: string;
+  last_updated_at: string;
+  account: string;
+  race: string | null;
+  ethnicity: string | null;
+  preferred_language: string | null;
+  sex: string | null;
+  sexual_orientation: string | null;
+  preferred_name: string;
+  pronouns: string | null;
+  note: string | null;
+  has_no_known_allergies: boolean | null;
+  alternate_phone: string | null;
+  copay: number | null;
+  status_history: any[];
+  addresses: any[];
+  custom_data: any;
+  emergency_contacts: any[];
+  guarantors: any[];
+  medical_centers: any[];
+  care_team_members: any[];
+  peer_groups: any[];
+  caregivers: any[];
+  external_accounts: any;
+}
+
+export interface Allergy {
+  id: string;
+  object: string;
+  patient: string;
+  source: string | null;
+  name: string;
+  code_type: string | null;
+  code: string | null;
+  severity: string | null;
+  reaction_type: string | null;
+  reaction: string | null;
+  active: boolean;
+  onset_date: string | null;
+  comment: string | null;
+  created_by: string;
+  created_at: string;
+  last_updated_at: string;
+  account: string;
+  end_date: string | null;
+  allergen_id: string | null;
+  external_accounts: {
+    dosespot?: string | null;
+    [key: string]: any;
+  };
+}
+
+export interface Condition {
+  id: string;
+  object: string;
+  patient: string;
+  source: string | null;
+  name: string;
+  active: boolean;
+  onset_date: string | null;
+  end_date: string | null;
+  comment: string | null;
+  created_by: string;
+  created_at: string;
+  last_updated_at: string;
+  account: string;
+  description: string | null;
+}
+
+export interface Vitals {
+  id: string;
+  object: string;
+  patient: string;
+  source: string | null;
+  height: string | null;
+  weight: string | null;
+  blood_pressure: string | null;
+  temperature: string | null;
+  pulse: string | null;
+  respiratory_rate: string | null;
+  oxygen_saturation: string | null;
+  pain: string | null;
+  comment: string | null;
+  created_by: string;
+  created_at: string;
+  last_updated_at: string;
+  account: string;
+}
+
+export interface FamilyHistory {
+  id: string;
+  object: string;
+  patient: string;
+  source: string | null;
+  relationship: string;
+  diagnoses: Array<{
+    id: string;
+    active: boolean;
+    end_date: string | null;
+    diagnosis: string;
+    onset_date: string | null;
+    description: string;
+  }>;
+  comment: string | null;
+  created_by: string;
+  created_at: string;
+  last_updated_at: string;
+  account: string;
+}
+
+export interface Appointment {
+  id: string;
+  object: string;
+  generated_from: string | null;
+  generated_from_type: string | null;
+  appointment_type: string;
+  name: string;
+  description: string;
+  group: boolean;
+  internal: boolean;
+  start_time: string;
+  end_time: string;
+  actual_start_time: string | null;
+  actual_end_time: string | null;
+  host: string;
+  reference_patients: any[];
+  charged_externally: boolean | null;
+  interaction_type: string;
+  visit_note: string | null;
+  insurance_claim: string | null;
+  created_by: string;
+  created_at: string;
+  last_updated_at: string;
+  account: string;
+  timezone: string | null;
+  external_id: string | null;
+  service_facility: string | null;
+  attendees: any[];
+  video_call: any | null;
+  status_history: any[];
+  recurrence_rules: any[];
+  location: any | null;
+  type: string | null;
+  recurrenceId: string | null;
+  patient: string | null;
+  charged_while_booking: boolean;
+  charge_after_appointment: boolean;
+  insurance_claims: any[];
+}
+
+export interface Document {
+  id: string;
+  object: string;
+  patient: string;
+  sections: any[];
+  score: number;
+  type: string;
+  document_template: string;
+  document_template_version: string;
+  name: string;
+  filename: string | null;
+  file: string | null;
+  share_with_patient: boolean | null;
+  created_by: string;
+  created_at: string;
+  last_updated_at: string;
+  account: string;
+  is_entered_in_error: boolean | null;
+  external_id: string | null;
+  use_letterhead: boolean | null;
+  signers: any[];
+  reviews: any[];
+  comments: any[];
+  addendums: any[];
+  tags: any[];
+  entered_in_error: any;
+}
+
+export interface FormResponse {
+  id: string;
+  object: string;
+  patient: string;
+  score: number;
+  form: string;
+  form_version: string;
+  sections: any[];
+  created_by: string;
+  created_at: string;
+  last_updated_at: string;
+  account: string;
+}
+
+export interface InsurancePolicy {
+  id: string;
+  object: string;
+  patient: string;
+  type: string;
+  created_by: string;
+  created_at: string;
+  last_updated_at: string;
+  account: string;
+  [key: string]: any;
+}
+
 // ============================================================================
 // Vector Database Types
 // ============================================================================

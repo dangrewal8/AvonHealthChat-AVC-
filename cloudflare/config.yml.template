@@ -1,0 +1,98 @@
+# ============================================================================
+# Cloudflare Tunnel Configuration Template
+# ============================================================================
+#
+# INSTRUCTIONS:
+# 1. Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
+# 2. Authenticate: cloudflared tunnel login
+# 3. Create tunnel: cloudflared tunnel create avon-health-chat
+# 4. Copy this file to ~/.cloudflared/config.yml
+# 5. Replace YOUR-TUNNEL-ID with your actual tunnel ID from step 3
+# 6. Replace YOUR-CREDENTIALS-PATH with actual path from step 3
+# 7. Replace yourdomain.com with your actual domain
+# 8. Configure DNS: cloudflared tunnel route dns avon-health-chat chat.yourdomain.com
+# 9. Configure DNS: cloudflared tunnel route dns avon-health-chat api.yourdomain.com
+# 10. Test: cloudflared tunnel run avon-health-chat
+#
+# ============================================================================
+
+# Your tunnel ID (get this after running: cloudflared tunnel create avon-health-chat)
+tunnel: YOUR-TUNNEL-ID
+
+# Path to credentials file (usually in ~/.cloudflared/)
+credentials-file: /home/YOUR-USERNAME/.cloudflared/YOUR-TUNNEL-ID.json
+
+# Ingress rules - define how traffic is routed
+ingress:
+  # ============================================================================
+  # Frontend - React App (Vite Preview Server)
+  # ============================================================================
+  # This serves the built frontend on port 4173
+  # Users access the app at: https://chat.yourdomain.com
+
+  - hostname: chat.yourdomain.com
+    service: http://localhost:4173
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+      http2Origin: false
+
+  # ============================================================================
+  # Backend API - Express Server
+  # ============================================================================
+  # This serves the backend API on port 3001
+  # Frontend makes API calls to: https://api.yourdomain.com
+
+  - hostname: api.yourdomain.com
+    service: http://localhost:3001
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+      http2Origin: false
+
+  # ============================================================================
+  # Catch-all Rule (REQUIRED)
+  # ============================================================================
+  # This handles any requests that don't match the above rules
+
+  - service: http_status:404
+
+# ============================================================================
+# Optional: Logging Configuration
+# ============================================================================
+# Uncomment to enable detailed logging
+
+# loglevel: info
+# transport-loglevel: warn
+
+# ============================================================================
+# Optional: Metrics Configuration
+# ============================================================================
+# Uncomment to enable prometheus metrics endpoint
+
+# metrics: localhost:2000
+
+# ============================================================================
+# Notes:
+# ============================================================================
+#
+# 1. Port Numbers:
+#    - Frontend (Vite preview): 4173
+#    - Backend (Express): 3001
+#
+# 2. Domain Names:
+#    - Replace 'yourdomain.com' with your actual domain
+#    - chat.yourdomain.com ’ Frontend
+#    - api.yourdomain.com ’ Backend API
+#
+# 3. Security:
+#    - Cloudflare provides automatic HTTPS
+#    - DDoS protection included
+#    - No need to open firewall ports
+#
+# 4. Free Subdomain Option:
+#    - If you don't have a domain, use Cloudflare's free subdomain
+#    - Example: avon-health-chat.trycloudflare.com
+#    - Configure during tunnel setup
+#
+# ============================================================================

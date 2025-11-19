@@ -26,9 +26,10 @@ export function Login({ onLogin }: LoginProps) {
     // Simulate slight delay for better UX
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Hardcoded credentials (since .env is excluded from Docker build)
-    const validUsername = 'admin';
-    const validPassword = 'pbOUAByKyzf2MRhhFbgcjidUMlqWzhQE';
+    // Get credentials from environment variables
+    // These are set in .env.production or .env.local files
+    const validUsername = import.meta.env.VITE_ADMIN_USERNAME || 'admin';
+    const validPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'pbOUAByKyzf2MRhhFbgcjidUMlqWzhQE';
 
     if (username === validUsername && password === validPassword) {
       // Store auth in localStorage (persists forever - never expires)
