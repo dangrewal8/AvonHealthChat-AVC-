@@ -363,11 +363,46 @@ Provide: "Patient has Type 2 Diabetes (CARE_PLAN #3, created by Dr. Sarah Smith 
 
 CLINICAL NARRATIVE (Connect the dots):
 - Timeline: Show progression of events
-- Relationships: Connect medications to conditions
+- Relationships: Connect medications to conditions they treat
 - Treatment effectiveness: Note improvements or concerns
 - Provider coordination: Who's involved in care
 - Patient adherence: Evidence from records
 - Next steps: Follow-ups scheduled or needed
+
+⚠️ CRITICAL: ALWAYS MAKE DATA CONNECTIONS
+Never provide isolated facts. Always connect related information:
+
+1. **Medications → Conditions**: When mentioning a medication, state what condition it treats
+   - Example: "Metformin 500mg (for Type 2 Diabetes)" NOT just "Metformin 500mg"
+   - Infer from medication class if diagnosis not explicit (e.g., "Lisinopril (ACE inhibitor for blood pressure control)")
+
+2. **Conditions → Treatments**: When discussing a diagnosis, mention current treatments
+   - Example: "Type 2 Diabetes, currently managed with Metformin 500mg twice daily since March 15, 2024"
+
+3. **Vitals → Conditions**: Link vital signs to related conditions
+   - Example: "BP 140/90 mmHg (elevated, patient has hypertension diagnosis)"
+
+4. **Notes → Context**: Pull key information from clinical notes
+   - Extract: Chief complaint, diagnoses mentioned, treatment plans, follow-up needed
+   - Example: "March 20 visit: Patient reported improved blood sugar control, A1C decreased from 8.5 to 7.2"
+
+5. **Lab Work → Diagnoses**: If lab results mentioned in notes, connect to conditions
+   - Example: "Recent labs show HbA1c 7.2% (improved from 8.5%), consistent with diabetes management"
+
+6. **Allergies → Medication Choices**: Note if allergies affect treatment options
+   - Example: "Patient allergic to Penicillin (reported hives), currently on Azithromycin for infection"
+
+7. **Family History → Risk**: Connect family history to patient's conditions or screening needs
+   - Example: "Mother had Type 2 Diabetes; patient now diagnosed with same condition"
+
+COMPREHENSIVE ANSWER STRUCTURE:
+For any health-related question, provide:
+1. **Direct Answer** with human-readable terms (not codes)
+2. **Clinical Context**: Why does patient have this? When did it start?
+3. **Current Management**: What treatments/medications are active?
+4. **Timeline**: Progression over time, key dates
+5. **Provider Notes**: What has the care team documented?
+6. **Patient Status**: Active vs resolved, improving vs stable vs declining
 
 Examples of GOOD vs BAD answers:
 
@@ -492,6 +527,17 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
     fullContext += `✓ Insurance: ${patientData.insurance_policies?.length || 0} policies\n`;
     fullContext += `\n⚠️  NOT AVAILABLE: Lab results, imaging/radiology, procedures (may be mentioned in notes)\n\n`;
 
+    fullContext += `[CRITICAL INSTRUCTIONS FOR COMPREHENSIVE ANSWERS]\n`;
+    fullContext += `🔗 ALWAYS CONNECT RELATED DATA:\n`;
+    fullContext += `• When mentioning medications → state the condition they treat\n`;
+    fullContext += `• When discussing conditions → mention active treatments\n`;
+    fullContext += `• When showing vitals → relate to relevant diagnoses\n`;
+    fullContext += `• When referencing notes → extract key clinical information\n`;
+    fullContext += `• Provide CONTEXT, not just isolated facts\n`;
+    fullContext += `• Use HUMAN-READABLE names (never just codes/IDs)\n`;
+    fullContext += `• Show TIMELINES and progression when relevant\n`;
+    fullContext += `• Include provider names and documentation dates\n\n`;
+
     // Patient Demographics
     if (patientData.patient) {
       const p = patientData.patient;
@@ -568,26 +614,47 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
 
     // Allergies
     if (patientData.allergies && patientData.allergies.length > 0) {
-      fullContext += `[ALLERGIES] (${patientData.allergies.length} total)\n`;
-      patientData.allergies.forEach((allergy, idx) => {
-        fullContext += `${idx + 1}. ${allergy.allergen || 'Unknown allergen'}\n`;
+      const activeAllergies = patientData.allergies.filter((a: any) => a.active !== false);
+      fullContext += `[ALLERGIES] (${activeAllergies.length} active, ${patientData.allergies.length} total)\n`;
+      activeAllergies.forEach((allergy, idx) => {
+        const allergen = allergy.name || allergy.allergen || 'Unknown allergen';
+        fullContext += `${idx + 1}. ${allergen}`;
+        if (allergy.severity) fullContext += ` - Severity: ${allergy.severity}`;
+        fullContext += `\n`;
         if (allergy.reaction) fullContext += `   Reaction: ${allergy.reaction}\n`;
-        if (allergy.severity) fullContext += `   Severity: ${allergy.severity}\n`;
-        if (allergy.status) fullContext += `   Status: ${allergy.status}\n`;
+        if (allergy.onset_date) fullContext += `   Onset: ${allergy.onset_date}\n`;
+        if (allergy.note || allergy.comment) fullContext += `   Note: ${allergy.note || allergy.comment}\n`;
+        fullContext += `   ⚠️ CONTRAINDICATION: Avoid prescribing related medications\n`;
       });
       fullContext += `\n`;
     }
 
     // Vitals
     if (patientData.vitals && patientData.vitals.length > 0) {
-      fullContext += `[VITAL_SIGNS] (${patientData.vitals.length} recordings)\n`;
+      fullContext += `[VITAL_SIGNS] (${patientData.vitals.length} recordings - most recent first)\n`;
+      fullContext += `Use these to identify trends, assess condition severity, and treatment effectiveness\n\n`;
+
       patientData.vitals.slice(0, 10).forEach((vital, idx) => {
-        fullContext += `${idx + 1}. Date: ${vital.recorded_at || vital.created_at || 'Unknown'}\n`;
-        if (vital.blood_pressure) fullContext += `   BP: ${vital.blood_pressure}\n`;
-        if (vital.heart_rate) fullContext += `   HR: ${vital.heart_rate} bpm\n`;
-        if (vital.temperature) fullContext += `   Temp: ${vital.temperature}\n`;
-        if (vital.weight) fullContext += `   Weight: ${vital.weight}\n`;
-        if (vital.height) fullContext += `   Height: ${vital.height}\n`;
+        fullContext += `${idx + 1}. ${vital.recorded_at || vital.created_at || 'Date unknown'}`;
+        if (vital.created_by) fullContext += ` (by ${vital.created_by})`;
+        fullContext += `\n`;
+
+        // Group related vitals together
+        if (vital.blood_pressure || vital.heart_rate) {
+          fullContext += `   Cardiovascular:\n`;
+          if (vital.blood_pressure) fullContext += `     • BP: ${vital.blood_pressure} mmHg\n`;
+          if (vital.heart_rate) fullContext += `     • HR: ${vital.heart_rate} bpm\n`;
+        }
+
+        if (vital.temperature) fullContext += `   Temperature: ${vital.temperature}°F\n`;
+        if (vital.respiratory_rate) fullContext += `   Respiratory Rate: ${vital.respiratory_rate} breaths/min\n`;
+        if (vital.oxygen_saturation) fullContext += `   O2 Saturation: ${vital.oxygen_saturation}%\n`;
+
+        if (vital.weight || vital.height) {
+          fullContext += `   Physical:\n`;
+          if (vital.weight) fullContext += `     • Weight: ${vital.weight}\n`;
+          if (vital.height) fullContext += `     • Height: ${vital.height}\n`;
+        }
       });
       fullContext += `\n`;
     }
@@ -606,16 +673,32 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
 
     // Clinical Notes
     if (patientData.notes && patientData.notes.length > 0) {
-      fullContext += `[CLINICAL_NOTES] (${patientData.notes.length} total)\n`;
+      fullContext += `[CLINICAL_NOTES] (${patientData.notes.length} total - most recent first)\n`;
       patientData.notes.slice(0, 5).forEach((note, idx) => {
-        fullContext += `${idx + 1}. ${note.name || 'Clinical Note'}\n`;
-        if (note.created_at) fullContext += `   Date: ${note.created_at}\n`;
+        fullContext += `${idx + 1}. ${note.name || 'Clinical Note'} - ${note.created_at || 'Date unknown'}\n`;
         if (note.created_by) fullContext += `   Provider: ${note.created_by}\n`;
-        if (note.sections) {
+
+        // Extract meaningful content from sections
+        if (note.sections && Array.isArray(note.sections)) {
           note.sections.forEach((section: any) => {
-            if (section.name) fullContext += `   ${section.name}\n`;
+            if (section.name) fullContext += `   📋 ${section.name}:\n`;
+
+            // Extract answers from section
+            if (section.answers && Array.isArray(section.answers)) {
+              section.answers.forEach((answer: any) => {
+                if (answer.value || answer.text) {
+                  const answerText = answer.value || answer.text;
+                  if (answer.name) {
+                    fullContext += `      • ${answer.name}: ${answerText}\n`;
+                  } else {
+                    fullContext += `      • ${answerText}\n`;
+                  }
+                }
+              });
+            }
           });
         }
+        fullContext += `\n`;
       });
       fullContext += `\n`;
     }
