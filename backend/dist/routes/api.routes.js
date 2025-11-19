@@ -318,20 +318,20 @@ function generateFallbackShortAnswer(query, queryIntent, data) {
         }
         return 'No medication records available for this patient.';
     }
-    // General medication queries - filter to ACTIVE medications only
-    if (queryIntent.primary === 'medications' || queryLower.includes('medication') ||
-        queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
-        if (medications && medications.length > 0) {
-            // CRITICAL: Only show ACTIVE medications when asking "what is the patient taking"
-            const activeMeds = medications.filter((m) => m.active === true);
-            if (activeMeds.length > 0) {
-                const medCount = activeMeds.length;
-                const medNames = activeMeds.slice(0, 3).map((m) => formatMedicationName(m)).join(', ');
-                return `The patient is currently taking ${medCount} medication${medCount > 1 ? 's' : ''}, including ${medNames}${medCount > 3 ? ', and others' : ''}.`;
-            }
-            return 'The patient is not currently taking any active medications.';
+    // CRITICAL FIX: Check if this is a condition/diagnosis query FIRST
+    // Word boundary regex prevents "medical" from matching medication patterns
+    const isMedicationQuery = queryIntent.primary === 'medications' ||
+        /\b(med|meds|medication|medications|medicine|drug|drugs|pill|prescription)\b/i.test(queryLower);
+    const isConditionQuery = queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' ||
+        /\b(condition|conditions|diagnosis|diagnoses|disease|disorder|illness|health issue)\b/i.test(queryLower);
+    // General care plan / diagnosis queries (CHECK FIRST to prevent false medication matches)
+    if (isConditionQuery) {
+        if (care_plans && care_plans.length > 0) {
+            const planCount = care_plans.length;
+            const planTitles = care_plans.slice(0, 3).map((cp) => cp.name).join(', ');
+            return `The patient has ${planCount} care plan${planCount > 1 ? 's' : ''}: ${planTitles}${planCount > 3 ? ', and others' : ''}.`;
         }
-        return 'No medications found in the patient records.';
+        return 'No care plans found in the patient records.';
     }
     // SPECIFIC CARE PLAN QUESTIONS
     // "Does the patient have [condition]?" or "Is there a care plan for [condition]?"
@@ -360,15 +360,20 @@ function generateFallbackShortAnswer(query, queryIntent, data) {
         }
         return 'No care plans found.';
     }
-    // General care plan / diagnosis queries
-    if (queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' ||
-        queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
-        if (care_plans && care_plans.length > 0) {
-            const planCount = care_plans.length;
-            const planTitles = care_plans.slice(0, 3).map((cp) => cp.name).join(', ');
-            return `The patient has ${planCount} care plan${planCount > 1 ? 's' : ''}: ${planTitles}${planCount > 3 ? ', and others' : ''}.`;
+    // General medication queries - filter to ACTIVE medications only
+    // Only match if it's actually a medication query AND NOT a condition query
+    if (isMedicationQuery && !isConditionQuery) {
+        if (medications && medications.length > 0) {
+            // CRITICAL: Only show ACTIVE medications when asking "what is the patient taking"
+            const activeMeds = medications.filter((m) => m.active === true);
+            if (activeMeds.length > 0) {
+                const medCount = activeMeds.length;
+                const medNames = activeMeds.slice(0, 3).map((m) => formatMedicationName(m)).join(', ');
+                return `The patient is currently taking ${medCount} medication${medCount > 1 ? 's' : ''}, including ${medNames}${medCount > 3 ? ', and others' : ''}.`;
+            }
+            return 'The patient is not currently taking any active medications.';
         }
-        return 'No care plans found in the patient records.';
+        return 'No medications found in the patient records.';
     }
     // SPECIFIC CLINICAL NOTE QUESTIONS
     // "What did the doctor say about [topic]?" or "What was noted about [topic]?"
@@ -1012,15 +1017,17 @@ function generateFallbackDetailedSummary(query, queryIntent, data) {
         // Use a more comprehensive approach for detailed summaries
         const summaryParts = [];
         // Check what types of data are requested
-        const includesMeds = queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription');
-        const includesCarePlans = queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis');
-        const includesNotes = queryLower.includes('note') || queryLower.includes('visit') || queryLower.includes('history');
+        // CRITICAL FIX: Use word boundary regex to prevent "medical" from matching "med"
+        const includesMeds = /\b(med|meds|medication|medications|medicine|drug|drugs|pill|prescription)\b/i.test(queryLower);
+        const includesCarePlans = /\b(care plan|condition|conditions|diagnosis|diagnoses|disease|disorder)\b/i.test(queryLower);
+        const includesNotes = /\b(note|notes|visit|history|chart|record)\b/i.test(queryLower);
         // Add relevant sections based on what's in the query
-        if (includesMeds && medications && medications.length > 0) {
-            summaryParts.push('=== MEDICATIONS ===\n' + formatMedicationsSummary(medications));
-        }
+        // PRIORITY: If both conditions and medications match, prioritize conditions
         if (includesCarePlans && care_plans && care_plans.length > 0) {
             summaryParts.push('=== CARE PLANS ===\n' + formatCarePlansSummary(care_plans));
+        }
+        if (includesMeds && !includesCarePlans && medications && medications.length > 0) {
+            summaryParts.push('=== MEDICATIONS ===\n' + formatMedicationsSummary(medications));
         }
         if (includesNotes && notes && notes.length > 0) {
             summaryParts.push('=== CLINICAL NOTES ===\n' + formatNotesSummary(notes));
@@ -1228,9 +1235,24 @@ function generateFallbackDetailedSummary(query, queryIntent, data) {
         }
         return 'No medication records available for this patient.';
     }
-    // SPECIFIC MEDICATION QUESTIONS with clean formatting
-    if (queryIntent.primary === 'medications' || queryLower.includes('medication') ||
-        queryLower.includes('med') || queryLower.includes('drug') || queryLower.includes('prescription')) {
+    // CRITICAL FIX: Define query patterns with word boundaries
+    const isMedQuery = queryIntent.primary === 'medications' ||
+        /\b(med|meds|medication|medications|medicine|drug|drugs|pill|prescription)\b/i.test(queryLower);
+    const isCondQuery = queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' ||
+        /\b(care plan|condition|conditions|diagnosis|diagnoses|disease|disorder)\b/i.test(queryLower);
+    // SPECIFIC CARE PLAN QUESTIONS with clean formatting (CHECK FIRST to prevent false medication matches)
+    if (isCondQuery) {
+        if (care_plans && care_plans.length > 0) {
+            summary = `CARE PLANS (${care_plans.length} total)\n\n`;
+            care_plans.forEach((cp, idx) => {
+                summary += formatCarePlan(cp, idx) + '\n';
+            });
+            return summary.trim();
+        }
+        return 'No care plans found in patient records.';
+    }
+    // SPECIFIC MEDICATION QUESTIONS with clean formatting (only if NOT a condition query)
+    if (isMedQuery && !isCondQuery) {
         if (medications && medications.length > 0) {
             // CRITICAL: Only show ACTIVE medications for "current medications" questions
             const activeMeds = medications.filter((m) => m.active === true);
@@ -1245,18 +1267,6 @@ function generateFallbackDetailedSummary(query, queryIntent, data) {
             return 'No active medications found. Patient is not currently taking any medications.';
         }
         return 'No medications found in patient records.';
-    }
-    // SPECIFIC CARE PLAN QUESTIONS with clean formatting
-    if (queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' ||
-        queryLower.includes('care plan') || queryLower.includes('condition') || queryLower.includes('diagnosis')) {
-        if (care_plans && care_plans.length > 0) {
-            summary = `CARE PLANS (${care_plans.length} total)\n\n`;
-            care_plans.forEach((cp, idx) => {
-                summary += formatCarePlan(cp, idx) + '\n';
-            });
-            return summary.trim();
-        }
-        return 'No care plans found in patient records.';
     }
     // SPECIFIC CLINICAL NOTE QUESTIONS with clean formatting
     if (queryIntent.primary === 'history' || queryLower.includes('note') ||
