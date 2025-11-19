@@ -442,11 +442,11 @@ MULTI-SOURCE SYNTHESIS RULES:
 
 AVAILABLE DATA SOURCES & FIELD MAPPING:
 - patient: Demographics (name, DOB, gender, contact info)
-- care_plans: Diagnosed conditions, treatment plans, diagnoses
+- conditions: Medical diagnoses, conditions, diseases (PRIMARY source for "what conditions does patient have")
+- care_plans: Treatment/care management plans, ongoing care coordination (NOT the same as diagnoses)
 - medications: Current prescriptions (active=true), past medications (active=false), dosages, instructions
 - notes: Clinical encounter notes, provider observations, visit summaries
 - allergies: Known allergies, reactions, severity
-- conditions: Medical diagnoses, active/inactive status
 - vitals: Blood pressure, heart rate, temperature, weight, height, O2 sat, respiratory rate
 - family_history: Genetic/hereditary conditions, family member diagnoses
 - appointments: Scheduled visits, past appointments, providers
@@ -454,17 +454,22 @@ AVAILABLE DATA SOURCES & FIELD MAPPING:
 - form_responses: Patient-completed questionnaires
 - insurance_policies: Coverage information
 
+⚠️ CRITICAL DISTINCTION:
+- conditions = Actual medical diagnoses (diabetes, hypertension, etc.)
+- care_plans = Treatment/management plans for those conditions
+- When asked "what conditions does patient have", use CONDITIONS first, NOT care_plans!
+
 QUESTION-TO-DATA MAPPING (help user find what they need):
 - "lab results" → Check vitals (closest), notes (may mention), or state "not available"
 - "test results" → Check notes, vitals, or state "not available"
 - "imaging/x-rays" → Check notes (may reference), documents, or state "not available"
 - "procedures" → Check notes (may document), care plans, or state "not available"
-- "diagnoses/conditions" → Check care_plans (primary), conditions, medications (can infer)
+- "diagnoses/conditions/diseases" → Check conditions (PRIMARY), medications (can infer), care_plans (may mention)
 - "symptoms" → Check notes (patient reports), vitals (objective findings)
 - "provider/doctor" → Check care_plans.created_by, medications.created_by, notes.created_by
-- "treatment plan" → Check care_plans, medications, notes
-- "medical history" → Check care_plans, medications (timeline), notes
-- "current health status" → Synthesize care_plans + medications + recent vitals
+- "treatment plan" → Check care_plans (PRIMARY), medications, notes
+- "medical history" → Check conditions (diagnoses), medications (timeline), notes, care_plans
+- "current health status" → Synthesize conditions + medications + recent vitals + care_plans
 
 You must think step-by-step, be honest about gaps, and help users find relevant information even when exact match isn't available.`;
 
@@ -475,6 +480,7 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
     fullContext += `[DATA AVAILABILITY SUMMARY]\n`;
     fullContext += `✓ Patient Demographics: ${patientData.patient ? 'Available' : 'Not available'}\n`;
     fullContext += `✓ Care Plans: ${patientData.care_plans?.length || 0} records\n`;
+    fullContext += `✓ Conditions/Diagnoses: ${patientData.conditions?.length || 0} records (PRIMARY source for medical conditions)\n`;
     fullContext += `✓ Medications: ${patientData.medications?.length || 0} records (${patientData.medications?.filter((m: any) => m.active).length || 0} active, ${patientData.medications?.filter((m: any) => !m.active).length || 0} inactive)\n`;
     fullContext += `✓ Clinical Notes: ${patientData.notes?.length || 0} records\n`;
     fullContext += `✓ Allergies: ${patientData.allergies?.length || 0} records\n`;
@@ -497,15 +503,31 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
       fullContext += `Phone: ${p.phone_number || 'Not recorded'}\n\n`;
     }
 
-    // Care Plans (Conditions/Diagnoses)
+    // Care Plans (treatment plans, care management)
     if (patientData.care_plans && patientData.care_plans.length > 0) {
-      fullContext += `[CARE_PLANS] (${patientData.care_plans.length} total)\n`;
+      fullContext += `[CARE_PLANS] (${patientData.care_plans.length} total) - Treatment/care management plans\n`;
       patientData.care_plans.forEach((cp, idx) => {
         fullContext += `${idx + 1}. ${cp.name || 'Untitled'}\n`;
         if (cp.description) fullContext += `   Description: ${cp.description}\n`;
         if (cp.created_at) fullContext += `   Created: ${cp.created_at}\n`;
         if (cp.created_by) fullContext += `   Created by: ${cp.created_by}\n`;
         fullContext += `   ID: ${cp.id}\n`;
+      });
+      fullContext += `\n`;
+    }
+
+    // Conditions/Diagnoses (PRIMARY source for medical conditions)
+    if (patientData.conditions && patientData.conditions.length > 0) {
+      fullContext += `[CONDITIONS/DIAGNOSES] (${patientData.conditions.length} total) - PRIMARY source for medical conditions\n`;
+      patientData.conditions.forEach((condition, idx) => {
+        fullContext += `${idx + 1}. ${condition.name || 'Unnamed condition'}\n`;
+        if (condition.code) fullContext += `   Code: ${condition.code}\n`;
+        if (condition.status) fullContext += `   Status: ${condition.status}\n`;
+        if (condition.onset_date) fullContext += `   Onset: ${condition.onset_date}\n`;
+        if (condition.recorded_date) fullContext += `   Recorded: ${condition.recorded_date}\n`;
+        if (condition.severity) fullContext += `   Severity: ${condition.severity}\n`;
+        if (condition.note) fullContext += `   Note: ${condition.note}\n`;
+        fullContext += `   ID: ${condition.id}\n`;
       });
       fullContext += `\n`;
     }

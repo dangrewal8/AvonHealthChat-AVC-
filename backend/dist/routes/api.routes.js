@@ -324,14 +324,21 @@ function generateFallbackShortAnswer(query, queryIntent, data) {
         /\b(med|meds|medication|medications|medicine|drug|drugs|pill|prescription)\b/i.test(queryLower);
     const isConditionQuery = queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' ||
         /\b(condition|conditions|diagnosis|diagnoses|disease|disorder|illness|health issue)\b/i.test(queryLower);
-    // General care plan / diagnosis queries (CHECK FIRST to prevent false medication matches)
+    // General condition / diagnosis queries (CHECK CONDITIONS FIRST!)
     if (isConditionQuery) {
+        // PRIORITY 1: Check actual conditions/diagnoses
+        if (conditions && conditions.length > 0) {
+            const conditionCount = conditions.length;
+            const conditionNames = conditions.slice(0, 3).map((c) => c.name || 'Unnamed condition').join(', ');
+            return `The patient has ${conditionCount} diagnosed condition${conditionCount > 1 ? 's' : ''}: ${conditionNames}${conditionCount > 3 ? ', and others' : ''}.`;
+        }
+        // FALLBACK: If no conditions data, check care plans (less specific)
         if (care_plans && care_plans.length > 0) {
             const planCount = care_plans.length;
             const planTitles = care_plans.slice(0, 3).map((cp) => cp.name).join(', ');
             return `The patient has ${planCount} care plan${planCount > 1 ? 's' : ''}: ${planTitles}${planCount > 3 ? ', and others' : ''}.`;
         }
-        return 'No care plans found in the patient records.';
+        return 'No conditions or care plans found in the patient records.';
     }
     // SPECIFIC CARE PLAN QUESTIONS
     // "Does the patient have [condition]?" or "Is there a care plan for [condition]?"
@@ -1003,7 +1010,7 @@ function generateFallbackShortAnswer(query, queryIntent, data) {
  * NOW SUPPORTS: Multi-part questions with combined detailed summaries
  */
 function generateFallbackDetailedSummary(query, queryIntent, data) {
-    const { care_plans, medications, notes } = data;
+    const { conditions, care_plans, medications, notes } = data;
     const queryLower = query.toLowerCase();
     let summary = '';
     // MULTI-PART QUESTION SUPPORT FOR DETAILED SUMMARIES
@@ -1019,14 +1026,23 @@ function generateFallbackDetailedSummary(query, queryIntent, data) {
         // Check what types of data are requested
         // CRITICAL FIX: Use word boundary regex to prevent "medical" from matching "med"
         const includesMeds = /\b(med|meds|medication|medications|medicine|drug|drugs|pill|prescription)\b/i.test(queryLower);
-        const includesCarePlans = /\b(care plan|condition|conditions|diagnosis|diagnoses|disease|disorder)\b/i.test(queryLower);
+        const includesConditions = /\b(condition|conditions|diagnosis|diagnoses|disease|disorder)\b/i.test(queryLower);
+        const includesCarePlans = /\b(care plan|treatment plan|plan)\b/i.test(queryLower);
         const includesNotes = /\b(note|notes|visit|history|chart|record)\b/i.test(queryLower);
         // Add relevant sections based on what's in the query
-        // PRIORITY: If both conditions and medications match, prioritize conditions
-        if (includesCarePlans && care_plans && care_plans.length > 0) {
+        // PRIORITY: If asking about conditions, show conditions first, then care plans
+        if (includesConditions) {
+            if (conditions && conditions.length > 0) {
+                summaryParts.push('=== CONDITIONS/DIAGNOSES ===\n' + formatConditionsSummary(conditions));
+            }
+            if (care_plans && care_plans.length > 0) {
+                summaryParts.push('=== CARE PLANS ===\n' + formatCarePlansSummary(care_plans));
+            }
+        }
+        else if (includesCarePlans && care_plans && care_plans.length > 0) {
             summaryParts.push('=== CARE PLANS ===\n' + formatCarePlansSummary(care_plans));
         }
-        if (includesMeds && !includesCarePlans && medications && medications.length > 0) {
+        if (includesMeds && !includesConditions && medications && medications.length > 0) {
             summaryParts.push('=== MEDICATIONS ===\n' + formatMedicationsSummary(medications));
         }
         if (includesNotes && notes && notes.length > 0) {
@@ -1074,6 +1090,23 @@ function generateFallbackDetailedSummary(query, queryIntent, data) {
                 output += '\n';
             });
         }
+        return output;
+    }
+    function formatConditionsSummary(conditionsList) {
+        let output = `Total Conditions/Diagnoses: ${conditionsList.length}\n\n`;
+        conditionsList.slice(0, 5).forEach((condition, idx) => {
+            output += `${idx + 1}. ${condition.name || 'Unnamed condition'}`;
+            if (condition.status)
+                output += ` (${condition.status})`;
+            output += '\n';
+            if (condition.onset_date)
+                output += `   Onset: ${new Date(condition.onset_date).toLocaleDateString()}\n`;
+            if (condition.severity)
+                output += `   Severity: ${condition.severity}\n`;
+            if (condition.note)
+                output += `   Note: ${condition.note.substring(0, 100)}${condition.note.length > 100 ? '...' : ''}\n`;
+            output += '\n';
+        });
         return output;
     }
     function formatCarePlansSummary(plans) {
@@ -1238,10 +1271,45 @@ function generateFallbackDetailedSummary(query, queryIntent, data) {
     // CRITICAL FIX: Define query patterns with word boundaries
     const isMedQuery = queryIntent.primary === 'medications' ||
         /\b(med|meds|medication|medications|medicine|drug|drugs|pill|prescription)\b/i.test(queryLower);
-    const isCondQuery = queryIntent.primary === 'care_plans' || queryIntent.primary === 'diagnosis' ||
-        /\b(care plan|condition|conditions|diagnosis|diagnoses|disease|disorder)\b/i.test(queryLower);
-    // SPECIFIC CARE PLAN QUESTIONS with clean formatting (CHECK FIRST to prevent false medication matches)
+    const isCondQuery = queryIntent.primary === 'diagnosis' ||
+        /\b(condition|conditions|diagnosis|diagnoses|disease|disorder)\b/i.test(queryLower);
+    const isCarePlanQuery = queryIntent.primary === 'care_plans' ||
+        /\b(care plan|treatment plan)\b/i.test(queryLower);
+    // SPECIFIC CONDITION/DIAGNOSIS QUESTIONS (CHECK CONDITIONS FIRST!)
     if (isCondQuery) {
+        // PRIORITY 1: Check actual conditions/diagnoses
+        if (conditions && conditions.length > 0) {
+            summary = `CONDITIONS/DIAGNOSES (${conditions.length} total)\n\n`;
+            conditions.forEach((condition, idx) => {
+                summary += `${idx + 1}. ${condition.name || 'Unnamed condition'}\n`;
+                if (condition.code)
+                    summary += `   Code: ${condition.code}\n`;
+                if (condition.status)
+                    summary += `   Status: ${condition.status}\n`;
+                if (condition.onset_date)
+                    summary += `   Onset: ${formatDate(condition.onset_date)}\n`;
+                if (condition.recorded_date)
+                    summary += `   Recorded: ${formatDate(condition.recorded_date)}\n`;
+                if (condition.severity)
+                    summary += `   Severity: ${condition.severity}\n`;
+                if (condition.note)
+                    summary += `   Note: ${condition.note}\n`;
+                summary += '\n';
+            });
+            return summary.trim();
+        }
+        // FALLBACK: If no conditions data, check care plans
+        if (care_plans && care_plans.length > 0) {
+            summary = `CARE PLANS (${care_plans.length} total) - Note: Condition data not available\n\n`;
+            care_plans.forEach((cp, idx) => {
+                summary += formatCarePlan(cp, idx) + '\n';
+            });
+            return summary.trim();
+        }
+        return 'No conditions or care plans found in patient records.';
+    }
+    // SPECIFIC CARE PLAN QUESTIONS (only if explicitly asking about care plans)
+    if (isCarePlanQuery && !isCondQuery) {
         if (care_plans && care_plans.length > 0) {
             summary = `CARE PLANS (${care_plans.length} total)\n\n`;
             care_plans.forEach((cp, idx) => {
@@ -1429,8 +1497,8 @@ router.post('/query', async (req, res) => {
             console.log(`   🔍 Query Type: MEDICATIONS (prioritizing medication data)`);
         }
         else if (isConditionQuery) {
-            contextPriority.push('care_plans', 'notes', 'medications');
-            console.log(`   🔍 Query Type: CONDITIONS/DIAGNOSIS (prioritizing care plans)`);
+            contextPriority.push('conditions', 'care_plans', 'notes', 'medications');
+            console.log(`   🔍 Query Type: CONDITIONS/DIAGNOSIS (prioritizing conditions data)`);
         }
         else {
             // Default order
@@ -1439,6 +1507,37 @@ router.post('/query', async (req, res) => {
         }
         // Build context in priority order
         contextPriority.forEach((sourceType) => {
+            if (sourceType === 'conditions' && conditions) {
+                conditions.forEach((condition) => {
+                    const name = condition.name || 'Unnamed condition';
+                    const code = condition.code || '';
+                    const status = condition.status || 'unknown';
+                    const onset_date = condition.onset_date || '';
+                    const severity = condition.severity || '';
+                    const note = condition.note || '';
+                    let text = `Condition/Diagnosis: ${name}`;
+                    if (code)
+                        text += `\nCode: ${code}`;
+                    text += `\nStatus: ${status}`;
+                    if (onset_date)
+                        text += `\nOnset: ${onset_date}`;
+                    if (severity)
+                        text += `\nSeverity: ${severity}`;
+                    if (note)
+                        text += `\nNote: ${note}`;
+                    context += `\n\n[CONDITION_${condition.id || 'unknown'}] ${text}`;
+                    artifacts_searched++;
+                    provenance.push({
+                        artifact_id: condition.id || 'unknown',
+                        artifact_type: 'condition',
+                        snippet: note || name,
+                        occurred_at: condition.recorded_date || condition.onset_date || new Date().toISOString(),
+                        relevance_score: 0.95,
+                        char_offsets: [0, text.length],
+                        source_url: `/api/emr/conditions/${condition.id || 'unknown'}`,
+                    });
+                });
+            }
             if (sourceType === 'care_plans' && care_plans) {
                 care_plans.forEach((cp) => {
                     const name = cp.name || 'Untitled Care Plan';
@@ -1599,7 +1698,7 @@ router.post('/query', async (req, res) => {
                     form_responses,
                     insurance_policies
                 });
-                detailed_summary = generateFallbackDetailedSummary(query, queryIntent, { care_plans, medications, notes });
+                detailed_summary = generateFallbackDetailedSummary(query, queryIntent, { conditions, care_plans, medications, notes });
                 reasoning_method = 'pattern_fallback';
                 console.log('⚠️  Using pattern-based fallback (Ollama unavailable)');
             }
