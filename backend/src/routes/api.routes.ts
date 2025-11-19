@@ -67,6 +67,35 @@ function generateFallbackShortAnswer(
   // Suppress TypeScript warnings for conditionally-used variables
   void conditions; void documents; void form_responses;
 
+  /**
+   * Helper: Generate "not available" response for missing data
+   * Follows the principle: never make up information, explicitly state when data is missing
+   */
+  const dataNotAvailable = (dataType: string, suggestion?: string): string => {
+    const defaultSuggestion = `This information is not available in the patient's current records. Please refer to the complete patient chart or consult with the patient directly.`;
+    return suggestion || defaultSuggestion.replace('This information', `${dataType} information`);
+  };
+  void dataNotAvailable; // Reserved for future use
+
+  /**
+   * Helper: Check if we have any data for a specific category
+   */
+  const checkDataAvailability = (category: 'medications' | 'care_plans' | 'notes' | 'allergies' | 'vitals' |
+                              'family_history' | 'appointments' | 'labs' | 'imaging'): boolean => {
+    switch (category) {
+      case 'medications': return medications && medications.length > 0;
+      case 'care_plans': return care_plans && care_plans.length > 0;
+      case 'notes': return notes && notes.length > 0;
+      case 'allergies': return allergies && allergies.length > 0;
+      case 'vitals': return vitals && vitals.length > 0;
+      case 'family_history': return family_history && family_history.length > 0;
+      case 'appointments': return appointments && appointments.length > 0;
+      case 'labs': return false; // Labs not yet implemented in API integration
+      case 'imaging': return false; // Imaging not yet implemented
+      default: return false;
+    }
+  };
+
   // ENHANCED MULTI-PART QUESTION SUPPORT
   // Handles complex queries with multiple data points:
   // - "What are the patient's blood pressure and allergies?"
@@ -1043,6 +1072,74 @@ function generateFallbackShortAnswer(
       return `The patient has ${insurance_policies.length} insurance polic${insurance_policies.length === 1 ? 'y' : 'ies'} on file.`;
     }
     return 'No insurance information available.';
+  }
+
+  // LAB RESULTS / LABORATORY QUERIES - NOT AVAILABLE
+  // Handle questions about lab work that we don't have data for
+  if (queryLower.includes('lab') || queryLower.includes('laboratory') ||
+      queryLower.includes('blood test') || queryLower.includes('bloodwork') ||
+      queryLower.includes('test result') || queryLower.includes('cholesterol') ||
+      queryLower.includes('glucose') || queryLower.includes('a1c') || queryLower.includes('hemoglobin') ||
+      queryLower.includes('creatinine') || queryLower.includes('bun') || queryLower.includes('egfr') ||
+      queryLower.includes('liver function') || queryLower.includes('alt') || queryLower.includes('ast') ||
+      queryLower.includes('thyroid') || queryLower.includes('tsh') || queryLower.includes('lipid')) {
+
+    // Check if this is about specific lab values
+    const labTypes = ['cholesterol', 'glucose', 'a1c', 'hemoglobin', 'creatinine', 'thyroid', 'liver', 'kidney'];
+    const mentionedLab = labTypes.find(lab => queryLower.includes(lab));
+
+    if (mentionedLab) {
+      return `${mentionedLab.charAt(0).toUpperCase() + mentionedLab.slice(1)} lab results are not available in the current records. Please refer to the patient's recent lab work in the EMR system or order new ${mentionedLab} testing if needed.`;
+    }
+
+    return `Laboratory test results are not available in the current records. Please refer to the patient's lab history in the complete EMR system or order new testing if clinically indicated.`;
+  }
+
+  // IMAGING / RADIOLOGY QUERIES - NOT AVAILABLE
+  if (queryLower.includes('xray') || queryLower.includes('x-ray') || queryLower.includes('x ray') ||
+      queryLower.includes('mri') || queryLower.includes('ct scan') || queryLower.includes('ultrasound') ||
+      queryLower.includes('imaging') || queryLower.includes('radiology') || queryLower.includes('scan')) {
+
+    const imagingTypes = ['x-ray', 'mri', 'ct', 'ultrasound', 'scan'];
+    const mentionedImaging = imagingTypes.find(img => queryLower.includes(img));
+
+    if (mentionedImaging) {
+      return `${mentionedImaging.toUpperCase()} imaging results are not available in the current records. Please refer to the radiology reports in the complete EMR system or order new imaging if clinically indicated.`;
+    }
+
+    return `Imaging and radiology results are not available in the current records. Please refer to the radiology section of the complete EMR system.`;
+  }
+
+  // PROCEDURE QUERIES - NOT AVAILABLE
+  if ((queryLower.includes('procedure') || queryLower.includes('surgery') || queryLower.includes('operation')) &&
+      !queryLower.includes('surgical history')) { // Exclude surgical history which might be in notes
+
+    return `Procedure and surgical records are not available in the current records. Please refer to the procedures section of the complete EMR system or review clinical notes for documented procedures.`;
+  }
+
+  // IMMUNIZATION / VACCINATION QUERIES - NOT AVAILABLE (but might be in notes)
+  if (queryLower.includes('vaccine') || queryLower.includes('vaccination') || queryLower.includes('immunization') ||
+      queryLower.includes('flu shot') || queryLower.includes('covid') || queryLower.includes('booster')) {
+
+    return `Formal immunization records are not available in the current records. Please refer to the immunization history section of the complete EMR system. Some vaccination information may be documented in clinical notes.`;
+  }
+
+  // PRESCRIPTION REFILL / PHARMACY QUERIES
+  if (queryLower.includes('refill') || queryLower.includes('pharmacy') || queryLower.includes('pick up')) {
+
+    if (checkDataAvailability('medications')) {
+      const activeMeds = medications.filter((m: any) => m.active === true);
+      if (activeMeds.length > 0) {
+        return `The patient has ${activeMeds.length} active medication${activeMeds.length !== 1 ? 's' : ''}. For refill status and pharmacy information, please refer to the pharmacy management section of the EMR or contact the patient's preferred pharmacy directly.`;
+      }
+    }
+    return `Medication refill and pharmacy information is not available in the current records. Please refer to the pharmacy management system.`;
+  }
+
+  // SPECIALIST REFERRAL QUERIES
+  if (queryLower.includes('referral') || queryLower.includes('specialist') || queryLower.includes('see a')) {
+
+    return `Specialist referral information is not available in the current records. Please refer to the referrals section of the complete EMR system or review clinical notes for any documented specialist recommendations.`;
   }
 
   // Default for any other queries - provide helpful summary
