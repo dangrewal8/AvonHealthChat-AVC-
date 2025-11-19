@@ -5,6 +5,11 @@ pkill -f "node dist/index.js" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
 sleep 2
 
+echo "🤖 Starting Ollama (AI service)..."
+cd /home/user/AvonHealthChat-AVC-
+./start-ollama.sh
+echo ""
+
 echo "🔨 Building backend..."
 cd /home/user/AvonHealthChat-AVC-/backend
 npm run build
