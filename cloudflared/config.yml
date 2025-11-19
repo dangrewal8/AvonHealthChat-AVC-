@@ -1,5 +1,5 @@
 tunnel: 1363d14d-f8b3-46a1-857e-25813e90406f
-credentials-file: /home/dangr/.cloudflared/1363d14d-f8b3-46a1-857e-25813e90406f.json
+credentials-file: /home/user/AvonHealthChat-AVC-/cloudflared/1363d14d-f8b3-46a1-857e-25813e90406f.json
 
 ingress:
   - hostname: chat.missionvalley.dev

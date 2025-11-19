@@ -110,14 +110,12 @@ if [ ! -f frontend/.env.production ]; then
     exit 1
 fi
 
-# Check if cloudflared is installed (only if using tunnel)
+# Check if cloudflared binary exists (only if using tunnel)
 if [ "$USE_TUNNEL" = true ]; then
-    if ! command -v cloudflared &> /dev/null; then
-        echo -e "${RED}L ERROR: cloudflared is not installed!${NC}"
+    if [ ! -f "cloudflared-bin" ]; then
+        echo -e "${RED}L ERROR: cloudflared-bin not found in project directory!${NC}"
         echo ""
-        echo "Install cloudflared:"
-        echo "  macOS:   brew install cloudflare/cloudflare/cloudflared"
-        echo "  Linux:   https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/"
+        echo "The cloudflared binary should be at: ./cloudflared-bin"
         echo ""
         echo "Or run without tunnel: ./start-all.sh --no-tunnel"
         echo ""
@@ -128,9 +126,8 @@ if [ "$USE_TUNNEL" = true ]; then
     if [ ! -f ~/.cloudflared/config.yml ]; then
         echo -e "${RED}L ERROR: Cloudflare Tunnel not configured!${NC}"
         echo ""
-        echo "Please configure Cloudflare Tunnel first:"
-        echo "  1. Copy cloudflare/config.yml.template to ~/.cloudflared/config.yml"
-        echo "  2. Edit it with your tunnel ID and domain"
+        echo "Config should be at: ~/.cloudflared/config.yml"
+        echo "Credentials at: ~/.cloudflared/1363d14d-f8b3-46a1-857e-25813e90406f.json"
         echo ""
         echo "Or run without tunnel: ./start-all.sh --no-tunnel"
         echo ""
@@ -145,7 +142,7 @@ echo ""
 # Start Backend API
 # ============================================================================
 
-print_step "=€ Starting Backend API (port 3001)"
+print_step "=ï¿½ Starting Backend API (port 3001)"
 
 cd backend
 
@@ -178,7 +175,7 @@ cd ..
 # Start Frontend App
 # ============================================================================
 
-print_step "<¨ Starting Frontend App (port 4173)"
+print_step "<ï¿½ Starting Frontend App (port 4173)"
 
 cd frontend
 
@@ -214,7 +211,7 @@ cd ..
 if [ "$USE_TUNNEL" = true ]; then
     print_step "< Starting Cloudflare Tunnel"
 
-    cloudflared tunnel run > logs/tunnel.log 2>&1 &
+    ./cloudflared-bin tunnel --config ~/.cloudflared/config.yml run > logs/tunnel.log 2>&1 &
     TUNNEL_PID=$!
 
     echo -e "${GREEN} Cloudflare Tunnel started (PID: $TUNNEL_PID)${NC}"
@@ -239,8 +236,8 @@ if [ "$USE_TUNNEL" = true ]; then
     echo "  Cloudflare Tunnel:  Active              (PID: $TUNNEL_PID)"
     echo ""
     echo "Public Access:"
-    echo "  Frontend:  https://chat.yourdomain.com"
-    echo "  API:       https://api.yourdomain.com"
+    echo "  Frontend:  https://chat.missionvalley.dev"
+    echo "  API:       https://api.missionvalley.dev"
 else
     echo ""
     echo -e "${YELLOW}Note: Running in local-only mode (no public access)${NC}"
