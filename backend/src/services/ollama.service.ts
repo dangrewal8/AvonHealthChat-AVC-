@@ -229,19 +229,43 @@ ${context}
 
 Question: ${query}
 
-Answer using ONLY the data above. You MUST use this exact format:
+Answer using ONLY the data above.
 
+CRITICAL FORMAT REQUIREMENTS - YOU MUST FOLLOW EXACTLY:
+1. Start with "SHORT_ANSWER:" on its own line
+2. Put your 1-2 sentence answer on the next line
+3. Leave a blank line
+4. Put "DETAILED_SUMMARY:" on its own line
+5. Put your detailed answer on the next line
+
+REQUIRED FORMAT:
 SHORT_ANSWER:
-[Give a direct 1-2 sentence answer]
+[Give a direct 1-2 sentence answer with specific details from the data]
 
 DETAILED_SUMMARY:
-[List all relevant details with medication names, dosages, dates, and IDs from the data]`;
+[List all relevant details with medication names, dosages, dates, and IDs from the data]
+
+DO NOT put all text on one continuous line. Each label (SHORT_ANSWER:, DETAILED_SUMMARY:) must be clearly separated.`;
 
     const response = await this.generate(prompt, systemPrompt, 0.1); // Low temperature for accuracy
 
-    // Parse response with improved regex
-    const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\n\s*\n\s*DETAILED_SUMMARY:)/s);
+    // DEBUG: Log raw response to see what LLM actually returns
+    console.log('========================================');
+    console.log('🔍 RAW LLM RESPONSE (generateRAGAnswer):');
+    console.log('========================================');
+    console.log(response);
+    console.log('========================================');
+
+    // Parse response with FLEXIBLE regex (handles single-line responses)
+    // FIXED: Accept any whitespace, not just newlines
+    const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\s*DETAILED_SUMMARY:)/s);
     const detailedMatch = response.match(/DETAILED_SUMMARY:\s*(.+)$/s);
+
+    console.log('🔍 PARSING RESULTS:');
+    console.log('  shortMatch:', shortMatch ? 'FOUND' : 'NOT FOUND');
+    console.log('  detailedMatch:', detailedMatch ? 'FOUND' : 'NOT FOUND');
+    if (shortMatch) console.log('  Short Answer Preview:', shortMatch[1].trim().substring(0, 100));
+    if (detailedMatch) console.log('  Detailed Summary Preview:', detailedMatch[1].trim().substring(0, 100));
 
     return {
       short_answer: shortMatch ? shortMatch[1].trim() : response.substring(0, 200),
@@ -950,6 +974,12 @@ ${query}
 === YOUR TASK ===
 Answer the question using ONLY the patient data above.
 
+CRITICAL FORMAT REQUIREMENTS - YOU MUST FOLLOW EXACTLY:
+1. Each label (REASONING:, SHORT_ANSWER:, DETAILED_SUMMARY:) must be on its own line
+2. Put content on the line AFTER each label
+3. Separate sections with blank lines
+4. DO NOT put all text on one continuous line
+
 Respond in this EXACT format (three sections separated by labels):
 
 REASONING:
@@ -998,9 +1028,10 @@ CRITICAL RULES:
       console.log(response);
       console.log('========================================');
 
-      // Parse the structured response
-      const reasoningMatch = response.match(/REASONING:\s*(.+?)(?=\n\s*SHORT_ANSWER:)/s);
-      const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\n\s*DETAILED_SUMMARY:)/s);
+      // Parse the structured response with FLEXIBLE regex (handles single-line responses)
+      // FIXED: Accept any whitespace between sections, not just newlines
+      const reasoningMatch = response.match(/REASONING:\s*(.+?)(?=\s*SHORT_ANSWER:)/s);
+      const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\s*DETAILED_SUMMARY:)/s);
       const detailedMatch = response.match(/DETAILED_SUMMARY:\s*(.+)$/s);
 
       console.log('🔍 PARSING RESULTS:');
