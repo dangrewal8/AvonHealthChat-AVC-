@@ -961,6 +961,12 @@ SHORT_ANSWER:
 DETAILED_SUMMARY:
 [Comprehensive markdown-formatted answer with full details]
 
+CRITICAL FORMAT RULES:
+- Each label (REASONING:, SHORT_ANSWER:, DETAILED_SUMMARY:) must be on its own line
+- Put content on a new line AFTER each label
+- Separate sections with blank lines
+- DO NOT put all text on one continuous line
+
 For medication queries, use this DETAILED_SUMMARY structure:
 
 Current Medications:
@@ -999,9 +1005,11 @@ CRITICAL RULES:
       console.log('========================================');
 
       // Parse the structured response
-      const reasoningMatch = response.match(/REASONING:\s*(.+?)(?=\n\s*SHORT_ANSWER:)/s);
-      const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\n\s*DETAILED_SUMMARY:)/s);
-      const detailedMatch = response.match(/DETAILED_SUMMARY:\s*(.+)$/s);
+      // IMPROVED: Handle both multi-line and single-line responses
+      // Some models put everything on one line without newlines
+      const reasoningMatch = response.match(/REASONING:\s*(.+?)(?=\s*SHORT_ANSWER:)/s);
+      const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\s*DETAILED_SUMMARY:)/s);
+      const detailedMatch = response.match(/DETAILED_SUMMARY:\s*(.+?)(?:\s*$)/s);
 
       console.log('🔍 PARSING RESULTS:');
       console.log('  reasoningMatch:', reasoningMatch ? 'FOUND' : 'NOT FOUND');
