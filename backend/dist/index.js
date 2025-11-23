@@ -52,6 +52,7 @@ const health_routes_1 = __importDefault(require("./routes/health.routes"));
 const api_routes_1 = __importStar(require("./routes/api.routes"));
 const ollama_service_1 = require("./services/ollama.service");
 const avonhealth_service_1 = require("./services/avonhealth.service");
+const model_manager_service_1 = require("./services/model-manager.service");
 // Load environment variables
 dotenv_1.default.config();
 // ============================================================================
@@ -88,6 +89,8 @@ const config = {
 // Initialize Express App
 // ============================================================================
 const app = (0, express_1.default)();
+// Trust proxy - Required for Cloudflare Tunnel and rate limiting
+app.set('trust proxy', true);
 // ============================================================================
 // Security Middleware
 // ============================================================================
@@ -108,8 +111,22 @@ app.use((0, helmet_1.default)({
     },
 }));
 // CORS - Allow frontend access
+const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+    : ['*'];
 app.use((0, cors_1.default)({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin)
+            return callback(null, true);
+        // Check if origin is in allowed list or if we allow all origins
+        if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -126,6 +143,8 @@ const limiter = (0, express_rate_limit_1.default)({
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     // Skip rate limiting for health check endpoint
     skip: (req) => req.path === '/health',
+    // Disable trust proxy validation since we're using Cloudflare Tunnel
+    validate: { trustProxy: false },
 });
 // Apply rate limiting to all API routes
 app.use('/api', limiter);
@@ -153,10 +172,17 @@ app.use((req, res, next) => {
 // ============================================================================
 let ollamaService;
 let avonHealthService;
+let modelManager;
 async function initializeApp() {
     console.log('🚀 Initializing Avon Health RAG System...');
     console.log(`Environment: ${config.nodeEnv}`);
     console.log(`Port: ${config.port}`);
+    // Initialize Model Manager
+    console.log('🤖 Initializing Multi-Model System...');
+    modelManager = new model_manager_service_1.ModelManagerService(config.ollama.baseUrl);
+    // Check health of all models
+    await modelManager.checkModelsHealth(true);
+    console.log('✅ Model Manager initialized');
     // Initialize Ollama service
     console.log('📡 Connecting to Ollama...');
     ollamaService = new ollama_service_1.OllamaService(config.ollama.baseUrl, config.ollama.embeddingModel, config.ollama.llmModel, config.ollama.maxTokens, config.ollama.temperature);
@@ -188,7 +214,7 @@ async function initializeApp() {
         }
     }
     // Initialize route services
-    (0, api_routes_1.initializeServices)(ollamaService, avonHealthService);
+    (0, api_routes_1.initializeServices)(ollamaService, avonHealthService, modelManager);
     console.log('✅ Services initialized');
 }
 // ============================================================================

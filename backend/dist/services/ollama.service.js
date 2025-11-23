@@ -11,7 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OllamaService = void 0;
 const axios_1 = __importDefault(require("axios"));
 class OllamaService {
-    constructor(baseUrl, embeddingModel, llmModel, maxTokens, temperature) {
+    constructor(baseUrl, embeddingModel, defaultLlmModel, maxTokens, temperature) {
         this.client = axios_1.default.create({
             baseURL: baseUrl,
             timeout: 300000, // 5 minutes for large LLM requests
@@ -20,7 +20,7 @@ class OllamaService {
             },
         });
         this.embeddingModel = embeddingModel;
-        this.llmModel = llmModel;
+        this.defaultLlmModel = defaultLlmModel;
         this.maxTokens = maxTokens;
         this.temperature = temperature;
     }
@@ -56,23 +56,31 @@ class OllamaService {
         }
     }
     /**
-     * Generate text using Meditron LLM
+     * Generate text using specified LLM model
+     * @param prompt - The input prompt
+     * @param systemPrompt - Optional system instruction
+     * @param temperature - Sampling temperature (0.0 to 1.0)
+     * @param format - Optional output format ('json' or undefined)
+     * @param model - Optional specific model to use (defaults to configured model)
      */
-    async generate(prompt, systemPrompt, temperature) {
+    async generate(prompt, systemPrompt, temperature, format, model) {
         try {
+            const modelToUse = model || this.defaultLlmModel;
             const request = {
-                model: this.llmModel,
+                model: modelToUse,
                 prompt,
                 system: systemPrompt,
                 temperature: temperature ?? this.temperature,
                 max_tokens: this.maxTokens,
                 stream: false,
+                ...(format && { format }), // Add format: "json" if specified
             };
+            console.log(`🤖 Generating with model: ${modelToUse}`);
             const response = await this.client.post('/api/generate', request);
             return response.data.response;
         }
         catch (error) {
-            console.error('Ollama generation error:', error.message);
+            console.error(`Ollama generation error (${model || this.defaultLlmModel}):`, error.message);
             throw new Error(`Failed to generate text: ${error.message}`);
         }
     }
@@ -176,28 +184,18 @@ RESPONSE FORMAT:
                 '\n';
         }
         const prompt = `${historyContext}
-Patient EMR Context (Retrieved from Avon Health API):
+Patient EMR Data:
 ${context}
 
-Current Question: ${query}
+Question: ${query}
 
-INSTRUCTIONS:
-1. Carefully read the question and identify what specific information is being requested
-2. Search the context for EXACT matching information
-3. If the information exists, answer accurately with citations
-4. If the information does NOT exist in the context, explicitly state it's not available
-5. Distinguish between current/active data vs past/inactive data based on status fields
-6. Never make assumptions or use general medical knowledge
+Answer using ONLY the data above. You MUST use this exact format:
 
-Provide your response in this exact format:
+SHORT_ANSWER:
+[Give a direct 1-2 sentence answer]
 
-SHORT_ANSWER: [1-2 sentence direct answer with key facts]
-
-DETAILED_SUMMARY: [Comprehensive answer with:
-- Complete information from records
-- Specific citations ([SOURCE_TYPE_ID])
-- Relevant dates and details
-- Clear statement if any requested information is unavailable]`;
+DETAILED_SUMMARY:
+[List all relevant details with medication names, dosages, dates, and IDs from the data]`;
         const response = await this.generate(prompt, systemPrompt, 0.1); // Low temperature for accuracy
         // Parse response with improved regex
         const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\n\s*\n\s*DETAILED_SUMMARY:)/s);
@@ -210,8 +208,9 @@ DETAILED_SUMMARY: [Comprehensive answer with:
     /**
      * Chain-of-Thought Reasoning for Complex Medical Questions
      * Enables multi-step reasoning and dynamic data analysis
+     * @param model - Optional specific model to use for reasoning
      */
-    async reasonWithChainOfThought(query, patientData, conversationHistory) {
+    async reasonWithChainOfThought(query, patientData, conversationHistory, model) {
         const systemPrompt = `You are Meditron, a medical AI assistant with advanced reasoning capabilities.
 You have access to a patient's complete Electronic Medical Record (EMR) and must answer questions through careful analysis.
 
@@ -881,6 +880,7 @@ You must think step-by-step, be honest about gaps, and help users find relevant 
                 conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join('\n') +
                 '\n';
         }
+        // Build the final prompt with explicit examples from the data
         const prompt = `${historyContext}
 ${fullContext}
 
@@ -888,161 +888,76 @@ ${fullContext}
 ${query}
 
 === YOUR TASK ===
-Answer this question using ADVANCED multi-level confidence reasoning. Don't just say "I don't know" -
-reason through uncertainty, make intelligent inferences, and provide the best possible answer.
+Answer the question using ONLY the patient data above.
+
+Respond in this EXACT format (three sections separated by labels):
 
 REASONING:
-[Show your sophisticated reasoning process with DETAILED extraction:
-1. What is the question asking? (Core intent + sub-questions + what specific details needed)
-
-2. What data sources do I need? (Primary + secondary + tertiary)
-
-3. What DIRECT evidence did I find? (Explicit statements → HIGH confidence)
-   ⚠️ For EACH piece of evidence, extract ALL key details:
-   - Source ID: CARE_PLAN #3, MEDICATION #med_abc, NOTE #note_123
-   - Exact dates: "March 10, 2024" not "recently"
-   - Provider names: "Dr. Sarah Smith"
-   - Specific values: "500mg twice daily", "140/90 mmHg"
-   - Status: "Active", "Completed", "Discontinued"
-   - Evidence strength: ⭐⭐⭐ STRONG / ⭐⭐ MODERATE / ⭐ WEAK / ❓ NONE
-
-4. What INDIRECT evidence exists? (Can I infer from related data? → MEDIUM confidence)
-   ⚠️ Extract details from indirect evidence too:
-   - Medications → conditions (with medication name, dose, start date, prescriber)
-   - Vitals patterns → health status (with specific values, dates, trends)
-   - Multiple weak signals → synthesized conclusion (cite each signal with details)
-
-5. Evidence synthesis: How do multiple sources combine?
-   - 1 STRONG source = HIGH confidence
-   - 2+ MODERATE sources = MEDIUM-HIGH confidence
-   - 3+ WEAK sources = MEDIUM confidence
-   - Mix of sources = Weighted average
-   ⚠️ Show how sources connect (timeline, relationships, clinical picture)
-
-6. What can I CONFIRM vs INFER vs SUGGEST?
-   - CONFIRMED: Explicit in data (HIGH) - cite with full details
-   - INFERRED: Logical derivation (MEDIUM) - show all supporting evidence with details
-   - SUGGESTED: Weak signals (LOW) - list signals with specifics
-   - UNKNOWN: No data (acknowledge gap) - suggest what data would help
-
-7. Partial answer construction: Provide what I DO know (with full details), acknowledge what I don't
-
-8. Final answer with confidence levels per claim AND detailed citations for each claim]
+[Explain your analysis step-by-step. Which data did you examine? What is your confidence level?]
 
 SHORT_ANSWER:
-[Provide best possible answer using multi-level confidence:
-
-IF HIGH CONFIDENCE (direct data):
-"[Answer] (confirmed in [source])"
-
-IF MEDIUM CONFIDENCE (inference):
-"While not explicitly stated, [inference] based on [evidence 1], [evidence 2] (reasoned inference, MEDIUM confidence)"
-
-IF LOW CONFIDENCE (weak signals):
-"Available indicators suggest [possibility]: [signal 1], [signal 2], [signal 3] (suggestive but not confirmed, LOW confidence)"
-
-IF PARTIAL DATA:
-"I can confirm [X with HIGH confidence]. I can infer [Y with MEDIUM confidence]. I don't have data for [Z], but related information includes: [alternatives]"
-
-IF NO DATA:
-"I don't have [specific request] in available records. Related information that may help: [alternatives]"]
+[1-2 sentence direct answer with ACTUAL names/values from the data - NO generic statements]
 
 DETAILED_SUMMARY:
-[Comprehensive multi-level answer with RICH DETAIL, SPECIFIC CITATIONS, and EXPANDED CONTEXT:
+[Comprehensive markdown-formatted answer with full details]
 
-**CRITICAL: Every answer must be DETAILED and USEFUL, not just acknowledging data exists!**
+For medication queries, use this DETAILED_SUMMARY structure:
 
-**CONFIRMED INFORMATION (HIGH CONFIDENCE ⭐⭐⭐):**
-- ⚠️ MUST include DETAILED citations with:
-  * Source ID (CARE_PLAN #3, MEDICATION #med_abc123, NOTE #note_xyz789)
-  * Exact dates (created 2024-03-10, started 2024-01-15, last updated 2024-03-20)
-  * Provider names (Dr. Sarah Smith, Nurse Jane Doe)
-  * Specific values (dosage: 500mg, frequency: twice daily, BP: 140/90)
-- ⚠️ EXPAND with full clinical context:
-  * Not just: "Patient has diabetes"
-  * Instead: "Patient has Type 2 Diabetes (CARE_PLAN #3, created by Dr. Sarah Smith on March 10, 2024). Currently managed with Metformin 500mg twice daily (started March 15, 2024). Most recent A1C mentioned in notes was 7.2% (March 20, 2024). Care plan includes dietary modifications and exercise recommendations."
+Current Medications:
 
-**REASONED INFERENCES (MEDIUM CONFIDENCE ⭐⭐):**
-- ⚠️ Provide FULL CONTEXT for inferences, not just the conclusion:
-  * Include ALL supporting evidence with details
-  * Link evidence together to show clinical picture
-  * Example: "Patient likely has hypertension based on comprehensive evidence:
-    1) MEDICATION: Taking Lisinopril 10mg once daily (ACE inhibitor, MEDICATION #med_123, prescribed by Dr. Smith on Feb 20, 2024)
-    2) VITALS: Recent BP readings consistently elevated:
-       - March 15: 140/90 mmHg
-       - March 20: 142/88 mmHg
-       - March 25: 138/90 mmHg
-    3) CLINICAL NOTES: Provider note from March 20 states 'Continue BP monitoring, patient reports taking medication as prescribed'
-    (MEDIUM-HIGH confidence through synthesis of multiple sources ⭐⭐)"
+1. **[Medication Name] [Strength]**
+   • Purpose: [What it treats - link to conditions when possible]
+   • Dosage/Instructions: [sig field or instructions]
+   • Status: Active | Started: [date if available]
+   • Prescribed by: [provider if available]
+   • Record ID: [id]
 
-**SUGGESTIVE INDICATORS (LOW CONFIDENCE ⭐):**
-- ⚠️ Still provide detailed context for weak signals:
-  * Cite specific sources even for weak evidence
-  * Provide dates and context
-  * Example: "Family history shows diabetes risk (FAMILY_HISTORY #fh_456, mother diagnosed with Type 2 Diabetes at age 52). Patient's recent weight loss of 10 lbs documented in clinical note from March 15, 2024. BMI calculated as 28 from height/weight recorded March 15. Together these suggest possible diabetes risk (LOW confidence ⭐)"
+2. **[Next Medication]**
+   ...
 
-**KEY INFORMATION EXTRACTION:**
-For every piece of data mentioned, extract and present:
-- 💊 Medications: Name, dosage, frequency, route, start date, prescriber, medication ID, status (active/inactive)
-- 📋 Care Plans: Condition name, description, created date, created by, care plan ID, assigned to
-- 📊 Vitals: Specific values with units, date recorded, trend if multiple readings
-- 📝 Notes: Date, provider, key findings, note ID
-- 👥 Providers: Full names, roles, associated with which records
-- 📅 Dates: Always include specific dates, not just "recently"
-- 🔢 Values: Exact numbers with units (500mg, not "diabetes medication")
-
-**CONTEXT EXPANSION - Make Information USEFUL:**
-Don't just list data - explain the clinical picture:
-- Treatment plan: "Patient's anxiety is managed through combination approach: Sertraline 50mg daily (started Jan 2024), regular therapy sessions (appointments every 2 weeks with Dr. Wilson), and self-care plan documented in CARE_PLAN #1"
-- Timeline: "Diabetes diagnosed March 2024 → Metformin started 5 days later → A1C improved from 8.5% to 7.2% over 3 months"
-- Status: "Blood pressure currently elevated despite treatment. Latest reading 140/90 suggests medication may need dose adjustment or additional agent"
-- Relationships: "Migraine medications (Ubrelvy for acute, IBgard for prevention) align with CARE_PLAN #2 created March 15, 2024"
-
-**DATA GAPS (ACKNOWLEDGED):**
-- What's missing and what would help
-- Be specific about what data would answer question better
-- Example: "No lab results available in current system. Specific data that would help: 1) A1C value (diabetes control), 2) Lipid panel (cardiovascular risk), 3) Basic metabolic panel (kidney function). Alternative: Vital signs show stable weight and BP, medication list suggests active management ❓"
-
-**SYNTHESIS & CLINICAL PICTURE:**
-- Provide COMPREHENSIVE overview, not just summary
-- Connect all pieces into coherent clinical narrative
-- Include timeline of events
-- Note treatment effectiveness where evident
-- Identify areas needing attention
-- Example: "Overall, patient has multiple chronic conditions (Anxiety, Migraine, likely Diabetes and Hypertension) under active management. Treatment started within appropriate timeframes (medication within days of care plan creation). Medication adherence appears good based on refill records. BP remains elevated suggesting need for medication adjustment. Mental health conditions appear stable with combination therapy approach."
-
-**ACTIONABLE INFORMATION:**
-End with what this means clinically:
-- Current status
-- Treatment effectiveness
-- Areas of concern
-- Next steps or follow-up needed (if evident from data)
-- What providers are monitoring]
-
-CRITICAL: Use your reasoning capabilities! Don't just say "I don't know" when you can:
-- Make reasonable inferences from indirect evidence (label as INFERRED)
-- Synthesize multiple weak signals into stronger conclusions
-- Provide partial answers for what you DO know
-- Reason probabilistically about likely scenarios
-
-Now provide your multi-level confidence response:`;
+CRITICAL RULES:
+✅ Use ACTUAL medication names, doses, dates from the [MEDICATIONS] section
+✅ Link medications to conditions they treat if mentioned in care plans/notes
+✅ Include ALL relevant details: dosages, dates, providers, IDs
+✅ Format with markdown (**, •) for clarity
+❌ NO generic statements like "The patient has medications"
+❌ NO information not in the context above`;
         try {
-            const response = await this.generate(prompt, systemPrompt, 0.2); // Slightly higher temp for reasoning
-            // Parse response
+            // Lower temperature for medication queries = more deterministic
+            const isMedicationQuery = query.toLowerCase().includes('medication');
+            const temperature = isMedicationQuery ? 0.01 : 0.1; // Even lower for better adherence
+            // DO NOT use JSON mode - use text mode with strict format
+            const response = await this.generate(prompt, systemPrompt, temperature, undefined, model);
+            // DEBUG: Log the raw LLM response
+            console.log('========================================');
+            console.log('🔍 RAW MEDITRON RESPONSE:');
+            console.log('========================================');
+            console.log(response);
+            console.log('========================================');
+            // Parse the structured response
             const reasoningMatch = response.match(/REASONING:\s*(.+?)(?=\n\s*SHORT_ANSWER:)/s);
             const shortMatch = response.match(/SHORT_ANSWER:\s*(.+?)(?=\n\s*DETAILED_SUMMARY:)/s);
             const detailedMatch = response.match(/DETAILED_SUMMARY:\s*(.+)$/s);
-            // Extract reasoning steps
-            const reasoning_chain = [];
+            console.log('🔍 PARSING RESULTS:');
+            console.log('  reasoningMatch:', reasoningMatch ? 'FOUND' : 'NOT FOUND');
+            console.log('  shortMatch:', shortMatch ? 'FOUND' : 'NOT FOUND');
+            console.log('  detailedMatch:', detailedMatch ? 'FOUND' : 'NOT FOUND');
+            // Extract reasoning chain
+            let reasoning_chain = [];
             if (reasoningMatch) {
                 const reasoningText = reasoningMatch[1].trim();
-                // Split by numbered items or newlines
-                const steps = reasoningText.split(/\n/).filter(line => line.trim().length > 0);
+                const steps = reasoningText.split(/\n/).filter((line) => line.trim().length > 0);
                 reasoning_chain.push(...steps);
             }
+            const short_answer = shortMatch ? shortMatch[1].trim() : '';
+            const detailed_summary = detailedMatch ? detailedMatch[1].trim() : '';
+            console.log('📋 Extracted Fields:');
+            console.log('  Short Answer:', short_answer ? short_answer.substring(0, 100) + '...' : 'EMPTY');
+            console.log('  Detailed Summary:', detailed_summary ? detailed_summary.substring(0, 200) + '...' : 'EMPTY');
+            console.log('  Reasoning Steps:', reasoning_chain.length);
             return {
-                short_answer: shortMatch ? shortMatch[1].trim() : 'Unable to generate answer',
-                detailed_summary: detailedMatch ? detailedMatch[1].trim() : response,
+                short_answer,
+                detailed_summary,
                 reasoning_chain,
             };
         }

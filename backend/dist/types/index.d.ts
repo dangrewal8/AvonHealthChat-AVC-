@@ -438,12 +438,100 @@ export interface OllamaGenerateRequest {
     temperature?: number;
     max_tokens?: number;
     stream?: boolean;
+    format?: 'json' | undefined;
 }
 export interface OllamaGenerateResponse {
     response: string;
     model: string;
     created_at: string;
     done: boolean;
+}
+/**
+ * Available medical LLM models in the system
+ */
+export type MedicalModel = 'openbiollm' | 'biomistral' | 'meditron' | 'llama3';
+/**
+ * Task types for intelligent model routing
+ */
+export type TaskType = 'entity_extraction' | 'medical_qa' | 'clinical_reasoning' | 'data_structuring' | 'general_query' | 'fallback';
+/**
+ * Model configuration for each available LLM
+ */
+export interface ModelConfig {
+    name: MedicalModel;
+    ollamaModelName: string;
+    displayName: string;
+    description: string;
+    specialization: TaskType[];
+    parameterSize: string;
+    quantization: string;
+    contextWindow: number;
+    performance: ModelPerformance;
+    enabled: boolean;
+}
+/**
+ * Model performance metrics and benchmarks
+ */
+export interface ModelPerformance {
+    medQA?: number;
+    pubMedQA?: number;
+    mmluMed?: number;
+    clinicalNER?: number;
+    overallAccuracy?: number;
+    computationalEfficiency: 'high' | 'medium' | 'low';
+}
+/**
+ * Model health status
+ */
+export interface ModelHealth {
+    model: MedicalModel;
+    available: boolean;
+    lastChecked: Date;
+    error?: string;
+    responseTimeMs?: number;
+}
+/**
+ * Verification strategies for multi-agent validation
+ */
+export type VerificationStrategy = 'none' | 'self-consistency' | 'majority-vote' | 'weighted-vote' | 'adaptive';
+/**
+ * Request with model selection and verification
+ */
+export interface ModelQueryRequest extends QueryRequest {
+    preferred_model?: MedicalModel;
+    task_type?: TaskType;
+    verification_strategy?: VerificationStrategy;
+}
+/**
+ * Response with model information and verification metadata
+ */
+export interface ModelQueryResponse extends UIResponse {
+    model_used: MedicalModel;
+    model_display_name: string;
+    task_type: TaskType;
+    routing_reason: string;
+    alternative_models?: MedicalModel[];
+    verification_used?: VerificationStrategy;
+    consensus_score?: number;
+    agent_responses?: Array<{
+        model: MedicalModel;
+        short_answer: string;
+        confidence: string;
+    }>;
+    hallucination_flags?: string[];
+}
+/**
+ * Model routing decision
+ */
+export interface RoutingDecision {
+    selectedModel: MedicalModel;
+    taskType: TaskType;
+    reason: string;
+    confidence: number;
+    alternatives: Array<{
+        model: MedicalModel;
+        suitability: number;
+    }>;
 }
 export interface AppConfig {
     port: number;

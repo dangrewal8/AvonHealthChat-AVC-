@@ -6,14 +6,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.initializeServices = initializeServices;
 const express_1 = require("express");
 const uuid_1 = require("uuid");
+const verification_service_1 = require("../services/verification.service");
 const enhanced_query_understanding_1 = require("./enhanced-query-understanding");
 const router = (0, express_1.Router)();
 // Initialize services (will be set from main app)
 let ollamaService;
 let avonHealthService;
-function initializeServices(ollama, avonHealth) {
+let modelManager;
+let verificationService;
+function initializeServices(ollama, avonHealth, modelMgr) {
     ollamaService = ollama;
     avonHealthService = avonHealth;
+    modelManager = modelMgr;
+    // Initialize verification service with model manager and ollama service
+    verificationService = new verification_service_1.VerificationService(ollama, modelMgr);
 }
 /**
  * Generate short answer from structured data (fallback when Ollama unavailable)
@@ -1618,7 +1624,8 @@ router.post('/query', async (req, res) => {
                         else if (units >= 1000)
                             displayStrength = `${(units / 1000).toFixed(1).replace(/\.0$/, '')}K units`;
                     }
-                    const text = `Medication: ${name} ${displayStrength}\nInstructions: ${sig}\nStatus: ${active}\nStarted: ${start_date}\nAdded by: ${created_by}`;
+                    // Emphasize medication name for LLM extraction
+                    const text = `⚠️ MEDICATION NAME: ${name}\nMedication: ${name} ${displayStrength}\nInstructions: ${sig}\nStatus: ${active}\nStarted: ${start_date}\nAdded by: ${created_by}`;
                     context += `\n\n[MEDICATION_${med.id || 'unknown'}] ${text}`;
                     artifacts_searched++;
                     // Enhanced snippet with more details
@@ -1682,10 +1689,43 @@ router.post('/query', async (req, res) => {
         let detailed_summary;
         let reasoning_chain = [];
         let reasoning_method = 'unknown';
+        // 🤖 INTELLIGENT MODEL ROUTING & VERIFICATION
+        // Determine best model based on query analysis and user preference
+        const requestBody = req.body;
+        const preferredModel = requestBody.preferred_model;
+        const taskTypeHint = requestBody.task_type;
+        const verificationStrategy = requestBody.verification_strategy || 'none';
+        // Classify query to determine optimal task type
+        const classifiedTaskType = taskTypeHint || modelManager.classifyQuery(query);
+        console.log(`\n🤖 MODEL ROUTING:`);
+        console.log(`   Classified Task: ${classifiedTaskType}`);
+        if (preferredModel) {
+            console.log(`   User Preference: ${preferredModel}`);
+        }
+        console.log(`   Verification: ${verificationStrategy}`);
+        // Route to best model
+        const routingDecision = await modelManager.routeModel(classifiedTaskType, query, preferredModel);
+        const selectedModel = routingDecision.selectedModel;
+        const modelConfig = modelManager.getModelConfig(selectedModel);
+        const ollamaModelName = modelManager.getOllamaModelName(selectedModel); // Used in verification call
+        console.log(`   ✅ Selected Model: ${modelConfig?.displayName || selectedModel}`);
+        console.log(`   📊 Confidence: ${(routingDecision.confidence * 100).toFixed(0)}%`);
+        console.log(`   💡 Reason: ${routingDecision.reason}`);
+        if (routingDecision.alternatives.length > 0) {
+            const altNames = routingDecision.alternatives
+                .map(a => modelManager.getModelConfig(a.model)?.displayName || a.model)
+                .join(', ');
+            console.log(`   🔄 Alternatives: ${altNames}`);
+        }
+        // Multi-agent verification fields
+        let verificationUsed = verificationStrategy;
+        let consensusScore;
+        let agentResponses;
+        let hallucinationFlags;
         try {
-            console.log('🧠 Attempting chain-of-thought reasoning with Meditron...');
-            // Try chain-of-thought reasoning FIRST (provides comprehensive context and multi-step thinking)
-            const cotResponse = await ollamaService.reasonWithChainOfThought(query, {
+            console.log(`\n🧠 Using ${verificationStrategy} verification with ${modelConfig?.displayName}...`);
+            // Use multi-agent verification service (wraps chain-of-thought)
+            const verificationResponse = await verificationService.verifyResponse(query, {
                 patient,
                 care_plans,
                 medications,
@@ -1698,13 +1738,35 @@ router.post('/query', async (req, res) => {
                 documents,
                 form_responses,
                 insurance_policies
-            }, conversation_history);
-            short_answer = cotResponse.short_answer;
-            detailed_summary = cotResponse.detailed_summary;
-            reasoning_chain = cotResponse.reasoning_chain;
-            reasoning_method = 'chain_of_thought';
-            console.log('✅ Generated answer using chain-of-thought reasoning');
+            }, conversation_history, verificationStrategy, ollamaModelName // Pass the Ollama model name
+            );
+            short_answer = verificationResponse.short_answer;
+            detailed_summary = verificationResponse.detailed_summary;
+            reasoning_chain = verificationResponse.reasoning_chain;
+            reasoning_method = verificationStrategy === 'none' ? 'chain_of_thought' : `verified_${verificationStrategy}`;
+            // Extract verification metadata
+            verificationUsed = verificationResponse.verification_used;
+            consensusScore = verificationResponse.consensus_score;
+            // Convert agent responses to API format (confidence number -> string)
+            if (verificationResponse.agent_responses && verificationResponse.agent_responses.length > 0) {
+                agentResponses = verificationResponse.agent_responses.map(ar => ({
+                    model: ar.model,
+                    short_answer: ar.short_answer,
+                    confidence: ar.confidence ? ar.confidence.toFixed(2) : 'unknown'
+                }));
+            }
+            hallucinationFlags = verificationResponse.hallucination_flags;
+            console.log(`✅ Generated answer using ${verificationUsed} verification`);
             console.log(`   📊 Reasoning steps: ${reasoning_chain.length}`);
+            if (consensusScore !== undefined) {
+                console.log(`   🎯 Consensus score: ${(consensusScore * 100).toFixed(1)}%`);
+            }
+            if (agentResponses && agentResponses.length > 0) {
+                console.log(`   🤖 Agents consulted: ${agentResponses.length}`);
+            }
+            if (hallucinationFlags && hallucinationFlags.length > 0) {
+                console.log(`   ⚠️  Hallucination flags: ${hallucinationFlags.length}`);
+            }
             if (reasoning_chain.length > 0) {
                 console.log(`   🔍 Thought process preview: ${reasoning_chain[0].substring(0, 100)}...`);
             }
@@ -1757,11 +1819,13 @@ router.post('/query', async (req, res) => {
             }
             return strength;
         };
-        // Extract medications mentioned in the answer - with DETAILED information
-        if (medications && detailed_summary) {
+        // Extract medications - QUERY-BASED instead of summary-dependent
+        // This ensures medications appear in sources even if LLM doesn't include names in answer
+        if (medications && isMedicationQuery) {
             medications.forEach((med) => {
-                if (med.name && detailed_summary.toLowerCase().includes(med.name.toLowerCase())) {
-                    // Build comprehensive supporting text with CORRECT API fields
+                // Extract ALL medications for medication queries, not just those in detailed_summary
+                // Prioritize active medications
+                if (med.name) {
                     const strength = formatStrengthShort(med.strength || '');
                     const parts = [];
                     if (strength)
@@ -1776,7 +1840,7 @@ router.post('/query', async (req, res) => {
                     structured_extractions.push({
                         type: 'medication',
                         value: `${med.name}${strength ? ` (${strength})` : ''}`,
-                        relevance: 0.9,
+                        relevance: med.active ? 0.95 : 0.7, // Prioritize active meds
                         confidence: 0.95,
                         source_artifact_id: med.id || 'unknown',
                         supporting_text: parts.join(' | '),
@@ -1824,9 +1888,9 @@ router.post('/query', async (req, res) => {
                     extraction: 0.83,
                 },
                 explanation: reasoning_method === 'chain_of_thought'
-                    ? `Answer generated using chain-of-thought reasoning from ${artifacts_searched} real patient records via Avon Health API`
+                    ? `Answer generated using ${modelConfig?.displayName || selectedModel} with chain-of-thought reasoning from ${artifacts_searched} real patient records via Avon Health API`
                     : (reasoning_method === 'standard_rag'
-                        ? `Answer generated from ${artifacts_searched} real patient records via Avon Health API`
+                        ? `Answer generated using ${modelConfig?.displayName || selectedModel} from ${artifacts_searched} real patient records via Avon Health API`
                         : `Answer generated using pattern-based fallback from ${artifacts_searched} real patient records`),
             },
             metadata: {
@@ -1836,11 +1900,22 @@ router.post('/query', async (req, res) => {
                 artifacts_searched,
                 chunks_retrieved: provenance.length,
                 detail_level: options.detail_level || 3,
-                reasoning_method, // NEW: Shows which method was used (chain_of_thought, standard_rag, pattern_fallback)
-                reasoning_chain, // NEW: Shows Meditron's step-by-step thought process
+                reasoning_method, // Shows which method was used (chain_of_thought, standard_rag, pattern_fallback)
+                reasoning_chain, // Shows step-by-step thought process
             },
+            // Model routing information
+            model_used: selectedModel,
+            model_display_name: modelConfig?.displayName || selectedModel,
+            task_type: classifiedTaskType,
+            routing_reason: routingDecision.reason,
+            alternative_models: routingDecision.alternatives.map(a => a.model),
+            // Multi-agent verification metadata
+            verification_used: verificationUsed,
+            consensus_score: consensusScore,
+            agent_responses: agentResponses,
+            hallucination_flags: hallucinationFlags,
         };
-        console.log(`✅ Query completed in ${processingTime}ms using REAL API data`);
+        console.log(`✅ Query completed in ${processingTime}ms using REAL API data with ${modelConfig?.displayName}`);
         res.json(response);
     }
     catch (error) {
@@ -1915,6 +1990,59 @@ router.get('/emr/all', async (req, res) => {
         }
         const allData = await avonHealthService.getAllPatientData(patient_id);
         res.json(allData);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+/**
+ * GET /models - Get available medical models and their status
+ * Returns all configured models with health status and performance info
+ */
+router.get('/models', async (_req, res) => {
+    try {
+        const modelStats = await modelManager.getModelStatistics();
+        res.json({
+            models: modelStats.map(stat => ({
+                name: stat.model,
+                display_name: stat.config.displayName,
+                description: stat.config.description,
+                specialization: stat.config.specialization,
+                parameter_size: stat.config.parameterSize,
+                quantization: stat.config.quantization,
+                context_window: stat.config.contextWindow,
+                performance: stat.config.performance,
+                enabled: stat.config.enabled,
+                available: stat.health?.available || false,
+                response_time_ms: stat.health?.responseTimeMs,
+                last_checked: stat.health?.lastChecked,
+                error: stat.health?.error,
+            })),
+            timestamp: new Date().toISOString(),
+        });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+/**
+ * GET /models/health - Force health check of all models
+ * Triggers immediate health check and returns results
+ */
+router.get('/models/health', async (_req, res) => {
+    try {
+        const healthMap = await modelManager.checkModelsHealth(true); // Force check
+        const healthArray = Array.from(healthMap.entries()).map(([model, health]) => ({
+            model,
+            available: health.available,
+            last_checked: health.lastChecked,
+            response_time_ms: health.responseTimeMs,
+            error: health.error,
+        }));
+        res.json({
+            models: healthArray,
+            timestamp: new Date().toISOString(),
+        });
     }
     catch (error) {
         res.status(500).json({ error: error.message });

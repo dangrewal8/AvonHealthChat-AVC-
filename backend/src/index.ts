@@ -15,6 +15,7 @@ import healthRoutes from './routes/health.routes';
 import apiRoutes, { initializeServices } from './routes/api.routes';
 import { OllamaService } from './services/ollama.service';
 import { AvonHealthService } from './services/avonhealth.service';
+import { ModelManagerService } from './services/model-manager.service';
 import type { AppConfig } from './types';
 
 // Load environment variables
@@ -58,6 +59,9 @@ const config: AppConfig = {
 
 const app: Express = express();
 
+// Trust proxy - Required for Cloudflare Tunnel and rate limiting
+app.set('trust proxy', true);
+
 // ============================================================================
 // Security Middleware
 // ============================================================================
@@ -82,9 +86,23 @@ app.use(
 );
 
 // CORS - Allow frontend access
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+  : ['*'];
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+
+      // Check if origin is in allowed list or if we allow all origins
+      if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -103,6 +121,8 @@ const limiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   // Skip rate limiting for health check endpoint
   skip: (req) => req.path === '/health',
+  // Disable trust proxy validation since we're using Cloudflare Tunnel
+  validate: { trustProxy: false },
 });
 
 // Apply rate limiting to all API routes
@@ -136,11 +156,20 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 let ollamaService: OllamaService;
 let avonHealthService: AvonHealthService;
+let modelManager: ModelManagerService;
 
 async function initializeApp() {
   console.log('🚀 Initializing Avon Health RAG System...');
   console.log(`Environment: ${config.nodeEnv}`);
   console.log(`Port: ${config.port}`);
+
+  // Initialize Model Manager
+  console.log('🤖 Initializing Multi-Model System...');
+  modelManager = new ModelManagerService(config.ollama.baseUrl);
+
+  // Check health of all models
+  await modelManager.checkModelsHealth(true);
+  console.log('✅ Model Manager initialized');
 
   // Initialize Ollama service
   console.log('📡 Connecting to Ollama...');
@@ -180,7 +209,7 @@ async function initializeApp() {
   }
 
   // Initialize route services
-  initializeServices(ollamaService, avonHealthService);
+  initializeServices(ollamaService, avonHealthService, modelManager);
   console.log('✅ Services initialized');
 }
 
