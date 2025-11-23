@@ -33,10 +33,25 @@ export class AvonHealthService {
     this.credentials = credentials;
     this.client = axios.create({
       baseURL: credentials.base_url,
-      timeout: 30000,
+      timeout: 60000, // Increased to 60 seconds for parallel requests
       headers: {
         'Content-Type': 'application/json',
       },
+      // Add connection pooling configuration
+      maxRedirects: 5,
+      httpAgent: new (require('http').Agent)({
+        keepAlive: true,
+        maxSockets: 50,
+        maxFreeSockets: 10,
+        timeout: 60000,
+      }),
+      httpsAgent: new (require('https').Agent)({
+        keepAlive: true,
+        maxSockets: 50,
+        maxFreeSockets: 10,
+        timeout: 60000,
+        rejectUnauthorized: true,
+      }),
     });
   }
 
@@ -490,33 +505,33 @@ export class AvonHealthService {
     insurance_policies: InsurancePolicy[];
   }> {
     try {
-      const [
-        patients,
-        carePlans,
-        medications,
-        notes,
-        allergies,
-        conditions,
-        vitals,
-        familyHistory,
-        appointments,
-        documents,
-        formResponses,
-        insurancePolicies,
-      ] = await Promise.all([
+      console.log(`📦 Fetching all patient data for ${patientId} (batched requests)...`);
+
+      // Batch 1: Critical patient data (parallel)
+      const [patients, carePlans, medications, notes] = await Promise.all([
         this.getPatients(patientId),
         this.getCarePlans(patientId),
         this.getMedications(patientId),
         this.getNotes(patientId),
+      ]);
+
+      // Batch 2: Clinical data (parallel)
+      const [allergies, conditions, vitals, familyHistory] = await Promise.all([
         this.getAllergies(patientId),
         this.getConditions(patientId),
         this.getVitals(patientId),
         this.getFamilyHistory(patientId),
+      ]);
+
+      // Batch 3: Administrative data (parallel)
+      const [appointments, documents, formResponses, insurancePolicies] = await Promise.all([
         this.getAppointments(patientId),
         this.getDocuments(patientId),
         this.getFormResponses(patientId),
         this.getInsurancePolicies(patientId),
       ]);
+
+      console.log(`✅ All patient data fetched successfully`);
 
       return {
         patient: patients.length > 0 ? patients[0] : null,
