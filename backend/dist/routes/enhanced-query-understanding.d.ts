@@ -53,5 +53,6 @@ export declare function analyzeQuery(query: string): {
     isFollowUp: boolean;
     isMultiPart: boolean;
     suggestions: string[];
+    time_window?: [string, string];
 };
 //# sourceMappingURL=enhanced-query-understanding.d.ts.map

@@ -1,439 +1,342 @@
 "use strict";
 /**
- * Artifact Validation Service
- * Comprehensive validation for normalized Artifact objects
+ * Response Validation Service
  *
- * Per ChatGPT Requirement: "Validation: Ensure all required fields are present, Type checking, Date validity"
+ * Validates and corrects LLM responses to eliminate hallucinations.
+ * Implements research-backed techniques including:
+ * - Numerical accuracy verification
+ * - Citation verification
+ * - Temporal query validation
+ * - Count consistency enforcement
+ * PHASE 2 Enhancements:
+ * - date-fns for robust temporal filtering
+ * - Citation verification pipeline
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.artifactValidator = void 0;
-/**
- * Required fields for each artifact type
- */
-const REQUIRED_FIELDS = {
-    // Tier 1
-    note: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    document: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    medication: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    condition: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    allergy: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    care_plan: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    // Tier 2
-    form_response: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    message: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    lab_observation: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    vital: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    // Tier 3
-    appointment: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    superbill: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    insurance_policy: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    task: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    family_history: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    // Tier 4
-    intake_flow: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-    form: ['id', 'patient_id', 'occurred_at', 'text', 'source', 'type'],
-};
-/**
- * Field type definitions
- */
-const FIELD_TYPES = {
-    id: 'string',
-    patient_id: 'string',
-    occurred_at: 'string',
-    text: 'string',
-    source: 'string',
-    type: 'string',
-    author: 'string',
-    title: 'string',
-    meta: 'object',
-};
-/**
- * Artifact Validator Class
- * Validates artifacts for required fields, type correctness, and date validity
- */
-class ArtifactValidator {
+exports.validationService = exports.ValidationService = void 0;
+const logger_1 = require("../utils/logger");
+const date_fns_1 = require("date-fns");
+class ValidationService {
     /**
-     * Comprehensive validation of an artifact
-     * Returns detailed validation result with errors and warnings
+     * Main validation entry point
+     * Validates and corrects response against ground truth
      */
-    validate(artifact) {
-        const errors = [];
-        const warnings = [];
-        // 1. Validate required fields
-        const requiredErrors = this.validateRequired(artifact);
-        errors.push(...requiredErrors);
-        // 2. Validate field types
-        const typeErrors = this.validateTypes(artifact);
-        errors.push(...typeErrors);
-        // 3. Validate dates (produces warnings and errors)
-        const dateValidation = this.validateDates(artifact);
-        errors.push(...dateValidation.errors);
-        warnings.push(...dateValidation.warnings);
-        // 4. Additional validation
-        const additionalValidation = this.validateAdditional(artifact);
-        errors.push(...additionalValidation.errors);
-        warnings.push(...additionalValidation.warnings);
-        return {
-            valid: errors.length === 0,
-            errors,
-            warnings,
-        };
+    async validateAndCorrectResponse(context) {
+        const issues = [];
+        let correctedResponse = context.response;
+        let confidence = 1.0;
+        try {
+            // 1. Validate numerical accuracy (medications, conditions, allergies)
+            const numericalValidation = this.validateNumericalAccuracy(context);
+            if (!numericalValidation.isValid) {
+                issues.push(...numericalValidation.issues);
+                correctedResponse = numericalValidation.correctedResponse || correctedResponse;
+                confidence *= 0.8;
+            }
+            // 2. Validate temporal query correctness (past vs current)
+            const temporalValidation = this.validateTemporalQuery(context);
+            if (!temporalValidation.isValid) {
+                issues.push(...temporalValidation.issues);
+                correctedResponse = temporalValidation.correctedResponse || correctedResponse;
+                confidence *= 0.9;
+            }
+            // 3. Validate count consistency (reported count vs extracted entities)
+            const countValidation = this.validateCountConsistency(context, correctedResponse);
+            if (!countValidation.isValid) {
+                issues.push(...countValidation.issues);
+                correctedResponse = countValidation.correctedResponse || correctedResponse;
+                confidence *= 0.85;
+            }
+            return {
+                isValid: issues.length === 0,
+                correctedResponse: issues.length > 0 ? correctedResponse : undefined,
+                issues,
+                confidence
+            };
+        }
+        catch (error) {
+            logger_1.logger.error('Validation error:', error);
+            return {
+                isValid: true, // Fail open - return original response if validation errors
+                issues: [`Validation error: ${error}`],
+                confidence: 0.5
+            };
+        }
     }
     /**
-     * Simple boolean validation for artifacts
-     * Returns true if artifact has no errors
+     * Validates numerical accuracy against ground truth
+     * Fixes hallucinated counts for medications, conditions, allergies
      */
-    validateArtifact(artifact) {
-        const result = this.validate(artifact);
-        return result.valid;
-    }
-    /**
-     * Validate required fields are present and non-empty
-     */
-    validateRequired(artifact) {
-        const errors = [];
-        // Check if artifact has a type
-        if (!artifact || !artifact.type) {
-            errors.push({
-                field: 'type',
-                message: 'Artifact type is required',
-                severity: 'error',
-                value: artifact?.type,
-            });
-            return errors; // Can't proceed without type
-        }
-        // Get required fields for this artifact type
-        const requiredFields = REQUIRED_FIELDS[artifact.type];
-        if (!requiredFields) {
-            errors.push({
-                field: 'type',
-                message: `Invalid artifact type: ${artifact.type}`,
-                severity: 'error',
-                value: artifact.type,
-            });
-            return errors;
-        }
-        // Check each required field
-        for (const field of requiredFields) {
-            const value = artifact[field];
-            // Check if field exists
-            if (value === undefined || value === null) {
-                errors.push({
-                    field,
-                    message: `Required field '${field}' is missing`,
-                    severity: 'error',
-                    value,
-                });
-                continue;
-            }
-            // Check if field is empty (for strings)
-            if (typeof value === 'string' && value.trim().length === 0) {
-                errors.push({
-                    field,
-                    message: `Required field '${field}' cannot be empty`,
-                    severity: 'error',
-                    value,
-                });
-            }
-        }
-        return errors;
-    }
-    /**
-     * Validate date fields
-     * Checks ISO 8601 format, future dates, and very old dates
-     */
-    validateDates(artifact) {
-        const errors = [];
-        const warnings = [];
-        if (!artifact.occurred_at) {
-            return { errors, warnings }; // Already caught by required validation
-        }
-        const occurredAt = artifact.occurred_at;
-        // 1. Validate ISO 8601 format
-        if (!this.isValidISODate(occurredAt)) {
-            errors.push({
-                field: 'occurred_at',
-                message: 'Date must be in ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)',
-                severity: 'error',
-                value: occurredAt,
-            });
-            return { errors, warnings }; // Can't proceed with invalid date
-        }
-        // 2. Parse and check date validity
-        const date = new Date(occurredAt);
-        if (isNaN(date.getTime())) {
-            errors.push({
-                field: 'occurred_at',
-                message: 'Invalid date value',
-                severity: 'error',
-                value: occurredAt,
-            });
-            return { errors, warnings };
-        }
-        const now = new Date();
-        // 3. Check if date is in the future (warning)
-        if (date > now) {
-            const diffMs = date.getTime() - now.getTime();
-            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-            warnings.push({
-                field: 'occurred_at',
-                message: `Date is in the future (${diffDays} day${diffDays !== 1 ? 's' : ''} from now)`,
-                severity: 'warning',
-                value: occurredAt,
-            });
-        }
-        // 4. Check if date is too old (> 10 years - warning)
-        const tenYearsAgo = new Date();
-        tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
-        if (date < tenYearsAgo) {
-            const diffMs = now.getTime() - date.getTime();
-            const diffYears = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25));
-            warnings.push({
-                field: 'occurred_at',
-                message: `Date is very old (${diffYears} year${diffYears !== 1 ? 's' : ''} ago)`,
-                severity: 'warning',
-                value: occurredAt,
-            });
-        }
-        // 5. Check if date is before 1900 (error)
-        const year1900 = new Date('1900-01-01T00:00:00.000Z');
-        if (date < year1900) {
-            errors.push({
-                field: 'occurred_at',
-                message: 'Date cannot be before 1900',
-                severity: 'error',
-                value: occurredAt,
-            });
-        }
-        return { errors, warnings };
-    }
-    /**
-     * Validate field types
-     */
-    validateTypes(artifact) {
-        const errors = [];
-        // Validate each field's type
-        for (const [field, expectedType] of Object.entries(FIELD_TYPES)) {
-            const value = artifact[field];
-            // Skip if field is not present (handled by required validation)
-            if (value === undefined || value === null) {
-                continue;
-            }
-            const actualType = typeof value;
-            // Check type match
-            if (expectedType === 'object') {
-                if (actualType !== 'object' || Array.isArray(value)) {
-                    errors.push({
-                        field,
-                        message: `Field '${field}' must be an object, got ${Array.isArray(value) ? 'array' : actualType}`,
-                        severity: 'error',
-                        value,
-                    });
-                }
-            }
-            else if (actualType !== expectedType) {
-                errors.push({
-                    field,
-                    message: `Field '${field}' must be a ${expectedType}, got ${actualType}`,
-                    severity: 'error',
-                    value,
-                });
-            }
-        }
-        // Validate artifact type is one of the allowed types
-        if (artifact.type) {
-            const validTypes = [
-                // Tier 1
-                'note', 'document', 'medication', 'condition', 'allergy', 'care_plan',
-                // Tier 2
-                'form_response', 'message', 'lab_observation', 'vital',
-                // Tier 3
-                'appointment', 'superbill', 'insurance_policy', 'task', 'family_history',
-                // Tier 4
-                'intake_flow', 'form'
-            ];
-            if (!validTypes.includes(artifact.type)) {
-                errors.push({
-                    field: 'type',
-                    message: `Invalid artifact type '${artifact.type}'. Must be one of: ${validTypes.join(', ')}`,
-                    severity: 'error',
-                    value: artifact.type,
-                });
-            }
-        }
-        return errors;
-    }
-    /**
-     * Additional validation checks
-     */
-    validateAdditional(artifact) {
-        const errors = [];
-        const warnings = [];
-        // 1. Check text field length
-        if (artifact.text && typeof artifact.text === 'string') {
-            const textLength = artifact.text.length;
-            if (textLength === 0) {
-                errors.push({
-                    field: 'text',
-                    message: 'Text field cannot be empty',
-                    severity: 'error',
-                    value: artifact.text,
-                });
-            }
-            else if (textLength > 50000) {
-                warnings.push({
-                    field: 'text',
-                    message: `Text is very long (${textLength} characters)`,
-                    severity: 'warning',
-                    value: textLength,
-                });
-            }
-            else if (textLength < 10) {
-                warnings.push({
-                    field: 'text',
-                    message: `Text is very short (${textLength} characters)`,
-                    severity: 'warning',
-                    value: textLength,
-                });
-            }
-        }
-        // 2. Check ID format (should not contain spaces or special chars)
-        if (artifact.id && typeof artifact.id === 'string') {
-            if (/\s/.test(artifact.id)) {
-                warnings.push({
-                    field: 'id',
-                    message: 'ID contains whitespace',
-                    severity: 'warning',
-                    value: artifact.id,
-                });
-            }
-            if (artifact.id === 'unknown' || artifact.id === 'placeholder') {
-                warnings.push({
-                    field: 'id',
-                    message: `ID is a placeholder value: '${artifact.id}'`,
-                    severity: 'warning',
-                    value: artifact.id,
-                });
-            }
-        }
-        // 3. Check patient_id format
-        if (artifact.patient_id && typeof artifact.patient_id === 'string') {
-            if (artifact.patient_id.trim().length === 0) {
-                errors.push({
-                    field: 'patient_id',
-                    message: 'Patient ID cannot be empty',
-                    severity: 'error',
-                    value: artifact.patient_id,
-                });
-            }
-        }
-        // 4. Check source URL format
-        if (artifact.source && typeof artifact.source === 'string') {
-            if (!artifact.source.startsWith('http://') && !artifact.source.startsWith('https://')) {
-                warnings.push({
-                    field: 'source',
-                    message: 'Source should be a valid URL',
-                    severity: 'warning',
-                    value: artifact.source,
-                });
-            }
-        }
-        // 5. Check title length (if present)
-        if (artifact.title && typeof artifact.title === 'string') {
-            if (artifact.title.length > 200) {
-                warnings.push({
-                    field: 'title',
-                    message: `Title is very long (${artifact.title.length} characters)`,
-                    severity: 'warning',
-                    value: artifact.title.length,
-                });
-            }
-        }
-        return { errors, warnings };
-    }
-    /**
-     * Check if a string is a valid ISO 8601 date
-     */
-    isValidISODate(dateString) {
-        if (typeof dateString !== 'string') {
-            return false;
-        }
-        // ISO 8601 regex pattern
-        // Matches: YYYY-MM-DDTHH:mm:ss.sssZ or YYYY-MM-DDTHH:mm:ssZ or YYYY-MM-DD
-        const iso8601Regex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
-        if (!iso8601Regex.test(dateString)) {
-            return false;
-        }
-        // Try parsing to ensure it's a valid date
-        const date = new Date(dateString);
-        return !isNaN(date.getTime());
-    }
-    /**
-     * Batch validation
-     * Validates multiple artifacts and returns a summary
-     */
-    validateBatch(artifacts) {
-        const results = artifacts.map((artifact) => this.validate(artifact));
-        const validCount = results.filter((r) => r.valid).length;
-        const invalidCount = results.filter((r) => !r.valid).length;
-        const warningCount = results.filter((r) => r.warnings.length > 0).length;
-        return {
-            totalCount: artifacts.length,
-            validCount,
-            invalidCount,
-            warningCount,
-            results,
-        };
-    }
-    /**
-     * Get validation summary for logging
-     */
-    getValidationSummary(result) {
-        if (result.valid && result.warnings.length === 0) {
-            return '✓ Valid';
-        }
-        const parts = [];
-        if (!result.valid) {
-            parts.push(`✗ ${result.errors.length} error${result.errors.length !== 1 ? 's' : ''}`);
+    validateNumericalAccuracy(context) {
+        const issues = [];
+        let correctedResponse = context.response;
+        // Extract reported counts from response
+        const medMatch = correctedResponse.match(/(\d+)\s+(?:active\s+)?medication/i);
+        const condMatch = correctedResponse.match(/(\d+)\s+(?:diagnosed\s+)?condition/i);
+        const allergyMatch = correctedResponse.match(/(\d+)\s+(?:active\s+)?allerg(?:y|ies)/i);
+        // Get actual counts from patient data or structured extractions
+        let actualMedCount = 0;
+        let actualCondCount = 0;
+        let actualAllergyCount = 0;
+        if (context.patientData) {
+            // Prefer patient data as ground truth
+            actualMedCount = context.patientData.medications?.filter((m) => m.active).length || 0;
+            actualCondCount = context.patientData.conditions?.length || 0;
+            actualAllergyCount = context.patientData.allergies?.length || 0;
         }
         else {
-            parts.push('✓ Valid');
+            // Fallback to structured extractions
+            actualMedCount = context.structuredExtractions.filter(e => e.type === 'medication').length;
+            actualCondCount = context.structuredExtractions.filter(e => e.type === 'condition').length;
+            actualAllergyCount = context.structuredExtractions.filter(e => e.type === 'allergy').length;
         }
-        if (result.warnings.length > 0) {
-            parts.push(`⚠ ${result.warnings.length} warning${result.warnings.length !== 1 ? 's' : ''}`);
+        // Validate medication count
+        if (medMatch) {
+            const reportedMedCount = parseInt(medMatch[1]);
+            if (reportedMedCount !== actualMedCount) {
+                issues.push(`Medication count hallucination: Reported ${reportedMedCount} but extracted ${actualMedCount}`);
+                // Auto-correct the count
+                const wrongPattern = new RegExp(`${reportedMedCount}\\s+(?:active\\s+)?medication`, 'gi');
+                correctedResponse = correctedResponse.replace(wrongPattern, `${actualMedCount} ${actualMedCount === 1 ? 'medication' : 'medications'}`);
+                logger_1.logger.warn(`AUTO-CORRECTED: Medication count from ${reportedMedCount} to ${actualMedCount}`);
+            }
         }
-        return parts.join(', ');
+        // Validate condition count
+        if (condMatch) {
+            const reportedCondCount = parseInt(condMatch[1]);
+            if (reportedCondCount !== actualCondCount) {
+                issues.push(`Condition count hallucination: Reported ${reportedCondCount} but extracted ${actualCondCount}`);
+                const wrongPattern = new RegExp(`${reportedCondCount}\\s+(?:diagnosed\\s+)?condition`, 'gi');
+                correctedResponse = correctedResponse.replace(wrongPattern, `${actualCondCount} ${actualCondCount === 1 ? 'condition' : 'conditions'}`);
+                logger_1.logger.warn(`AUTO-CORRECTED: Condition count from ${reportedCondCount} to ${actualCondCount}`);
+            }
+        }
+        // Validate allergy count
+        if (allergyMatch) {
+            const reportedAllergyCount = parseInt(allergyMatch[1]);
+            if (reportedAllergyCount !== actualAllergyCount) {
+                issues.push(`Allergy count hallucination: Reported ${reportedAllergyCount} but extracted ${actualAllergyCount}`);
+                const wrongPattern = new RegExp(`${reportedAllergyCount}\\s+(?:active\\s+)?allerg(?:y|ies)`, 'gi');
+                correctedResponse = correctedResponse.replace(wrongPattern, `${actualAllergyCount} ${actualAllergyCount === 1 ? 'allergy' : 'allergies'}`);
+                logger_1.logger.warn(`AUTO-CORRECTED: Allergy count from ${reportedAllergyCount} to ${actualAllergyCount}`);
+            }
+        }
+        return {
+            isValid: issues.length === 0,
+            correctedResponse: issues.length > 0 ? correctedResponse : undefined,
+            issues,
+            confidence: issues.length === 0 ? 1.0 : 0.7
+        };
     }
     /**
-     * Format validation errors for display
+     * Validates temporal queries (past vs current medications)
+     * Ensures past medication queries don't mention active medications
      */
-    formatErrors(errors) {
-        if (errors.length === 0) {
-            return 'No errors';
+    validateTemporalQuery(context) {
+        const issues = [];
+        let correctedResponse = context.response;
+        // Detect if this is a past medication query
+        const isPastMedQuery = /past|previous|historical|discontinued|stopped|used to take/i.test(context.query);
+        if (isPastMedQuery && /medication/i.test(context.query)) {
+            // Check if response incorrectly mentions active/current medications
+            const mentionsActiveMeds = /currently taking|active medication|is taking/i.test(correctedResponse);
+            if (mentionsActiveMeds) {
+                issues.push('Past medication query incorrectly mentions active/current medications');
+                // Remove any mention of active medications
+                correctedResponse = correctedResponse.replace(/\.\s*The patient is currently taking \d+ (?:active\s+)?medications?\./gi, '.');
+                correctedResponse = correctedResponse.replace(/\s*The patient is currently taking \d+ (?:active\s+)?medications?\./gi, '');
+                logger_1.logger.warn('AUTO-CORRECTED: Removed active medication mention from past medication query');
+            }
+            // Validate that we're checking inactive medications
+            let inactiveMedCount = 0;
+            if (context.patientData?.medications) {
+                inactiveMedCount = context.patientData.medications.filter((m) => m.active === false).length;
+            }
+            else if (context.provenance) {
+                inactiveMedCount = context.provenance.filter(p => p.artifact_type === 'medication' && p.data?.active === false).length;
+            }
+            if (inactiveMedCount === 0 && !correctedResponse.match(/no.*(?:past|discontinued|historical).*medication/i)) {
+                // Should explicitly say no past medications found
+                correctedResponse = "No past/discontinued medications found in the patient's records.";
+                logger_1.logger.warn('AUTO-CORRECTED: Replaced response for zero past medications');
+            }
         }
-        return errors
-            .map((error) => {
-            const value = error.value !== undefined ? ` (got: ${JSON.stringify(error.value)})` : '';
-            return `  - ${error.field}: ${error.message}${value}`;
-        })
-            .join('\n');
+        return {
+            isValid: issues.length === 0,
+            correctedResponse: issues.length > 0 ? correctedResponse : undefined,
+            issues,
+            confidence: issues.length === 0 ? 1.0 : 0.8
+        };
     }
     /**
-     * Format validation warnings for display
+     * Validates count consistency between reported counts and extracted entities
+     * Ensures when LLM says "2 medications", it actually lists 2 medication names
      */
-    formatWarnings(warnings) {
-        if (warnings.length === 0) {
-            return 'No warnings';
+    validateCountConsistency(context, response) {
+        const issues = [];
+        let correctedResponse = response;
+        // Count medication names listed in the response
+        const medExtractions = context.structuredExtractions.filter(e => e.type === 'medication');
+        const listedMedNames = medExtractions.map(e => e.value || e.name).filter(Boolean);
+        // Find reported count in response
+        const medCountMatch = response.match(/(\d+)\s+(?:active\s+)?medication/i);
+        if (medCountMatch && listedMedNames.length > 0) {
+            const reportedCount = parseInt(medCountMatch[1]);
+            const actualListedCount = listedMedNames.length;
+            if (reportedCount !== actualListedCount) {
+                issues.push(`Count-name mismatch: Says ${reportedCount} medications but lists ${actualListedCount} names`);
+                // Correct the count to match the number of names actually listed
+                const wrongPattern = new RegExp(`${reportedCount}\\s+(?:active\\s+)?medication`, 'gi');
+                correctedResponse = correctedResponse.replace(wrongPattern, `${actualListedCount} ${actualListedCount === 1 ? 'medication' : 'medications'}`);
+                logger_1.logger.warn(`AUTO-CORRECTED: Count-name consistency from ${reportedCount} to ${actualListedCount}`);
+            }
         }
-        return warnings
-            .map((warning) => {
-            const value = warning.value !== undefined ? ` (${JSON.stringify(warning.value)})` : '';
-            return `  - ${warning.field}: ${warning.message}${value}`;
-        })
-            .join('\n');
+        // Same check for conditions
+        const condExtractions = context.structuredExtractions.filter(e => e.type === 'condition');
+        const listedCondNames = condExtractions.map(e => e.value || e.name).filter(Boolean);
+        const condCountMatch = response.match(/(\d+)\s+(?:diagnosed\s+)?condition/i);
+        if (condCountMatch && listedCondNames.length > 0) {
+            const reportedCount = parseInt(condCountMatch[1]);
+            const actualListedCount = listedCondNames.length;
+            if (reportedCount !== actualListedCount) {
+                issues.push(`Count-name mismatch: Says ${reportedCount} conditions but lists ${actualListedCount} names`);
+                const wrongPattern = new RegExp(`${reportedCount}\\s+(?:diagnosed\\s+)?condition`, 'gi');
+                correctedResponse = correctedResponse.replace(wrongPattern, `${actualListedCount} ${actualListedCount === 1 ? 'condition' : 'conditions'}`);
+                logger_1.logger.warn(`AUTO-CORRECTED: Condition count-name consistency from ${reportedCount} to ${actualListedCount}`);
+            }
+        }
+        return {
+            isValid: issues.length === 0,
+            correctedResponse: issues.length > 0 ? correctedResponse : undefined,
+            issues,
+            confidence: issues.length === 0 ? 1.0 : 0.75
+        };
+    }
+    /**
+     * Validates that all claims in the response are supported by provenance
+     * Implements citation verification
+     */
+    async verifyCitations(context) {
+        const issues = [];
+        // Extract key claims from response (medications, conditions, dates, etc.)
+        const claims = this.extractClaims(context.response);
+        // Check each claim against provenance
+        for (const claim of claims) {
+            const isSupported = this.isClaimSupported(claim, context.provenance);
+            if (!isSupported) {
+                issues.push(`Unsupported claim: "${claim}"`);
+            }
+        }
+        return {
+            isValid: issues.length === 0,
+            issues,
+            confidence: 1.0 - (issues.length * 0.1)
+        };
+    }
+    /**
+     * Extract atomic claims from response text
+     */
+    extractClaims(response) {
+        const claims = [];
+        // Extract medication claims
+        const medMatches = response.matchAll(/(?:taking|on|prescribed)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/gi);
+        for (const match of medMatches) {
+            claims.push(match[1]);
+        }
+        // Extract condition claims
+        const condMatches = response.matchAll(/(?:diagnosed with|has|condition[s]?:)\s+([^.,;]+)/gi);
+        for (const match of condMatches) {
+            claims.push(match[1].trim());
+        }
+        return claims;
+    }
+    /**
+     * Check if a claim is supported by provenance artifacts
+     */
+    isClaimSupported(claim, provenance) {
+        if (!provenance || provenance.length === 0)
+            return false;
+        const claimLower = claim.toLowerCase();
+        for (const artifact of provenance) {
+            const artifactText = JSON.stringify(artifact.data).toLowerCase();
+            if (artifactText.includes(claimLower)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * PHASE 2: Enhanced Temporal Filtering with date-fns
+     * Filters artifacts by date range based on query temporal expressions
+     */
+    filterArtifactsByTimeWindow(artifacts, query) {
+        const now = new Date();
+        let timeWindow;
+        // Detect temporal expressions
+        if (/past\s+(\d+)\s+(month|year)s?/i.test(query)) {
+            const match = query.match(/past\s+(\d+)\s+(month|year)s?/i);
+            const amount = parseInt(match[1]);
+            const unit = match[2].toLowerCase();
+            const start = unit === 'month' ? (0, date_fns_1.subMonths)(now, amount) : (0, date_fns_1.subYears)(now, amount);
+            timeWindow = {
+                start,
+                end: now,
+                expression: `past ${amount} ${unit}${amount > 1 ? 's' : ''}`,
+            };
+        }
+        else if (/last\s+(month|year|week)/i.test(query)) {
+            const match = query.match(/last\s+(month|year|week)/i);
+            const unit = match[1].toLowerCase();
+            if (unit === 'month') {
+                timeWindow = { start: (0, date_fns_1.subMonths)(now, 1), end: now, expression: 'last month' };
+            }
+            else if (unit === 'year') {
+                timeWindow = { start: (0, date_fns_1.subYears)(now, 1), end: now, expression: 'last year' };
+            }
+        }
+        else if (/current|active|ongoing/i.test(query)) {
+            // For "current" queries, only include recent data (last 3 months)
+            timeWindow = {
+                start: (0, date_fns_1.subMonths)(now, 3),
+                end: now,
+                expression: 'current/active',
+            };
+        }
+        else if (/historical|past|discontinued|previous/i.test(query)) {
+            // For historical queries, look back further but exclude very recent
+            timeWindow = {
+                start: (0, date_fns_1.subYears)(now, 5),
+                end: (0, date_fns_1.subMonths)(now, 1), // Exclude last month to avoid active items
+                expression: 'historical/past',
+            };
+        }
+        if (!timeWindow) {
+            // No temporal filtering needed
+            return { filtered: artifacts };
+        }
+        console.log(`   📅 Temporal filter: ${timeWindow.expression} (${(0, date_fns_1.format)(timeWindow.start, 'yyyy-MM-dd')} to ${(0, date_fns_1.format)(timeWindow.end, 'yyyy-MM-dd')})`);
+        // Filter artifacts by date
+        const filtered = artifacts.filter((artifact) => {
+            // Try to find a date field
+            const dateField = artifact.occurred_at || artifact.created_at || artifact.start_date || artifact.recorded_at;
+            if (!dateField) {
+                // No date available, include by default
+                return true;
+            }
+            try {
+                const artifactDate = typeof dateField === 'string' ? (0, date_fns_1.parseISO)(dateField) : new Date(dateField);
+                const inRange = (0, date_fns_1.isAfter)(artifactDate, timeWindow.start) && (0, date_fns_1.isBefore)(artifactDate, timeWindow.end);
+                return inRange;
+            }
+            catch (error) {
+                logger_1.logger.warn(`Failed to parse date ${dateField}, including artifact by default`);
+                return true;
+            }
+        });
+        console.log(`   Filtered ${artifacts.length} → ${filtered.length} artifacts`);
+        return { filtered, time_window: timeWindow };
     }
 }
-// Export singleton instance
-exports.artifactValidator = new ArtifactValidator();
-exports.default = exports.artifactValidator;
+exports.ValidationService = ValidationService;
+exports.validationService = new ValidationService();
 //# sourceMappingURL=validation.service.js.map

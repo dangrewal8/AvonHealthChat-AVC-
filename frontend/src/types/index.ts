@@ -27,7 +27,7 @@ export interface StructuredExtraction {
  */
 export interface FormattedProvenance {
   artifact_id: string;
-  artifact_type: 'care_plan' | 'medication' | 'note';
+  artifact_type: 'condition' | 'allergy' | 'care_plan' | 'medication' | 'note';
   title?: string;
   snippet: string;
   supporting_content?: string; // The actual text that supports the answer

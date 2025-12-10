@@ -27,16 +27,18 @@ export interface UIResponse {
     metadata: ResponseMetadata;
 }
 export interface StructuredExtraction {
-    type: 'medication' | 'condition' | 'procedure' | 'measurement' | 'date' | 'patient_info' | 'demographic';
+    type: 'medication' | 'condition' | 'procedure' | 'measurement' | 'date' | 'patient_info' | 'demographic' | 'allergy' | 'note';
     value: string;
     relevance: number;
     confidence: number;
     source_artifact_id: string;
     supporting_text?: string;
+    occurred_at?: string;
+    view_url?: string;
 }
 export interface FormattedProvenance {
     artifact_id: string;
-    artifact_type: 'condition' | 'care_plan' | 'medication' | 'note';
+    artifact_type: 'condition' | 'allergy' | 'care_plan' | 'medication' | 'note';
     snippet: string;
     occurred_at: string;
     relevance_score: number;
@@ -61,6 +63,16 @@ export interface ResponseMetadata {
     detail_level: number;
     reasoning_method?: string;
     reasoning_chain?: string[];
+    hallucination_prevention?: {
+        validation_applied: boolean;
+        issues_found: number;
+        issues_details: string[];
+        validation_confidence: number;
+        citation_accuracy?: number;
+        unsupported_claims_count?: number;
+        guardrails_passed?: boolean;
+        guardrails_modifications?: string[];
+    };
 }
 export interface AvonHealthCredentials {
     client_id: string;
@@ -404,6 +416,117 @@ export interface InsurancePolicy {
     account: string;
     [key: string]: any;
 }
+/**
+ * Base artifact interface - spec-compliant normalized structure
+ * All artifacts are flattened to this consistent format for LLM consumption
+ */
+export interface BaseArtifact {
+    readonly id: string;
+    readonly patient: string;
+    readonly author: string;
+    readonly occurred_at?: Date;
+    readonly title: string;
+    readonly text: string;
+    readonly source: string;
+    readonly meta: Readonly<Record<string, any>>;
+}
+/**
+ * Care Plan Artifact (discriminated union member)
+ */
+export interface CarePlanArtifact extends BaseArtifact {
+    readonly type: 'care_plan';
+    readonly start_date: string | null;
+    readonly end_date: string | null;
+    readonly assigned_to: string;
+    readonly share_with_patient: boolean;
+}
+/**
+ * Medication Artifact (discriminated union member)
+ */
+export interface MedicationArtifact extends BaseArtifact {
+    readonly type: 'medication';
+    readonly name: string;
+    readonly strength: string;
+    readonly sig: string | null;
+    readonly active: boolean;
+    readonly start_date: string | null;
+    readonly end_date: string | null;
+}
+/**
+ * Clinical Note Artifact (discriminated union member)
+ */
+export interface NoteArtifact extends BaseArtifact {
+    readonly type: 'note';
+    readonly note_template: string;
+    readonly share_with_patient: boolean | null;
+    readonly appointment: string | null;
+}
+/**
+ * Artifact discriminated union - provides type safety
+ * TypeScript can narrow the type based on the 'type' discriminant
+ */
+export type Artifact = CarePlanArtifact | MedicationArtifact | NoteArtifact;
+/**
+ * Type guard for CarePlanArtifact
+ */
+export declare function isCarePlanArtifact(artifact: Artifact): artifact is CarePlanArtifact;
+/**
+ * Type guard for MedicationArtifact
+ */
+export declare function isMedicationArtifact(artifact: Artifact): artifact is MedicationArtifact;
+/**
+ * Type guard for NoteArtifact
+ */
+export declare function isNoteArtifact(artifact: Artifact): artifact is NoteArtifact;
+/**
+ * Custom error for Avon Health API failures
+ */
+export declare class AvonAPIError extends Error {
+    statusCode: number;
+    endpoint: string;
+    originalError?: any | undefined;
+    constructor(message: string, statusCode: number, endpoint: string, originalError?: any | undefined);
+}
+/**
+ * Custom error for artifact normalization failures
+ */
+export declare class NormalizationError extends Error {
+    artifactType: 'care_plan' | 'medication' | 'note';
+    artifactId: string;
+    originalData?: any | undefined;
+    constructor(message: string, artifactType: 'care_plan' | 'medication' | 'note', artifactId: string, originalData?: any | undefined);
+}
+/**
+ * Spec-compliant response format
+ * Matches the requirements specification exactly
+ */
+export interface SpecCompliantResponse {
+    answer: string;
+    items: Array<{
+        snippet: string;
+        artifact: string;
+        type: 'care_plan' | 'medication' | 'note';
+        occurred_at: string;
+        source: string;
+    }>;
+}
+/**
+ * Query intent with temporal information
+ */
+export interface QueryIntent {
+    intent: string;
+    entities: Entity[];
+    confidence: number;
+    time_window?: [string, string];
+}
+/**
+ * Extracted entity from query
+ */
+export interface Entity {
+    type: 'medication' | 'condition' | 'date' | 'time_range' | 'person';
+    value: string;
+    confidence: number;
+}
 export interface VectorDocument {
     id: string;
     text: string;
@@ -449,7 +572,7 @@ export interface OllamaGenerateResponse {
 /**
  * Available medical LLM models in the system
  */
-export type MedicalModel = 'openbiollm' | 'biomistral' | 'meditron' | 'llama3';
+export type MedicalModel = 'meditron' | 'llama3';
 /**
  * Task types for intelligent model routing
  */

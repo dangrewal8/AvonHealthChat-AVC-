@@ -15,13 +15,17 @@ interface ProvenanceCardProps {
 }
 
 export function ProvenanceCard({ provenance, index }: ProvenanceCardProps) {
-  const typeColors = {
+  const typeColors: Record<string, string> = {
+    condition: 'bg-red-100 text-red-800',
+    allergy: 'bg-orange-100 text-orange-800',
     care_plan: 'bg-blue-100 text-blue-800',
     medication: 'bg-green-100 text-green-800',
     note: 'bg-purple-100 text-purple-800',
   };
 
-  const typeLabels = {
+  const typeLabels: Record<string, string> = {
+    condition: 'Condition',
+    allergy: 'Allergy',
     care_plan: 'Care Plan',
     medication: 'Medication',
     note: 'Note',

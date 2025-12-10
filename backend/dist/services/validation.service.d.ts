@@ -1,90 +1,76 @@
 /**
- * Artifact Validation Service
- * Comprehensive validation for normalized Artifact objects
+ * Response Validation Service
  *
- * Per ChatGPT Requirement: "Validation: Ensure all required fields are present, Type checking, Date validity"
+ * Validates and corrects LLM responses to eliminate hallucinations.
+ * Implements research-backed techniques including:
+ * - Numerical accuracy verification
+ * - Citation verification
+ * - Temporal query validation
+ * - Count consistency enforcement
+ * PHASE 2 Enhancements:
+ * - date-fns for robust temporal filtering
+ * - Citation verification pipeline
  */
-import { Artifact } from '../types/artifact.types';
-/**
- * Validation error/warning interface
- */
-export interface ValidationError {
-    field: string;
-    message: string;
-    severity: 'error' | 'warning';
-    value?: any;
+interface ValidationContext {
+    query: string;
+    response: string;
+    structuredExtractions: any[];
+    provenance: any[];
+    patientData?: any;
 }
-/**
- * Validation result interface
- */
-export interface ValidationResult {
-    valid: boolean;
-    errors: ValidationError[];
-    warnings: ValidationError[];
+interface ValidationResult {
+    isValid: boolean;
+    correctedResponse?: string;
+    issues: string[];
+    confidence: number;
 }
-/**
- * Artifact Validator Class
- * Validates artifacts for required fields, type correctness, and date validity
- */
-declare class ArtifactValidator {
+export declare class ValidationService {
     /**
-     * Comprehensive validation of an artifact
-     * Returns detailed validation result with errors and warnings
+     * Main validation entry point
+     * Validates and corrects response against ground truth
      */
-    validate(artifact: any): ValidationResult;
+    validateAndCorrectResponse(context: ValidationContext): Promise<ValidationResult>;
     /**
-     * Simple boolean validation for artifacts
-     * Returns true if artifact has no errors
+     * Validates numerical accuracy against ground truth
+     * Fixes hallucinated counts for medications, conditions, allergies
      */
-    validateArtifact(artifact: Artifact): boolean;
+    private validateNumericalAccuracy;
     /**
-     * Validate required fields are present and non-empty
+     * Validates temporal queries (past vs current medications)
+     * Ensures past medication queries don't mention active medications
      */
-    validateRequired(artifact: any): ValidationError[];
+    private validateTemporalQuery;
     /**
-     * Validate date fields
-     * Checks ISO 8601 format, future dates, and very old dates
+     * Validates count consistency between reported counts and extracted entities
+     * Ensures when LLM says "2 medications", it actually lists 2 medication names
      */
-    validateDates(artifact: any): {
-        errors: ValidationError[];
-        warnings: ValidationError[];
+    private validateCountConsistency;
+    /**
+     * Validates that all claims in the response are supported by provenance
+     * Implements citation verification
+     */
+    verifyCitations(context: ValidationContext): Promise<ValidationResult>;
+    /**
+     * Extract atomic claims from response text
+     */
+    private extractClaims;
+    /**
+     * Check if a claim is supported by provenance artifacts
+     */
+    private isClaimSupported;
+    /**
+     * PHASE 2: Enhanced Temporal Filtering with date-fns
+     * Filters artifacts by date range based on query temporal expressions
+     */
+    filterArtifactsByTimeWindow(artifacts: any[], query: string): {
+        filtered: any[];
+        time_window?: {
+            start: Date;
+            end: Date;
+            expression: string;
+        };
     };
-    /**
-     * Validate field types
-     */
-    validateTypes(artifact: any): ValidationError[];
-    /**
-     * Additional validation checks
-     */
-    private validateAdditional;
-    /**
-     * Check if a string is a valid ISO 8601 date
-     */
-    private isValidISODate;
-    /**
-     * Batch validation
-     * Validates multiple artifacts and returns a summary
-     */
-    validateBatch(artifacts: any[]): {
-        totalCount: number;
-        validCount: number;
-        invalidCount: number;
-        warningCount: number;
-        results: ValidationResult[];
-    };
-    /**
-     * Get validation summary for logging
-     */
-    getValidationSummary(result: ValidationResult): string;
-    /**
-     * Format validation errors for display
-     */
-    formatErrors(errors: ValidationError[]): string;
-    /**
-     * Format validation warnings for display
-     */
-    formatWarnings(warnings: ValidationError[]): string;
 }
-export declare const artifactValidator: ArtifactValidator;
-export default artifactValidator;
+export declare const validationService: ValidationService;
+export {};
 //# sourceMappingURL=validation.service.d.ts.map

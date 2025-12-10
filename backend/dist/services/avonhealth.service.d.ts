@@ -2,7 +2,7 @@
  * Avon Health API Service
  * Handles OAuth2 authentication and EMR data fetching
  */
-import type { AvonHealthCredentials, CarePlan, Medication, ClinicalNote, Patient, Allergy, Condition, Vitals, FamilyHistory, Appointment, Document, FormResponse, InsurancePolicy } from '../types';
+import type { AvonHealthCredentials, CarePlan, Medication, ClinicalNote, Patient, Allergy, Condition, Vitals, FamilyHistory, Appointment, Document, FormResponse, InsurancePolicy, Artifact } from '../types';
 export declare class AvonHealthService {
     private client;
     private credentials;
@@ -10,6 +10,14 @@ export declare class AvonHealthService {
     private tokenExpiry;
     private jwtToken;
     private jwtExpiry;
+    private artifactCache;
+    private patientDataCache;
+    private patientCacheTTL;
+    private maxPatientCacheSize;
+    private patientCacheHits;
+    private patientCacheMisses;
+    private prefetchedPatients;
+    private DEFAULT_RETRY_CONFIG;
     constructor(credentials: AvonHealthCredentials);
     /**
      * Get OAuth2 Bearer Token (with caching)
@@ -22,9 +30,14 @@ export declare class AvonHealthService {
      */
     private getJWTToken;
     /**
+     * ENHANCED: Exponential backoff retry wrapper for resilient API calls
+     */
+    private retryWithBackoff;
+    /**
      * Make authenticated request to Avon Health API using TWO-KEY authentication
      * Key 1: Bearer token (organization-level)
      * Key 2: JWT token (user-level) in x-jwt header
+     * ENHANCED: Now includes retry logic with exponential backoff
      */
     private authenticatedRequest;
     /**
@@ -108,5 +121,72 @@ export declare class AvonHealthService {
      * Helps debug 401 errors by trying common patient_id formats
      */
     testPatientIdFormats(baseId?: string): Promise<void>;
+    /**
+     * Normalize a CarePlan to spec-compliant Artifact format
+     * Flattens nested sections into searchable text
+     */
+    private normalizeCarePlan;
+    /**
+     * Normalize a Medication to spec-compliant Artifact format
+     */
+    private normalizeMedication;
+    /**
+     * Normalize a ClinicalNote to spec-compliant Artifact format
+     * Flattens nested sections/answers into searchable text
+     */
+    private normalizeClinicalNote;
+    /**
+     * Get normalized artifacts for a patient (with caching)
+     * Returns all artifacts in spec-compliant Artifact format
+     */
+    getNormalizedArtifacts(patientId: string): Promise<Artifact[]>;
+    /**
+     * Get a single normalized artifact by ID (with caching)
+     */
+    getNormalizedArtifact(artifactId: string, type: 'care_plan' | 'medication' | 'note'): Promise<Artifact | null>;
+    /**
+     * Configure cache settings
+     */
+    configureCaching(config: {
+        ttlSeconds?: number;
+        maxSize?: number;
+    }): void;
+    /**
+     * Get cached patient data (with automatic cache invalidation)
+     */
+    getCachedPatientData(patientId: string): Promise<Artifact[]>;
+    /**
+     * Prefetch patient data (for warmup)
+     */
+    prefetchPatientData(patientId: string): Promise<void>;
+    /**
+     * Invalidate cache for a specific patient or all patients
+     */
+    invalidateCache(patientId?: string): void;
+    /**
+     * Warmup cache with frequently accessed patients
+     */
+    warmupCache(patientIds: string[]): Promise<void>;
+    /**
+     * Clear the artifact cache (useful for testing)
+     */
+    clearCache(): void;
+    /**
+     * Get cache statistics
+     */
+    getCacheStats(): {
+        artifact_cache: {
+            size: number;
+            max: number;
+        };
+        patient_cache: {
+            size: number;
+            max: number;
+            hits: number;
+            misses: number;
+            hit_rate: string;
+            ttl_seconds: number;
+        };
+    };
 }
 //# sourceMappingURL=avonhealth.service.d.ts.map
