@@ -417,12 +417,13 @@ export class VerificationService {
         const icdCode = cond.name || '';
         const conditionDescription = this.translateICD10Code(icdCode);
 
-        // Format onset date for display
+        // Format onset date for display (use UTC to avoid timezone shifts)
         const formattedOnsetDate = cond.onset_date
           ? new Date(cond.onset_date).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'long',
-              day: 'numeric'
+              day: 'numeric',
+              timeZone: 'UTC'
             })
           : 'Unknown';
 

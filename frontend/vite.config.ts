@@ -93,7 +93,7 @@ export default defineConfig({
 
   // Preview server (for testing production build locally)
   preview: {
-    port: 3000,
+    port: 4173,
     host: true,
   },
 });

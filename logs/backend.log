@@ -1,0 +1,119 @@
+ValidationError: Custom keyGenerator appears to use request IP without calling the ipKeyGenerator helper function for IPv6 addresses. This could allow IPv6 users to bypass limits. See https://express-rate-limit.github.io/ERR_ERL_KEY_GEN_IPV6/ for more information.
+    at Object.keyGeneratorIpFallback (/home/dangr/Avonhealthtest/backend/node_modules/express-rate-limit/dist/index.cjs:637:13)
+    at wrappedValidations.<computed> [as keyGeneratorIpFallback] (/home/dangr/Avonhealthtest/backend/node_modules/express-rate-limit/dist/index.cjs:680:22)
+    at parseOptions (/home/dangr/Avonhealthtest/backend/node_modules/express-rate-limit/dist/index.cjs:750:16)
+    at rateLimit (/home/dangr/Avonhealthtest/backend/node_modules/express-rate-limit/dist/index.cjs:831:18)
+    at Object.<anonymous> (/home/dangr/Avonhealthtest/backend/dist/index.js:135:50)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14) {
+  code: 'ERR_ERL_KEY_GEN_IPV6',
+  help: 'https://express-rate-limit.github.io/ERR_ERL_KEY_GEN_IPV6/'
+}
+🚀 Initializing Avon Health RAG System...
+Environment: production
+Port: 3001
+🤖 Initializing Multi-Model System...
+🏥 Checking health status of all medical models...
+  ✅ Meditron 7B: Available
+  ✅ Llama 3 8B: Available
+✅ Model Manager initialized
+📡 Connecting to Ollama...
+✅ Ollama connected successfully
+🏥 Connecting to Avon Health API...
+🏥 Testing Avon Health API TWO-KEY authentication...
+🔐 Obtaining OAuth2 access token...
+✅ Access token obtained successfully
+   Expires in: 86400 seconds (~24 hours)
+🔐 Step 2: Generating JWT token for user...
+   User ID: user_n15wtm6xCNQGrmgfMCGOVaqEq0S2
+✅ JWT token generated successfully
+✅ TWO-KEY authentication successful (Bearer + JWT)
+✅ Avon Health API connected successfully (TWO-KEY: Bearer + JWT)
+✅ Async query services initialized
+   📊 Data compartmentalization enabled (smart data fetching)
+✅ Services initialized
+⚙️  Configuring patient data cache...
+⚙️  Cache configured: TTL=300000ms, MaxSize=100
+
+═══════════════════════════════════════════════════════
+🏥 Avon Health RAG System - Backend API
+═══════════════════════════════════════════════════════
+
+🌐 Server running on: http://localhost:3001
+📊 Health check:      http://localhost:3001/health
+🔍 API endpoint:      http://localhost:3001/api/query
+
+Press Ctrl+C to stop
+═══════════════════════════════════════════════════════
+
+108.83.128.135 - - [12/Dec/2025:20:05:28 +0000] "GET /health HTTP/1.1" 200 90 "-" "curl/8.5.0"
+📋 Job created: adce9120-5a08-4012-837d-295a9337db43
+📝 Job updated: adce9120-5a08-4012-837d-295a9337db43 - Status: processing
+
+🔄 Processing async query adce9120-5a08-4012-837d-295a9337db43: "What medical conditions does the patient have?"
+📝 Job updated: adce9120-5a08-4012-837d-295a9337db43 - Status: processing
+   Intent: medications
+📝 Job updated: adce9120-5a08-4012-837d-295a9337db43 - Status: processing
+
+📡 Fetching patient data (smart compartmentalization)...
+   📊 Required compartments: patient, conditions, notes
+🔍 Fetching patient demographics for patient_id: user_n15wtm6xCNQGrmgfMCGOVaqEq0S2
+🔍 Fetching conditions for patient_id: user_n15wtm6xCNQGrmgfMCGOVaqEq0S2
+🔍 Fetching notes for patient_id: user_n15wtm6xCNQGrmgfMCGOVaqEq0S2
+108.83.128.135 - - [12/Dec/2025:20:09:16 +0000] "POST /api/query/async HTTP/1.1" 200 169 "-" "curl/8.5.0"
+📡 Making GET request to /v2/patients
+   Using TWO-KEY authentication (Bearer + JWT)
+   Sandbox account: prosper
+📡 Making GET request to /v2/conditions
+   Using TWO-KEY authentication (Bearer + JWT)
+   Sandbox account: prosper
+📡 Making GET request to /v2/notes
+   Using TWO-KEY authentication (Bearer + JWT)
+   Sandbox account: prosper
+✅ Request successful: /v2/patients
+   ✅ Filtered to 1 patient(s) for patient user_n15wtm6xCNQGrmgfMCGOVaqEq0S2 (from 9 total)
+✅ Request successful: /v2/conditions
+   ✅ Filtered to 1 condition(s) for patient user_n15wtm6xCNQGrmgfMCGOVaqEq0S2 (from 216 total)
+✅ Request successful: /v2/notes
+   ✅ Filtered to 3 note(s) for patient user_n15wtm6xCNQGrmgfMCGOVaqEq0S2 (from 835 total)
+   ✅ Fetched 3 compartments in 4239ms (vs ~12 for full fetch)
+📝 Job updated: adce9120-5a08-4012-837d-295a9337db43 - Status: processing
+🏥 Checking health status of all medical models...
+  ✅ Meditron 7B: Available
+  ✅ Llama 3 8B: Available
+   ✅ Selected: llama3
+   💡 Reason: Llama 3 excels at instruction following and general tasks
+📝 Job updated: adce9120-5a08-4012-837d-295a9337db43 - Status: processing
+📦 Patient data available: 0 meds, 1 conditions, 0 allergies, 3 notes
+⚙️  Using OPTIMIZED hybrid 2-model pipeline (Meditron extraction + Llama3 answer → Meditron verification)
+
+⚡ OPTIMIZED Hybrid 2-Model Pipeline (Meditron + Llama3)
+🔍 buildMiniContext keywords: meds=true, conditions=true, allergies=false, vitals=false, carePlans=false, notes=false, docs=false, appts=false
+📝 Final buildMiniContext result: 169 chars, 1 sections
+   Preview: Conditions: E11.3493 (Type 2 diabetes mellitus with severe nonproliferative diabetic retinopathy without macular edema, bilateral) onset: 2025-02-12T05:00:00.000Z active
+📦 Context: 169 chars (vs 40220 full)
+
+🚀 STAGE 1: Parallel execution (Meditron + Llama3)
+🤖 Meditron - Medical entity extraction
+🤖 Generating with model: meditron:latest
+🤖 Llama3 - Answer generation
+🤖 Generating with model: llama3:latest
+⏱️  Stage 1 complete: 56632ms | Entities: 170 chars | Answer: 819 chars
+
+🔬 STAGE 2: Meditron verification
+🤖 Meditron - Clinical verification
+🤖 Generating with model: meditron:latest
+⏱️  Stage 2 complete: 71229ms
+✓ Verification: 🔄 REVIEWED
+✅ Sequential pipeline complete: 71230ms | Confidence: 85%
+📊 Performance: 71.2s total | 80% Llama3 | 20% Meditron
+🏥 Condition query detected - including 1 condition sources for verification
+✅ Extracted 1 query-relevant items from response
+📝 Job updated: adce9120-5a08-4012-837d-295a9337db43 - Status: processing
+✅ Query processed in 75.5s
+📝 Job updated: adce9120-5a08-4012-837d-295a9337db43 - Status: completed
+✅ Async query completed: adce9120-5a08-4012-837d-295a9337db43
+108.83.128.135 - - [12/Dec/2025:20:12:14 +0000] "GET /api/query/status/adce9120-5a08-4012-837d-295a9337db43 HTTP/1.1" 200 2961 "-" "curl/8.5.0"

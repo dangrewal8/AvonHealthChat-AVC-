@@ -27,11 +27,27 @@ class ApiConfigValidator {
     return value === 'true' || value === true;
   }
 
+  private getApiBaseUrl(): string {
+    // Auto-detect environment based on hostname
+    const hostname = window.location.hostname;
+
+    // If accessed via chat.missionvalley.dev, use the production API URL
+    if (hostname === 'chat.missionvalley.dev') {
+      console.log('🌐 Production environment detected - using https://api.missionvalley.dev');
+      return 'https://api.missionvalley.dev';
+    }
+
+    // Otherwise use the configured base URL (localhost for development)
+    const configuredUrl = this.getEnv('VITE_API_BASE_URL');
+    console.log(`🔧 Development environment detected - using ${configuredUrl}`);
+    return configuredUrl;
+  }
+
   validate(): ApiConfig {
-    const baseUrl = this.getEnv('VITE_API_BASE_URL');
+    const baseUrl = this.getApiBaseUrl();
 
     if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-      throw new Error('VITE_API_BASE_URL must start with http:// or https://');
+      throw new Error('API base URL must start with http:// or https://');
     }
 
     const config: ApiConfig = {
@@ -44,6 +60,8 @@ class ApiConfigValidator {
       timeout: 30000,
       retryAttempts: 3,
     };
+
+    console.log('📋 API Config initialized:', { baseUrl: config.baseUrl, appName: config.appName });
 
     return config;
   }

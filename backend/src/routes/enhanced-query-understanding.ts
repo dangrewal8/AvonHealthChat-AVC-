@@ -3,6 +3,8 @@
  * Handles synonyms, abbreviations, variations, and complex questions
  */
 
+import * as chrono from 'chrono-node';
+
 /**
  * Normalize query for better matching
  */
@@ -610,18 +612,11 @@ export function extractEntities(query: string): {
     }
   }
 
-  // Extract dates (basic patterns)
-  const datePatterns = [
-    /\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g, // MM/DD/YYYY or MM/DD/YY
-    /\b\d{4}-\d{2}-\d{2}\b/g, // YYYY-MM-DD
-    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4}\b/gi,
-  ];
-
-  for (const pattern of datePatterns) {
-    const matches = query.match(pattern);
-    if (matches) {
-      entities.dates.push(...matches);
-    }
+  // Extract dates using chrono for natural language parsing
+  const chronoParsed = chrono.parse(query);
+  if (chronoParsed.length > 0) {
+    // Add the text of each parsed date/time reference
+    entities.dates.push(...chronoParsed.map(p => p.text));
   }
 
   // Extract numbers
@@ -724,6 +719,53 @@ export function isFollowUpQuestion(query: string): boolean {
 }
 
 /**
+ * Calculate time window from query dates
+ * Returns [start_ISO, end_ISO] format as per spec
+ *
+ * Handles:
+ * - "three months ago" → [3 months ago, now]
+ * - "past 60 days" → [60 days ago, now]
+ * - "last visit" → [inferred date, now]
+ * - "on July 11, 2025" → [July 11 00:00, July 12 00:00]
+ */
+function calculateTimeWindow(dates: string[], query: string): [string, string] | undefined {
+  if (dates.length === 0) return undefined;
+
+  const lowerQuery = query.toLowerCase();
+
+  // Try to parse the first date found
+  const parsed = chrono.parse(dates[0])[0];
+  if (!parsed) return undefined;
+
+  let start: Date;
+  let end: Date;
+
+  // Handle relative dates with "ago" (e.g., "three months ago")
+  if (/\d+\s+(day|week|month|year)s?\s+ago/i.test(lowerQuery)) {
+    start = parsed.start.date(); // The calculated past date
+    end = new Date(); // Now
+  }
+  // Handle "last X" or "past X" (e.g., "last visit", "past 60 days")
+  else if (/\b(last|past|previous)\b/i.test(lowerQuery)) {
+    start = parsed.start.date();
+    end = new Date();
+  }
+  // Handle "in the last X" (e.g., "in the last month")
+  else if (/\bin\s+the\s+last\b/i.test(lowerQuery)) {
+    start = parsed.start.date();
+    end = new Date();
+  }
+  // Handle absolute dates (e.g., "on July 11, 2025")
+  else {
+    start = parsed.start.date();
+    // If end date provided, use it; otherwise add 1 day
+    end = parsed.end?.date() || new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  }
+
+  return [start.toISOString(), end.toISOString()];
+}
+
+/**
  * Enhanced intent detection with more context
  */
 export function analyzeQuery(query: string): {
@@ -733,12 +775,25 @@ export function analyzeQuery(query: string): {
   isFollowUp: boolean;
   isMultiPart: boolean;
   suggestions: string[];
+  time_window?: [string, string];
 } {
   const intent = detectIntent(query);
   const entities = extractEntities(query);
   const complexity = getQueryComplexity(query);
   const isFollowUp = isFollowUpQuestion(query);
   const isMultiPart = isMultiPartQuestion(query);
+
+  // Calculate time window in spec-compliant format
+  const time_window = calculateTimeWindow(entities.dates, query);
+
+  // Debug logging for time windows
+  if (time_window) {
+    const [start, end] = time_window;
+    const startDate = new Date(start).toLocaleDateString();
+    const endDate = new Date(end).toLocaleDateString();
+    console.log(`⏰ Time window detected: ${startDate} → ${endDate}`);
+    console.log(`   ISO format: ${start} → ${end}`);
+  }
 
   // Generate suggestions for improving the query or providing better context
   const suggestions: string[] = [];
@@ -766,5 +821,6 @@ export function analyzeQuery(query: string): {
     isFollowUp,
     isMultiPart,
     suggestions,
+    time_window,
   };
 }

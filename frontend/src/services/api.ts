@@ -20,6 +20,7 @@ import {
   QueryHistoryItem,
   APIError,
 } from '../types';
+import apiConfig from '../config/api.config';
 
 /**
  * Transformed error interface
@@ -41,13 +42,16 @@ class APIClient {
 
   constructor() {
     // Create axios instance with defaults
+    // Use apiConfig which automatically detects production vs development environment
     this.client = axios.create({
-      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
+      baseURL: apiConfig.baseUrl,
       timeout: 300000, // 5 minutes (RAG queries with Ollama can take 2-3 minutes)
       headers: {
         'Content-Type': 'application/json',
       },
     });
+
+    console.log('🔗 APIClient initialized with baseURL:', apiConfig.baseUrl);
 
     // Setup interceptors
     this.setupInterceptors();
@@ -122,25 +126,103 @@ class APIClient {
   }
 
   /**
-   * Search / Query the RAG system
+   * Search / Query the RAG system (async/polling version)
    *
    * @param query - Search query string
    * @param patientId - Patient ID
    * @param options - Optional query options
+   * @param onProgress - Optional callback for progress updates
    * @returns Promise with UIResponse data
    */
   async search(
     query: string,
     patientId: string,
-    options?: { detail_level?: number; max_results?: number }
+    options?: { detail_level?: number; max_results?: number },
+    onProgress?: (progress: number, status: string) => void
   ): Promise<{ data: UIResponse }> {
-    const response = await this.client.post<UIResponse>('/api/query', {
-      query,
-      patient_id: patientId,
-      options,
-    });
+    try {
+      console.log(`🔍 Submitting async query: "${query.substring(0, 50)}..."`);
 
-    return { data: response.data };
+      // Submit query for async processing
+      const submitResponse = await this.client.post<{
+        job_id: string;
+        status: string;
+        poll_url: string;
+      }>('/api/query/async', {
+        query,
+        patient_id: patientId,
+        options,
+      });
+
+      const jobId = submitResponse.data.job_id;
+      console.log(`📋 Query submitted, job ID: ${jobId}`);
+
+      // Poll for completion
+      return await this.pollForCompletion(jobId, onProgress);
+    } catch (error: any) {
+      console.error('❌ Search failed:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Poll for query completion
+   */
+  private async pollForCompletion(
+    jobId: string,
+    onProgress?: (progress: number, status: string) => void
+  ): Promise<{ data: UIResponse }> {
+    const pollInterval = 2000; // 2 seconds
+    const maxAttempts = 150; // 5 minutes max (150 * 2s = 300s)
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      attempts++;
+
+      try {
+        const statusResponse = await this.client.get<{
+          job_id: string;
+          status: 'pending' | 'processing' | 'completed' | 'failed';
+          progress?: number;
+          result?: UIResponse;
+          error?: string;
+        }>(`/api/query/status/${jobId}`);
+
+        const { status, progress, result, error } = statusResponse.data;
+
+        // Update progress
+        if (onProgress && progress !== undefined) {
+          onProgress(progress, status);
+        }
+
+        // Check if completed
+        if (status === 'completed' && result) {
+          console.log(`✅ Query completed: ${jobId}`);
+          return { data: result };
+        }
+
+        // Check if failed
+        if (status === 'failed') {
+          throw new Error(error || 'Query processing failed');
+        }
+
+        // Wait before next poll
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      } catch (error: any) {
+        // If it's a 404, the job might have expired
+        if (error.response?.status === 404) {
+          throw new Error('Query job not found or expired');
+        }
+        throw error;
+      }
+    }
+
+    throw new Error('Query timeout - exceeded maximum wait time');
   }
 
   /**

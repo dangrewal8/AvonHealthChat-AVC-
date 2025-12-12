@@ -1,0 +1,88 @@
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+[0;32m🤖 Starting Ollama AI Service[0m
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+
+[0;32m✅ Ollama is already running on port 11434[0m
+[1;33m⚠️  meditron model not found[0m
+[0;34m[Ollama][0m Pulling meditron model (this may take a while)...
+{"status":"pulling manifest"}
+{"status":"pulling ca7d20b78b4a","digest":"sha256:ca7d20b78b4a51111bb532a88e450512de046adfb566b2c188a26e4ac866393d","total":3825807072,"completed":3825807072}
+{"status":"pulling a47b02e00552","digest":"sha256:a47b02e00552cd7022ea700b1abf8c572bb26c9bc8c1a37e01b566f2344df5dc","total":106,"completed":106}
+{"status":"pulling e3d94d483bb9","digest":"sha256:e3d94d483bb9f76c701a17107764a3387bcc7d5332e124f04693886cc0fad7eb","total":155,"completed":155}
+{"status":"pulling 6ee262b64276","digest":"sha256:6ee262b642769e03cf7062ef702d205ca9c7acfe2f424d547a21323b303b6447","total":74,"completed":74}
+{"status":"pulling 25481b76a226","digest":"sha256:25481b76a226bb32d07b08b869a4e92650731b0f9d26c14fd83b2132eca2b9a6","total":455,"completed":455}
+{"status":"pulling 25481b76a226","digest":"sha256:25481b76a226bb32d07b08b869a4e92650731b0f9d26c14fd83b2132eca2b9a6","total":455,"completed":455}
+{"status":"verifying sha256 digest"}
+{"status":"writing manifest"}
+{"status":"success"}
+[0;32m✅ meditron model is ready![0m
+
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+[0;32m= Running Pre-flight Checks[0m
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+
+[0;32m All pre-flight checks passed![0m
+
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+[0;32m=� Starting Backend API (port 3001)[0m
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+
+Building backend...
+
+> avon-health-rag-backend@1.0.0 build
+> tsc
+
+
+[0;32m Backend started (PID: 29567)[0m
+   Logs: logs/backend.log
+
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+[0;32m<� Starting Frontend App (port 4173)[0m
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+
+Building frontend...
+
+> avon-health-rag-frontend@1.0.0 build
+> tsc && vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 1417 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                       0.50 kB │ gzip:  0.31 kB
+dist/assets/css/index-wsKVR9Xk.css   20.38 kB │ gzip:  4.50 kB
+dist/assets/js/index-BpwfLYmt.js     67.50 kB │ gzip: 24.24 kB
+dist/assets/js/vendor-DtX1tuCI.js   139.45 kB │ gzip: 44.76 kB
+✓ built in 1.59s
+
+[0;32m Frontend started (PID: 29698)[0m
+   Logs: logs/frontend.log
+
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+[0;32m< Starting Cloudflare Tunnel[0m
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+
+[0;32m Cloudflare Tunnel started (PID: 29766)[0m
+   Logs: logs/tunnel.log
+
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+[0;32m( All Services Running![0m
+[0;34mPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP[0m
+
+Service Status:
+  Backend API:      http://localhost:3001  (PID: 29567)
+  Frontend App:     http://localhost:4173  (PID: 29698)
+  Cloudflare Tunnel:  Active              (PID: 29766)
+
+Public Access:
+  Frontend:  https://chat.missionvalley.dev
+  API:       https://api.missionvalley.dev
+
+Logs:
+  Backend:  tail -f logs/backend.log
+  Frontend: tail -f logs/frontend.log
+  Tunnel:   tail -f logs/tunnel.log
+
+[0;32mPress Ctrl+C to stop all services[0m
+

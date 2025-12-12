@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Activity, Send, Loader2, Trash2 } from 'lucide-react';
 import { ChatMessage } from './components/ChatMessage';
+import { SkeletonMessage } from './components/SkeletonMessage';
 import { Login } from './components/Login';
 import { ConversationSidebar, Conversation } from './components/ConversationSidebar';
 import { useRAGQuery } from './hooks/useQuery';
@@ -369,21 +370,7 @@ function App() {
                     timestamp={message.timestamp}
                   />
                 ))}
-                {isLoadingResponse && (
-                  <div className="flex gap-3 mb-6">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                      <Activity className="w-5 h-5 text-gray-700 animate-pulse" />
-                    </div>
-                    <div className="flex flex-col max-w-3xl">
-                      <div className="rounded-2xl px-5 py-3 bg-white border border-gray-200 shadow-sm">
-                        <div className="flex items-center gap-2 text-gray-500">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="text-sm">Thinking...</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {isLoadingResponse && <SkeletonMessage />}
                 <div ref={messagesEndRef} />
               </div>
             )}

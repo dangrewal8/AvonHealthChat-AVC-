@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Diagnostic Page</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .box {
+            border: 2px solid #00ff00;
+            padding: 15px;
+            margin: 15px 0;
+            background: #000;
+        }
+        .title {
+            color: #00ff00;
+            font-size: 24px;
+            text-align: center;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .label {
+            color: #ffff00;
+            font-weight: bold;
+        }
+        .success {
+            color: #00ff00;
+        }
+        .error {
+            color: #ff0000;
+        }
+        .warning {
+            color: #ffaa00;
+        }
+        button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+        #results {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">🔍 AVON HEALTH RAG - CONNECTION DIAGNOSTIC</div>
+
+    <div class="box">
+        <div class="label">ENVIRONMENT DETECTION:</div>
+        <div id="env-info">Analyzing...</div>
+    </div>
+
+    <div class="box">
+        <div class="label">API CONFIGURATION:</div>
+        <div id="api-config">Checking...</div>
+    </div>
+
+    <div class="box">
+        <div class="label">CONNECTION TESTS:</div>
+        <button onclick="testHealthEndpoint()">Test Health Endpoint</button>
+        <button onclick="testQueryEndpoint()">Test Query Endpoint</button>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <div id="results" style="margin-top: 15px;"></div>
+    </div>
+
+    <script>
+        // Detect environment
+        function detectEnvironment() {
+            const hostname = window.location.hostname;
+            const envDiv = document.getElementById('env-info');
+
+            let apiUrl;
+            let environment;
+
+            if (hostname === 'chat.missionvalley.dev') {
+                environment = 'PRODUCTION';
+                apiUrl = 'https://api.missionvalley.dev';
+                envDiv.innerHTML = `
+                    <span class="success">✅ Environment: ${environment}</span><br>
+                    <span class="label">Hostname:</span> ${hostname}<br>
+                    <span class="label">Expected API URL:</span> ${apiUrl}<br>
+                    <span class="label">Protocol:</span> ${window.location.protocol}
+                `;
+            } else {
+                environment = 'DEVELOPMENT';
+                apiUrl = 'http://localhost:3001';
+                envDiv.innerHTML = `
+                    <span class="warning">⚠️  Environment: ${environment}</span><br>
+                    <span class="label">Hostname:</span> ${hostname}<br>
+                    <span class="label">Expected API URL:</span> ${apiUrl}<br>
+                    <span class="label">Protocol:</span> ${window.location.protocol}
+                `;
+            }
+
+            return { environment, apiUrl, hostname };
+        }
+
+        // Display API config
+        function displayApiConfig() {
+            const config = detectEnvironment();
+            const configDiv = document.getElementById('api-config');
+
+            configDiv.innerHTML = `
+                <span class="label">API Base URL:</span> ${config.apiUrl}<br>
+                <span class="label">Health Endpoint:</span> ${config.apiUrl}/health<br>
+                <span class="label">Query Endpoint:</span> ${config.apiUrl}/api/query
+            `;
+        }
+
+        // Test health endpoint
+        async function testHealthEndpoint() {
+            const resultsDiv = document.getElementById('results');
+            const config = detectEnvironment();
+
+            resultsDiv.innerHTML = `<span class="label">Testing ${config.apiUrl}/health...</span>\n`;
+
+            try {
+                const response = await fetch(`${config.apiUrl}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultsDiv.innerHTML += `<span class="success">✅ SUCCESS</span>\n`;
+                    resultsDiv.innerHTML += `<span class="label">Status:</span> ${response.status}\n`;
+                    resultsDiv.innerHTML += `<span class="label">Response:</span>\n${JSON.stringify(data, null, 2)}\n`;
+                } else {
+                    resultsDiv.innerHTML += `<span class="error">❌ FAILED</span>\n`;
+                    resultsDiv.innerHTML += `<span class="label">Status:</span> ${response.status}\n`;
+                    resultsDiv.innerHTML += `<span class="label">Response:</span>\n${JSON.stringify(data, null, 2)}\n`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<span class="error">❌ ERROR</span>\n`;
+                resultsDiv.innerHTML += `<span class="label">Error:</span> ${error.message}\n`;
+                resultsDiv.innerHTML += `<span class="label">Full Error:</span>\n${error.stack}\n`;
+            }
+        }
+
+        // Test query endpoint
+        async function testQueryEndpoint() {
+            const resultsDiv = document.getElementById('results');
+            const config = detectEnvironment();
+
+            resultsDiv.innerHTML = `<span class="label">Testing ${config.apiUrl}/api/query...</span>\n`;
+
+            const testQuery = {
+                query: "What medications is the patient taking?",
+                patient_id: "user_n15wtm6xCNQGrmgfMCGOVaqEq0S2"
+            };
+
+            try {
+                const response = await fetch(`${config.apiUrl}/api/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testQuery)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultsDiv.innerHTML += `<span class="success">✅ SUCCESS</span>\n`;
+                    resultsDiv.innerHTML += `<span class="label">Status:</span> ${response.status}\n`;
+                    resultsDiv.innerHTML += `<span class="label">Query ID:</span> ${data.query_id || 'N/A'}\n`;
+                    resultsDiv.innerHTML += `<span class="label">Short Answer:</span> ${data.short_answer?.substring(0, 100) || 'N/A'}...\n`;
+                    resultsDiv.innerHTML += `<span class="label">Citations:</span> ${data.provenance?.length || 0}\n`;
+                    resultsDiv.innerHTML += `<span class="label">Confidence:</span> ${data.confidence?.overall || 'N/A'}\n`;
+                } else {
+                    resultsDiv.innerHTML += `<span class="error">❌ FAILED</span>\n`;
+                    resultsDiv.innerHTML += `<span class="label">Status:</span> ${response.status}\n`;
+                    resultsDiv.innerHTML += `<span class="label">Response:</span>\n${JSON.stringify(data, null, 2).substring(0, 500)}\n`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<span class="error">❌ ERROR</span>\n`;
+                resultsDiv.innerHTML += `<span class="label">Error:</span> ${error.message}\n`;
+                resultsDiv.innerHTML += `<span class="label">Full Error:</span>\n${error.stack}\n`;
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<span class="label">═══ RUNNING ALL TESTS ═══</span>\n\n';
+
+            // Test 1: Health Endpoint
+            resultsDiv.innerHTML += '<span class="label">TEST 1: Health Endpoint</span>\n';
+            await testHealthEndpoint();
+
+            resultsDiv.innerHTML += '\n\n';
+
+            // Test 2: Query Endpoint
+            resultsDiv.innerHTML += '<span class="label">TEST 2: Query Endpoint</span>\n';
+            await testQueryEndpoint();
+
+            resultsDiv.innerHTML += '\n\n<span class="success">═══ ALL TESTS COMPLETE ═══</span>\n';
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            detectEnvironment();
+            displayApiConfig();
+        };
+    </script>
+</body>
+</html>

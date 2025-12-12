@@ -215,9 +215,17 @@ fi
 # ============================================================================
 
 if command -v ollama &> /dev/null; then
-    print_status "Starting Ollama with native binary..."
+    print_status "Starting Ollama with native binary (optimized configuration)..."
 
-    # Start Ollama in background
+    # Export performance optimization environment variables
+    export OLLAMA_FLASH_ATTENTION=1
+    export OLLAMA_KV_CACHE_TYPE=q8_0
+    export OLLAMA_NUM_PARALLEL=4
+    export OLLAMA_MAX_LOADED_MODELS=2
+    export OLLAMA_NUM_GPU=99
+    export OLLAMA_KEEP_ALIVE=10m
+
+    # Start Ollama in background with optimizations
     nohup ollama serve > /tmp/ollama.log 2>&1 &
     OLLAMA_PID=$!
 

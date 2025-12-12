@@ -12,7 +12,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import healthRoutes from './routes/health.routes';
-import apiRoutes, { initializeServices } from './routes/api.routes';
+import asyncQueryRoutes, { initializeAsyncServices } from './routes/async-query.routes';
 import { OllamaService } from './services/ollama.service';
 import { AvonHealthService } from './services/avonhealth.service';
 import { ModelManagerService } from './services/model-manager.service';
@@ -112,7 +112,7 @@ app.use(
 // Rate Limiting - Protect against brute force and DDoS
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes default
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10), // Limit each IP to 100 requests per windowMs
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000', 10), // Increased to 1000 requests per window (was 100)
   message: {
     error: 'Too many requests from this IP, please try again later.',
     code: 'RATE_LIMIT_EXCEEDED',
@@ -121,8 +121,20 @@ const limiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   // Skip rate limiting for health check endpoint
   skip: (req) => req.path === '/health',
-  // Disable trust proxy validation since we're using Cloudflare Tunnel
-  validate: { trustProxy: false },
+  // Trust proxy to get real IP from Cloudflare headers
+  validate: {
+    trustProxy: true,
+    ip: false, // Disable IPv6 validation warning
+  },
+  // Use X-Forwarded-For header from Cloudflare
+  keyGenerator: (req) => {
+    // Get real IP from Cloudflare headers
+    const ip = req.headers['cf-connecting-ip'] as string ||
+               req.headers['x-forwarded-for'] as string ||
+               req.ip ||
+               'unknown';
+    return ip;
+  },
 });
 
 // Apply rate limiting to all API routes
@@ -209,8 +221,26 @@ async function initializeApp() {
   }
 
   // Initialize route services
-  initializeServices(ollamaService, avonHealthService, modelManager);
+  initializeAsyncServices(ollamaService, avonHealthService, modelManager);
   console.log('✅ Services initialized');
+
+  // Configure patient data caching
+  console.log('⚙️  Configuring patient data cache...');
+  avonHealthService.configureCaching({
+    ttlSeconds: config.cache.ttlSeconds,
+    maxSize: 100, // Max 100 patients in cache
+  });
+
+  // Optional: Warmup cache with frequently accessed patients
+  if (config.cache.enabled) {
+    const frequentPatients = process.env.FREQUENT_PATIENTS?.split(',').map(p => p.trim()) || [];
+    if (frequentPatients.length > 0) {
+      console.log(`🔥 Starting cache warmup for ${frequentPatients.length} patients...`);
+      avonHealthService.warmupCache(frequentPatients).catch(err => {
+        console.warn('⚠️  Cache warmup failed:', err.message);
+      });
+    }
+  }
 }
 
 // ============================================================================
@@ -220,8 +250,8 @@ async function initializeApp() {
 // Health check routes (no auth required)
 app.use('/', healthRoutes);
 
-// API routes
-app.use('/api', apiRoutes);
+// Async query routes (polling-based for long-running queries)
+app.use('/api/query', asyncQueryRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

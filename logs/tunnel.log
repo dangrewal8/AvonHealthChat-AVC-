@@ -1,0 +1,47 @@
+2025-12-10T21:11:58Z INF Starting tunnel tunnelID=1363d14d-f8b3-46a1-857e-25813e90406f
+2025-12-10T21:11:58Z INF Version 2025.11.1 (Checksum 83ea55259e419549817460d0c097f23ad1327364d0a63fab2c5463b9283251cb)
+2025-12-10T21:11:58Z INF GOOS: linux, GOVersion: go1.24.9, GoArch: amd64
+2025-12-10T21:11:58Z INF Settings: map[config:/home/dangr/.cloudflared/config.yml cred-file:/home/dangr/.cloudflared/1363d14d-f8b3-46a1-857e-25813e90406f.json credentials-file:/home/dangr/.cloudflared/1363d14d-f8b3-46a1-857e-25813e90406f.json]
+2025-12-10T21:11:58Z INF cloudflared will not automatically update if installed by a package manager.
+2025-12-10T21:11:58Z INF Generated Connector ID: 6a4e9dbe-3bed-481e-8003-c316677ebf0d
+2025-12-10T21:11:58Z INF Initial protocol quic
+2025-12-10T21:11:58Z INF ICMP proxy will use 172.17.66.239 as source for IPv4
+2025-12-10T21:11:58Z INF ICMP proxy will use fe80::215:5dff:fe71:857d in zone eth0 as source for IPv6
+2025-12-10T21:11:58Z WRN The user running cloudflared process has a GID (group ID) that is not within ping_group_range. You might need to add that user to a group within that range, or instead update the range to encompass a group the user is already in by modifying /proc/sys/net/ipv4/ping_group_range. Otherwise cloudflared will not be able to ping this network error="Group ID 1000 is not between ping group 1 to 0"
+2025-12-10T21:11:58Z WRN ICMP proxy feature is disabled error="cannot create ICMPv4 proxy: Group ID 1000 is not between ping group 1 to 0 nor ICMPv6 proxy: socket: permission denied"
+2025-12-10T21:11:58Z INF ICMP proxy will use 172.17.66.239 as source for IPv4
+2025-12-10T21:11:58Z INF ICMP proxy will use fe80::215:5dff:fe71:857d in zone eth0 as source for IPv6
+2025-12-10T21:11:58Z INF Starting metrics server on 127.0.0.1:20241/metrics
+2025-12-10T21:11:58Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=0 event=0 ip=198.41.200.113
+2025/12/10 13:11:58 failed to sufficiently increase receive buffer size (was: 208 kiB, wanted: 7168 kiB, got: 416 kiB). See https://github.com/quic-go/quic-go/wiki/UDP-Buffer-Sizes for details.
+2025-12-10T21:11:58Z INF Registered tunnel connection connIndex=0 connection=cf1b4cc2-466c-4454-9010-4df07d063582 event=0 ip=198.41.200.113 location=sjc07 protocol=quic
+2025-12-10T21:11:58Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=1 event=0 ip=198.41.192.57
+2025-12-10T21:11:59Z INF Registered tunnel connection connIndex=1 connection=589dcffe-8f48-4802-99bb-fd6d2ef85a15 event=0 ip=198.41.192.57 location=sjc06 protocol=quic
+2025-12-10T21:11:59Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=2 event=0 ip=198.41.192.227
+2025-12-10T21:12:00Z INF Registered tunnel connection connIndex=2 connection=5c83adb8-023c-4ce4-a3c5-ba12062f11f2 event=0 ip=198.41.192.227 location=sjc01 protocol=quic
+2025-12-10T21:12:00Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=3 event=0 ip=198.41.200.193
+2025-12-10T21:12:01Z INF Registered tunnel connection connIndex=3 connection=e5b8eee1-34d1-4806-9f7b-f311efd4ebd2 event=0 ip=198.41.200.193 location=sjc11 protocol=quic
+2025/12/11 01:11:16 Unsolicited response received on idle HTTP channel starting with "HTTP/1.1 400 Bad Request\r\n\r\n"; err=<nil>
+2025-12-12T01:29:20Z ERR failed to run the datagram handler error="timeout: no recent network activity" connIndex=1 event=0 ip=198.41.192.57
+2025-12-12T01:29:20Z ERR failed to accept incoming stream requests error="failed to accept QUIC stream: timeout: no recent network activity" connIndex=1 event=0 ip=198.41.192.57
+2025-12-12T01:29:20Z WRN failed to serve tunnel connection error="datagram manager encountered a failure while serving" connIndex=1 event=0 ip=198.41.192.57
+2025-12-12T01:29:20Z WRN Serve tunnel error error="datagram manager encountered a failure while serving" connIndex=1 event=0 ip=198.41.192.57
+2025-12-12T01:29:20Z INF Retrying connection in up to 1s connIndex=1 event=0 ip=198.41.192.57
+2025-12-12T01:29:20Z ERR failed to accept incoming stream requests error="failed to accept QUIC stream: timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.113
+2025-12-12T01:29:20Z ERR failed to run the datagram handler error="timeout: no recent network activity" connIndex=0 event=0 ip=198.41.200.113
+2025-12-12T01:29:20Z WRN failed to serve tunnel connection error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.113
+2025-12-12T01:29:20Z WRN Serve tunnel error error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.113
+2025-12-12T01:29:20Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.200.113
+2025-12-12T01:29:21Z WRN Connection terminated error="datagram manager encountered a failure while serving" connIndex=1
+2025-12-12T01:29:21Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=0 event=0 ip=198.41.200.113
+2025-12-12T01:29:21Z INF Registered tunnel connection connIndex=0 connection=592a7ba6-c676-4473-a779-17b3add9d585 event=0 ip=198.41.200.113 location=sjc07 protocol=quic
+2025-12-12T01:29:39Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=1 event=0 ip=198.41.192.57
+2025-12-12T01:29:39Z INF Registered tunnel connection connIndex=1 connection=0b2dbf34-fb97-4dbf-aac8-7b8e6f32c1e5 event=0 ip=198.41.192.57 location=sjc06 protocol=quic
+2025-12-12T06:39:16Z ERR failed to accept incoming stream requests error="failed to accept QUIC stream: timeout: no recent network activity" connIndex=2 event=0 ip=198.41.192.227
+2025-12-12T06:39:16Z ERR failed to run the datagram handler error="timeout: no recent network activity" connIndex=2 event=0 ip=198.41.192.227
+2025-12-12T06:39:16Z WRN failed to serve tunnel connection error="accept stream listener encountered a failure while serving" connIndex=2 event=0 ip=198.41.192.227
+2025-12-12T06:39:16Z WRN Serve tunnel error error="accept stream listener encountered a failure while serving" connIndex=2 event=0 ip=198.41.192.227
+2025-12-12T06:39:16Z INF Retrying connection in up to 1s connIndex=2 event=0 ip=198.41.192.227
+2025-12-12T06:39:17Z WRN Connection terminated error="accept stream listener encountered a failure while serving" connIndex=2
+2025-12-12T06:39:35Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=2 event=0 ip=198.41.192.227
+2025-12-12T06:39:35Z INF Registered tunnel connection connIndex=2 connection=48de6fab-467b-4bee-a925-915cde14d8e6 event=0 ip=198.41.192.227 location=sjc01 protocol=quic
