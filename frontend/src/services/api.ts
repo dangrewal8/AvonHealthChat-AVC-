@@ -178,7 +178,7 @@ class APIClient {
     onProgress?: (progress: number, status: string) => void
   ): Promise<{ data: UIResponse }> {
     const pollInterval = 2000; // 2 seconds
-    const maxAttempts = 150; // 5 minutes max (150 * 2s = 300s)
+    const maxAttempts = 300; // 10 minutes max (300 * 2s = 600s) - Allows for slow LLM processing
     let attempts = 0;
 
     while (attempts < maxAttempts) {
