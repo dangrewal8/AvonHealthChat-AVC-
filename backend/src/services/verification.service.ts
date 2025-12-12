@@ -417,20 +417,32 @@ export class VerificationService {
         const icdCode = cond.name || '';
         const conditionDescription = this.translateICD10Code(icdCode);
 
-        // Build comprehensive supporting text
-        const parts = [];
-        parts.push(`Diagnosis: ${conditionDescription}`);
-        parts.push(`ICD-10 Code: ${icdCode}`);
-        if (cond.onset_date) {
-          const onsetDate = new Date(cond.onset_date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-          parts.push(`Onset Date: ${onsetDate}`);
+        // Format onset date for display
+        const formattedOnsetDate = cond.onset_date
+          ? new Date(cond.onset_date).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })
+          : 'Unknown';
+
+        // Build Key Information value - shows structured data from the record (not the answer)
+        const keyInfoParts = [];
+        keyInfoParts.push(`ICD-10: ${icdCode}`);
+        keyInfoParts.push(`Diagnosed: ${formattedOnsetDate}`);
+        if (cond.status) keyInfoParts.push(`Status: ${cond.status}`);
+        if (cond.created_by) {
+          const providerId = cond.created_by.split('_')[1] || cond.created_by;
+          keyInfoParts.push(`Provider: ${providerId.substring(0, 8)}...`);
         }
-        if (cond.status) parts.push(`Status: ${cond.status}`);
-        if (cond.created_by) parts.push(`Documented by: ${cond.created_by}`);
+
+        // Build comprehensive supporting text for Sources section
+        const sourceParts = [];
+        sourceParts.push(`Diagnosis: ${conditionDescription}`);
+        sourceParts.push(`ICD-10 Code: ${icdCode}`);
+        sourceParts.push(`Onset Date: ${formattedOnsetDate}`);
+        if (cond.status) sourceParts.push(`Status: ${cond.status}`);
+        if (cond.created_by) sourceParts.push(`Documented by: ${cond.created_by}`);
 
         // Generate view URL
         const baseUrl = process.env.AVON_BASE_URL || 'https://demo-api.avonhealth.com';
@@ -439,11 +451,11 @@ export class VerificationService {
 
         structuredExtractions.push({
           type: 'condition',
-          value: conditionDescription, // Use human-readable name instead of ICD code
+          value: keyInfoParts.join(' | '), // Shows ACTUAL DATA from record, not the answer
           relevance: 1.0, // 100% - Direct answer to condition query
           confidence: 1.0, // 100% - Verified from actual API data
           source_artifact_id: cond.id || 'unknown',
-          supporting_text: parts.join(' • '),
+          supporting_text: sourceParts.join(' • '), // Full details for Sources section
           occurred_at: cond.onset_date || cond.created_at || new Date().toISOString(),
           view_url: viewUrl,
         });
