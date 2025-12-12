@@ -1747,9 +1747,9 @@ Your validation:`;
     console.log('🤖 Model 2A: Llama 3 (short answer)');
     modelPromises.push(
       this.generate(
-        `Context: ${miniContext}\n\nQ: ${query}\n\nProvide a BRIEF, direct answer (1-2 sentences maximum). Be specific but concise.\n\nShort Answer:`,
-        'You are a medical AI. Answer in 1-2 sentences only. Be direct and specific.',
-        0.1,
+        `Context: ${miniContext}\n\nQ: ${query}\n\nProvide a BRIEF, factual answer (1 sentence maximum). State ONLY the direct facts - NO explanations, NO clinical context, NO management advice. Just answer the question.\n\nShort Answer:`,
+        'You are a medical AI. Answer in ONE sentence. State only facts. No explanations or context.',
+        0.05, // Lower temperature for more consistent brevity
         undefined,
         'llama3:latest'
       ).then(response => ({ model: 'llama3', role: 'short_answer', response }))
