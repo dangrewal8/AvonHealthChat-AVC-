@@ -1559,13 +1559,13 @@ ${compactContext.substring(0, 2000)}...`;
 
 Task: Provide a CONCISE 1-2 sentence answer to the question using the extractions and data above.
 
-Your short answer:`;
+IMPORTANT: Respond in a natural, conversational tone. DO NOT include any labels like "Direct Answer:", "Short Answer:", etc. Just provide the answer directly as if speaking to the user.`;
 
     let shortAnswer = '';
     try {
       shortAnswer = (await this.generate(
         shortPrompt,
-        'You are a medical AI. Provide concise, accurate answers.',
+        'You are a medical AI assistant. Provide concise, conversational answers without labels or formatting.',
         0.1,
         undefined,
         'llama3:latest'
@@ -1579,21 +1579,23 @@ Your short answer:`;
     // Generate DETAILED SUMMARY
     const detailedPrompt = `${synthesisContext}
 
-Task: Provide a COMPREHENSIVE answer with ALL relevant details.
+Task: Provide a COMPREHENSIVE answer focused specifically on what the question asks about.
 
-Include:
-- Specific names, dosages, dates from the extractions
-- Clinical relationships identified
-- Active vs inactive status
-- Any temporal information
+CRITICAL REQUIREMENTS:
+1. Only include information DIRECTLY relevant to the question being asked
+2. If asked about conditions/diagnoses, focus on conditions - do NOT include medication details
+3. If asked about medications, focus on medications - do NOT include condition details
+4. Include specific details like names, dates, providers, and clinical context for the topic asked about
+5. Respond in natural, conversational paragraphs - NO labels like "Key Details:", "Clinical Context:", etc.
+6. Write as if explaining to someone in a professional but approachable manner
 
-Your detailed answer:`;
+Focus your answer on: ${query}`;
 
     let detailedSummary = '';
     try {
       detailedSummary = (await this.generate(
         detailedPrompt,
-        'You are a medical AI. Provide comprehensive, detailed answers.',
+        'You are a medical AI assistant. Provide comprehensive, conversational answers focused only on what was asked, without labels or section headers.',
         0.1,
         undefined,
         'llama3:latest'
@@ -1747,8 +1749,8 @@ Your validation:`;
     console.log('🤖 Model 2A: Llama 3 (short answer)');
     modelPromises.push(
       this.generate(
-        `Context: ${miniContext}\n\nQ: ${query}\n\nProvide a BRIEF, factual answer (1 sentence maximum). State ONLY the direct facts - NO explanations, NO clinical context, NO management advice. Just answer the question.\n\nShort Answer:`,
-        'You are a medical AI. Answer in ONE sentence. State only facts. No explanations or context.',
+        `Context: ${miniContext}\n\nQ: ${query}\n\nProvide a BRIEF, conversational answer (1-2 sentences). Respond naturally as if speaking to someone. DO NOT include labels like "Direct Answer:" or "Short Answer:" - just provide the answer directly.`,
+        'You are a medical AI assistant. Provide brief, conversational answers without labels or formatting. Speak naturally.',
         0.05, // Lower temperature for more consistent brevity
         undefined,
         'llama3:latest'
@@ -1759,8 +1761,18 @@ Your validation:`;
     console.log('🤖 Model 2B: Llama 3 (detailed summary with context)');
     modelPromises.push(
       this.generate(
-        `Context: ${miniContext}\n\nQuestion: ${query}\n\nProvide a COMPREHENSIVE, professional medical summary including:\n\n1. **Main Finding**: State the key information clearly\n2. **Clinical Details**: Include specific dates, dosages, ICD codes, frequencies\n3. **Medical Context**: Explain what this means for the patient (clinical significance, disease progression, complications)\n4. **Timeline**: When was this diagnosed/started? Any changes over time?\n5. **Treatment/Management**: Current medications, care plans, or interventions related to this condition\n6. **Source Attribution**: Reference who documented this (e.g., "as documented by Dr. Smith on...")\n\nFormat your answer in clear paragraphs with headers. Make it professional and informative as if explaining to a healthcare provider.\n\nDetailed Summary:`,
-        'You are a professional medical AI assistant. Provide comprehensive, well-structured medical information with clinical context and significance. Use professional medical terminology but explain complex concepts clearly.',
+        `Context: ${miniContext}\n\nQuestion: ${query}\n\nProvide a COMPREHENSIVE answer focused specifically on what was asked in the question.
+
+CRITICAL REQUIREMENTS:
+1. Only include information DIRECTLY relevant to the question being asked
+2. If asked about conditions/diagnoses, focus on conditions - do NOT include medication details
+3. If asked about medications, focus on medications - do NOT include unrelated condition details
+4. Include specific details like names, dates, providers, ICD codes, and clinical context ONLY for what was asked
+5. Write in natural, conversational paragraphs - NO labels, NO section headers like "Main Finding:", "Clinical Details:", "Key Details:", etc.
+6. Be professional but approachable, as if explaining to someone in a conversation
+
+Focus your answer specifically on: ${query}`,
+        'You are a medical AI assistant. Provide comprehensive, conversational answers focused only on what was asked. NO labels or section headers. Write naturally in flowing paragraphs.',
         0.15,
         undefined,
         'llama3:latest'
@@ -1931,8 +1943,18 @@ If accurate, respond "VERIFIED". If issues found, provide corrections.`;
       (async () => {
         console.log('🤖 Llama3 - Answer generation');
         return await this.generate(
-          `Context: ${miniContext}\n\nQuestion: ${query}\n\nProvide a professional, medically-informed answer that includes:\n\n1. DIRECT ANSWER: Clear response to the question with relevant medical context\n2. KEY DETAILS: Specific information (medications with dosages and frequency, dates in natural language, current status)\n3. CLINICAL CONTEXT: Brief explanation of medical purpose, indications, or significance where relevant\n4. NATURAL LANGUAGE: Use professional but conversational tone (e.g., "prescribed on" instead of "started", "is currently taking" instead of "takes")\n\nProvide 2-4 sentences that sound natural and informative, as if explaining to a healthcare provider.\n\nAnswer:`,
-          'You are an experienced clinical assistant providing clear, accurate medical information. Write in a professional yet natural tone.',
+          `Context: ${miniContext}\n\nQuestion: ${query}\n\nProvide a comprehensive, conversational answer focused specifically on what the question asks.
+
+CRITICAL REQUIREMENTS:
+1. Only include information DIRECTLY relevant to the question
+2. If asked about conditions, focus on conditions - do NOT include medication details
+3. If asked about medications, focus on medications - do NOT include unrelated condition details
+4. Include specific details (dates, dosages, ICD codes, providers) ONLY for what was asked
+5. Write in natural, flowing paragraphs - NO labels or section headers
+6. Be professional but conversational, as if explaining to someone
+
+Answer the question directly in 2-4 natural sentences.`,
+          'You are a medical AI assistant. Provide conversational answers focused only on what was asked. NO labels or section headers. Write naturally.',
           0.1,
           undefined,
           'llama3:latest'
