@@ -36,15 +36,19 @@ export function checkDataAvailability(context: string, dataType: string): DataAv
     contextLower.includes(indicator.toLowerCase())
   );
 
+  // ENHANCED: Check for JSON-style counts (e.g., "appointments":0 or "family_history":0)
+  const jsonCountPattern = new RegExp(`"${dataType}":\\s*0`, 'i');
+  const hasZeroCountInJSON = jsonCountPattern.test(context);
+
   // Extract record count if available
   const recordCountMatch = context.match(/(\d+)\s+(record|medication|condition|allergy|note|document|appointment|insurance|family history)/i);
   const recordCount = recordCountMatch ? parseInt(recordCountMatch[1]) : -1;
 
-  const hasData = !hasNoDataIndicator && recordCount !== 0;
+  const hasData = !hasNoDataIndicator && !hasZeroCountInJSON && recordCount !== 0;
 
   return {
     hasData,
-    recordCount,
+    recordCount: hasZeroCountInJSON ? 0 : recordCount,
     dataType,
     message: hasData
       ? `Data available for ${dataType} (${recordCount >= 0 ? recordCount : 'unknown'} records)`
@@ -79,7 +83,7 @@ export function detectDataType(query: string): string[] {
   const patterns: Record<string, RegExp[]> = {
     family_history: [/family|genetic|hereditary|parent|sibling|maternal|paternal/i],
     appointments: [/appointment|scheduled|visit|next.*see|upcoming/i],
-    insurance: [/insurance|coverage|policy|copay|deductible|provider/i],
+    insurance_policies: [/insurance|coverage|policy|copay|deductible|provider/i],
     medications: [/medication|medicine|drug|prescription|pill/i],
     conditions: [/condition|diagnosis|disease|illness/i],
     allergies: [/allergy|allergies|allergic|reaction/i],
