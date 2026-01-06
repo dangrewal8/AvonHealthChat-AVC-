@@ -19,6 +19,8 @@ import { DataCompartmentService } from '../services/data-compartment.service';
 import { analyzeQuery } from './enhanced-query-understanding';
 import { sanitizeQuery } from '../middleware/validation';
 import { perfMon } from '../middleware/performance';
+import { checkDataAvailability, generateNoDataResponse, detectDataType } from '../utils/data-availability.util';
+import { answerValidator } from '../services/answer-validator.service';
 
 const router = Router();
 
@@ -162,6 +164,61 @@ async function processQueryAsync(
     // Normalize to full format (fills empty arrays for missing compartments)
     const patientData = dataCompartmentService.normalizeData(compartmentalizedData);
 
+    // ANTI-HALLUCINATION: Check data availability and short-circuit if no data exists
+    const detectedTypes = detectDataType(query);
+    const primaryType = detectedTypes[0];
+
+    if (primaryType) {
+      // Build mini-context string for availability check
+      const miniContext = JSON.stringify({
+        medications: patientData.medications?.length || 0,
+        conditions: patientData.conditions?.length || 0,
+        allergies: patientData.allergies?.length || 0,
+        family_history: patientData.family_history?.length || 0,
+        appointments: patientData.appointments?.length || 0,
+        insurance_policies: patientData.insurance_policies?.length || 0,
+        notes: patientData.notes?.length || 0,
+        care_plans: patientData.care_plans?.length || 0,
+        vitals: patientData.vitals?.length || 0,
+        documents: patientData.documents?.length || 0,
+      });
+
+      const availabilityCheck = checkDataAvailability(miniContext, primaryType);
+
+      if (!availabilityCheck.hasData) {
+        // Short-circuit - return "not available" immediately without calling LLM
+        console.log(`⚠️  No data for ${primaryType} - short-circuit response`);
+
+        const noDataResponse = generateNoDataResponse(primaryType);
+
+        const processingTime = Date.now() - startTime;
+
+        const result: UIResponse = {
+          query_id: jobId,
+          ...noDataResponse,
+          structured_extractions: [],
+          provenance: [],
+          confidence: {
+            overall: 1.0,
+            breakdown: { retrieval: 1.0, reasoning: 1.0, extraction: 1.0 },
+            explanation: 'No data available - did not query LLM'
+          },
+          metadata: {
+            patient_id,
+            query_time: new Date().toISOString(),
+            processing_time_ms: processingTime,
+            artifacts_searched: 0,
+            chunks_retrieved: 0,
+            detail_level: 3,
+          }
+        };
+
+        jobQueue.markCompleted(jobId, result);
+        console.log(`✅ Query short-circuited in ${(processingTime / 1000).toFixed(1)}s (no data)`);
+        return;
+      }
+    }
+
     // Progress: 40% - Data fetched, starting AI processing
     jobQueue.markProcessing(jobId, 40);
 
@@ -199,6 +256,26 @@ async function processQueryAsync(
       ollamaModelName
     );
 
+    // ANTI-HALLUCINATION: Validate and auto-correct response if needed
+    const contextForValidation = JSON.stringify({
+      medications: patientData.medications?.length || 0,
+      conditions: patientData.conditions?.length || 0,
+      allergies: patientData.allergies?.length || 0,
+      family_history: patientData.family_history?.length || 0,
+      appointments: patientData.appointments?.length || 0,
+      insurance_policies: patientData.insurance_policies?.length || 0,
+      notes: patientData.notes?.length || 0,
+      care_plans: patientData.care_plans?.length || 0,
+      vitals: patientData.vitals?.length || 0,
+      documents: patientData.documents?.length || 0,
+    });
+
+    const validatedResponse = answerValidator.correctHallucination(
+      query,
+      verificationResponse,
+      contextForValidation
+    );
+
     // Progress: 90% - Formatting response
     jobQueue.markProcessing(jobId, 90);
 
@@ -206,7 +283,7 @@ async function processQueryAsync(
     console.log(`✅ Query processed in ${(processingTime / 1000).toFixed(1)}s`);
 
     // Convert structured_extractions to provenance format (with real dates and snippets)
-    const provenance = (verificationResponse.structured_extractions || []).map((extraction: any, index: number) => ({
+    const provenance = (validatedResponse.structured_extractions || []).map((extraction: any, index: number) => ({
       artifact_id: extraction.source_artifact_id || `source_${index}`,
       artifact_type: extraction.type || 'medication',
       snippet: extraction.supporting_text || extraction.value || '',
@@ -217,12 +294,12 @@ async function processQueryAsync(
       source_url: `/api/emr/${extraction.type || 'data'}/${extraction.source_artifact_id || ''}`,
     }));
 
-    // Build final response
+    // Build final response (using validated response)
     const result: UIResponse = {
       query_id: jobId,
-      short_answer: verificationResponse.short_answer,
-      detailed_summary: verificationResponse.detailed_summary,
-      structured_extractions: verificationResponse.structured_extractions || [],
+      short_answer: validatedResponse.short_answer,
+      detailed_summary: validatedResponse.detailed_summary,
+      structured_extractions: validatedResponse.structured_extractions || [],
       provenance,
       confidence: {
         overall: verificationResponse.consensus_score || 0.9,
@@ -237,9 +314,10 @@ async function processQueryAsync(
         patient_id,
         query_time: new Date().toISOString(),
         processing_time_ms: processingTime,
-        artifacts_searched: verificationResponse.structured_extractions?.length || 0,
+        artifacts_searched: validatedResponse.structured_extractions?.length || 0,
         chunks_retrieved: verificationResponse.sources?.length || 0,
         detail_level: 3,
+        ...(validatedResponse.metadata || {}), // Include any hallucination detection metadata
       },
     };
 

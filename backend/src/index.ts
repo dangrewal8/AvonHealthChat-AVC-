@@ -13,6 +13,7 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import healthRoutes from './routes/health.routes';
 import asyncQueryRoutes, { initializeAsyncServices } from './routes/async-query.routes';
+import monitoringRoutes from './routes/monitoring.routes';
 import { OllamaService } from './services/ollama.service';
 import { AvonHealthService } from './services/avonhealth.service';
 import { ModelManagerService } from './services/model-manager.service';
@@ -252,6 +253,9 @@ app.use('/', healthRoutes);
 
 // Async query routes (polling-based for long-running queries)
 app.use('/api/query', asyncQueryRoutes);
+
+// Monitoring routes (hallucination tracking, health metrics)
+app.use('/monitoring', monitoringRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
